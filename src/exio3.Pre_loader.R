@@ -18,7 +18,7 @@ Y <- fread(file = str_c(path_data.source, "IOT_",year,"_",nom,"/Y.txt"),
   as.data.frame()
 
 ## F: compte sattelite (avec indicateurs d'impact environnementaux)
-Fe <- fread(file = str_c(file = str_c(path_data.source, "satellite/F.txt")),
+Fe <- fread(file = str_c(path_data.source, "IOT_",year,"_",nom,"/satellite/F.txt"),
             sep = "\t",
             header = FALSE) %>%
   as.data.frame()
