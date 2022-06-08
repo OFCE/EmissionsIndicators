@@ -33,6 +33,7 @@ A_pays_secteurs <- str_c(A_pays,"_",A_secteurs)# Pour avoir en une seule chaine 
 # Extraction des valeurs de A et mise sous forme d'une matrice de type "numeric"
 A.mat <- A[-1:-3,-1:-2] # on ne garde que les valeurs numeriques de A et plus les noms de ligne et colonnes
 A.mat <- as.numeric(A.mat)# on transforme les valeur de A en valeurs numeriques et non plus en chaines de caracteres
+#Suggestion: A.mat <- as.numeric(unlist(A.mat))
 A.mat <- matrix(A.mat,length(A_pays_secteurs),length(A_pays_secteurs),
                 dimnames=list(A_pays_secteurs,A_pays_secteurs)) # on cree la matrice A (valeurs numeriques)
 
@@ -45,7 +46,7 @@ Y_pays_types_DF <- str_c(Y_pays,"_",Y_types_DF)%>%as.character()
 
 
 Y.mat <- Y[-1:-3,-1:-2]
-Y.mat <- as.numeric(Y)
+Y.mat <- as.numeric(Y) #Suggestion: Y.mat <- as.numeric(unlist(Y.mat))
 Y.mat <- matrix(Y.mat ,length(A_pays_secteurs),length(Y_pays_types_DF),
                dimnames=list(Y_pays_secteurs,Y_pays_types_DF))
 
@@ -55,9 +56,9 @@ Fe_noms_extensions <- Fe[-1:-2,1]
 Fe_pays_secteurs <- A_pays_secteurs
 
 Fe.mat <- Fe[-1:-2,-1]# extraction des valeurs
-Fe.mat <-as.numeric(Fe)
-Fe.mat <-matrix(Fe,length(F_noms_extensions),length(A_pays_secteurs),
-                dimnames=list(F_noms_extensions,A_pays_secteurs))
+Fe.mat <-as.numeric(Fe) #Suggestion: Fe.mat <-as.numeric(unlist(Fe.mat))
+Fe.mat <-matrix(Fe,length(Fe_noms_extensions),length(A_pays_secteurs),
+                dimnames=list(Fe_noms_extensions,A_pays_secteurs)) #typo: "F" au lieu de "Fe"
 
 ### Save and export
 # A: matrice des coefficients techniques
