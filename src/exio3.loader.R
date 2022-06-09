@@ -1,12 +1,13 @@
 ### data loading
+#path_codedata <- str_c(path_user, "location of the script") 
 EmissionsIndicators/data.out/IOT_2015_pxp/A.rds
 A <-readRDS(str_c("data.out/IOT_",year,"_",nom,"/A.rds"))
-Y <-readRDS(str_c("data.out/IOT_",year,"_",nom,"/Y.rds"))
+Y <-readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/Y.rds"))
 Fe <-readRDS(str_c("data.out/IOT_",year,"_",nom,"/Fe.rds"))
 
-Y_d <- readRDS(str_c("data.out/IOT_",year,"_",nom,"/Y_types_DF.rds"))
-Y_cd <- readRDS(str_c("data.out/IOT_",year,"_",nom,"/Y_pays_types_DF.rds"))
-Y_c <- readRDS(str_c("data.out/IOT_",year,"_",nom,"/Y_pays.rds"))
+Y_d <- readRDS(str_c(path_codedata, "data.out/IOT_",year,"_",nom,"/Y_types_DF.rds"))
+Y_cd <- readRDS(str_c(path_codedata, "data.out/IOT_",year,"_",nom,"/Y_pays_types_DF.rds"))
+Y_c <- readRDS(str_c(path_codedata, "data.out/IOT_",year,"_",nom,"/Y_pays.rds"))
 
 Y_df <- Y %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
                                          products.in= str_sub(rownames(.),4))

@@ -69,19 +69,19 @@ saveRDS(A.mat, str_c( path_out, "A.rds"))
 saveRDS(A_pays_secteurs, str_c(path_out, "A_pays_secteurs.rds"))
 saveRDS(A_pays, str_c(path_out, "A_pays.rds"))
 saveRDS(A_secteurs, str_c(path_out, "A_secteurs.rds"))
-rm(list=c("A_pays","A_secteurs"))
+#rm(list=c("A_pays","A_secteurs"))
 # Y: matrice de demande finale
 saveRDS(Y.mat, str_c(path_out, "Y.rds"))
-remove(Y.mat)
+#remove(Y.mat)
 saveRDS(Y_types_DF, str_c(path_out, "Y_types_DF.rds"))
 saveRDS(Y_pays_types_DF, str_c(path_out, "Y_pays_types_DF.rds"))
 saveRDS(Y_pays, str_c(path_out, "Y_pays.rds"))
-rm(list=c("Y_types_DF","Y_pays_types_DF", "Y_pays"))
+#rm(list=c("Y_types_DF","Y_pays_types_DF", "Y_pays"))
 # fe: matrice de compte satellite 
 saveRDS(Fe.mat, str_c(path_out, "F.rds"))
 saveRDS(Fe_noms_extensions, str_c(path_out, "F_noms_extensions.rds"))
 saveRDS(Fe_pays_secteurs, str_c(path_out, "F_pays_secteurs.rds"))
-rm(list=c("Fe.mat","Fe_noms_extensions", "Fe_pays_secteurs"))
+#rm(list=c("Fe.mat","Fe_noms_extensions", "Fe_pays_secteurs"))
 
 print(str_c("les fichiers sont sauvegardés à cette adresse : ",path_out))
 

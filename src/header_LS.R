@@ -11,6 +11,7 @@ nom <- "pxp"
 path_user <- str_c("C:/Users/leasy/")
 path_data.source <- str_c(path_user,"Documents/GitHub/EmissionsIndicators/data_in/")
 #path_data.source <- str_c("data_in/IOT/")
+path_codedata <- str_c(path_user,"Documents/GitHub/EmissionsIndicators/src/")
 
 path_out <- "data_out/"
 
