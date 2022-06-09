@@ -32,7 +32,7 @@ A_pays_secteurs <- str_c(A_pays,"_",A_secteurs)# Pour avoir en une seule chaine 
 
 # Extraction des valeurs de A et mise sous forme d'une matrice de type "numeric"
 A.mat <- as.matrix(A)[-1:-3,-1:-2] # on ne garde que les valeurs numeriques de A et plus les noms de ligne et colonnes
-remove(A)
+#remove(A)
 A.mat <- as.numeric(unlist(A.mat))# on transforme les valeur de A en valeurs numeriques et non plus en chaines de caracteres
 A.mat <- matrix(A.mat,length(A_pays_secteurs),length(A_pays_secteurs),
                 dimnames=list(A_pays_secteurs,A_pays_secteurs)) # on cree la matrice A (valeurs numeriques)
@@ -46,7 +46,7 @@ Y_pays_types_DF <- str_c(Y_pays,"_",Y_types_DF) %>% as.character()
 
 Y[-1:-3,-1:-2] %>% as.numeric()
 Y.mat <- Y[-1:-3,-1:-2]
-remove(Y)
+#remove(Y)
 Y.mat <- as.numeric(unlist(Y.mat))
 Y.mat <- matrix(Y.mat ,length(A_pays_secteurs),length(Y_pays_types_DF),
                dimnames=list(Y_pays_secteurs,Y_pays_types_DF))
@@ -60,25 +60,28 @@ Fe.mat <- Fe[-1:-2,-1]# extraction des valeurs
 Fe.mat <-as.numeric(unlist(Fe.mat))
 Fe.mat <-matrix(Fe,length(Fe_noms_extensions),length(A_pays_secteurs),
                 dimnames=list(Fe_noms_extensions,A_pays_secteurs))
-remove(Fe)
+#remove(Fe)
 
 ### Save and export
 # A: matrice des coefficients techniques
 saveRDS(A.mat, str_c( path_out, "A.rds"))
-remove(A.mat)
+#remove(A.mat)
 saveRDS(A_pays_secteurs, str_c(path_out, "A_pays_secteurs.rds"))
 saveRDS(A_pays, str_c(path_out, "A_pays.rds"))
 saveRDS(A_secteurs, str_c(path_out, "A_secteurs.rds"))
+rm(list=c("A_pays","A_secteurs"))
 # Y: matrice de demande finale
 saveRDS(Y.mat, str_c(path_out, "Y.rds"))
 remove(Y.mat)
 saveRDS(Y_types_DF, str_c(path_out, "Y_types_DF.rds"))
 saveRDS(Y_pays_types_DF, str_c(path_out, "Y_pays_types_DF.rds"))
 saveRDS(Y_pays, str_c(path_out, "Y_pays.rds"))
+rm(list=c("Y_types_DF","Y_pays_types_DF", "Y_pays"))
 # fe: matrice de compte satellite 
 saveRDS(Fe.mat, str_c(path_out, "F.rds"))
 saveRDS(Fe_noms_extensions, str_c(path_out, "F_noms_extensions.rds"))
 saveRDS(Fe_pays_secteurs, str_c(path_out, "F_pays_secteurs.rds"))
+rm(list=c("Fe.mat","Fe_noms_extensions", "Fe_pays_secteurs"))
 
 print(str_c("les fichiers sont sauvegardés à cette adresse : ",path_out))
 
