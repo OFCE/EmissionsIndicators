@@ -41,8 +41,18 @@ Y_dff[,2] %>% sum
 
 Y[,1] %>% sum()
 # 9002674 tot sum
-Y_dff %>% select(-countries.out, - products.out) %>% sum()
+Y_dff %>% select(-countries.out, -products.out) %>% sum()
 Y_dff %>% select(-countries.out) %>% sum()
 
 #67492247 tot sum
 Y %>% sum()
+
+##Columns 
+### Merge and summarize of rows
+#En cours (pas du tout le résultat attendu pour l'instant)
+Y_dffinal <- Y_dff %>% pivot_longer(cols = starts_with(exio3.desc$countries), names_to = "countries.in", values_to = "value")
+Y_dffinal <- merge(Y_dff, br_lg, by = "countries.in" , all.x = TRUE) %>%
+  merge(., br.2_lg, by = "products.in") %>%
+  group_by(countries.out, products.out) %>%
+  summarise_at(Y_cd,~sum(.x)) %>% arrange(countries.out, products.out) %>% ungroup()
+
