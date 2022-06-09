@@ -1,6 +1,5 @@
 library(tidyverse)
 library(data.table)
-library(readxl)
 library(openxlsx)
 
 ###
@@ -23,3 +22,8 @@ iso <-  str_c("FR")
 
 # Liste des GES considérés
 glist <- c("CO2", "CH4", "N2O", "SF6", "HFC", "PFC")
+
+
+# Descriptions of nomenclatures
+source("data_in/desc/exio3.desc.R")
+source("src/functions/01_load.bridge.R")
