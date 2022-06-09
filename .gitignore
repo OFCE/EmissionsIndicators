@@ -3,5 +3,6 @@
 .RData
 .Ruserdata
 
-
-data_out/*.rds
+data_in/**.txt
+data_in/**.json
+data_out/**.rds
