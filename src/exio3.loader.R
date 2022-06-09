@@ -1,5 +1,5 @@
 ### data loading
-#path_codedata <- str_c(path_user, "location of the script") 
+#path_codedata <- str_c(path_user, ".../src/") 
 EmissionsIndicators/data.out/IOT_2015_pxp/A.rds
 A <-readRDS(str_c("data.out/IOT_",year,"_",nom,"/A.rds"))
 Y <-readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/Y.rds"))
