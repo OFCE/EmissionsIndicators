@@ -78,11 +78,13 @@ sum(Y_dff[,-1]) - sum(Y)
 (sum(tY_dff[,-1:-2]) - sum(Y)) #/sum(Y) *100
 
 #Changer noms des lignes
-row.Y_dff <- str_c(tY_dff$countries.out,"_",tY_dff$products.in)
-tY_dfff <- tY_dff %>% select(-countries.out,- products.out) %>% 
-  as.matrix(length(nrow(tA_dff)),length(ncol(tA_dff)),
-            dimnames = list(row.Y_dff,col.Y_dff)) %>%
+row.Y_dfff <- str_c(tY_dff$countries.out,"_",tY_dff$products.in)
+tY_dfff <- tY_dff %>% select(-countries.out,- products.in) %>% 
+  as.matrix(length(nrow(tY_dff)),length(ncol(tY_dff)),
+            dimnames = list(row.Y_dff,col.Y_dfff)) %>%
   t() %>% as.data.frame()  %>% `colnames<-`(row.Y_dff)
+View(tY_dfff)
+(sum(tY_dfff[,-1:-2]) - sum(Y)) /sum(Y) *100 #Erreur: 0.027%
 
 ####A
 A_df <- A %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
@@ -108,8 +110,8 @@ tA_dff <- A_dfff %>% select(-countries.out,- products.out) %>%
   #transposée, maintenant bridge dans l'autre sens
   mutate(countries.in = str_sub(rownames(.),1,2),
          products.in = str_sub(rownames(.),4)) %>%
-  merge(br_lg, by = "countries.in" , all = T) %>%
-  merge(., br.2_lg, by = "products.in") %>%
+  merge(br_lg, by = "countries.in" ,all.x = TRUE) %>%
+  merge(., br.2_lg, by = "products.in",all.x = TRUE) %>%
   group_by(countries.out, products.out) %>%
   # Somme pondérée par weight pour les produits (0>p>1)
   summarise(across(all_of(col.A_dfff), ~ sum(.)))  %>% ungroup()
@@ -119,10 +121,12 @@ A_dfff[is.na(A_dfff)]
 tA_dff[is.na(tA_dff)]
 
 sum(A_dff[,-1]) - sum(A)
-(sum(tA_dff[,-1:-2]) - sum(A))
+(sum(tA_dff[,-1:-2]) - sum(A)) /sum(A) *100
 
 tA_dfff <- tA_dff %>% select(-countries.out,- products.out) %>% 
   as.matrix(length(nrow(tA_dff)),length(ncol(tA_dff)),
             dimnames = list(col.A_dfff,col.A_dfff)) %>%
   t() %>% as.data.frame()  %>% `colnames<-`(col.A_dfff)
 View(tA_dfff)
+
+(sum(tA_dfff[,-1:-2]) - sum(A)) /sum(A) *100 #Erreur trop importante: 8,67%
