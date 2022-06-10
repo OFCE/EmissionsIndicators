@@ -3,7 +3,7 @@ br <- "ThreeMe"
 # Chargement des données I-O sauvegardées par le script exio3.Pre-loader.R
 A <-readRDS(str_c("data_out/IOT_",year,"_",nom,"/A_",br,".rds"))
 Y <-readRDS(str_c("data_out/IOT_",year,"_",nom,"/Y_",br,".rds"))
-Fe <-readRDS(str_c("data_out/IOT_",year,"_",nom,"/F_",br,".rds"))
+Fe <-readRDS(str_c("data_out/IOT_",year,"_",nom,"/Fe_",br,".rds"))
 
 ## Calcul de L: matrice de Leontief
 L <- LeontiefInverse(A)
