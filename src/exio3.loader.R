@@ -74,13 +74,5 @@ sum(Y_dff[,-1]) - sum(Y)
 # Encore une petite erreur mais qui est négligable (0.032%)
 (sum(tY_dff[,-1:-2]) - sum(Y)) #/sum(Y) *100
 
-
-##Columns 
-### Merge and summarize of rows
-#En cours (pas du tout le résultat attendu pour l'instant)
-Y_dffinal <- Y_dff %>% pivot_longer(cols = starts_with(exio3.desc$countries), names_to = "countries.in", values_to = "value")
-Y_dffinal <- merge(Y_dff, br_lg, by = "countries.in" , all.x = TRUE) %>%
-  merge(., br.2_lg, by = "products.in") %>%
-  group_by(countries.out, products.out) %>%
-  summarise_at(Y_cd,~sum(.x)) %>% arrange(countries.out, products.out) %>% ungroup()
-
+#Changer noms des lignes
+#rownames(tY_dff) <- str_c(tY_dff$countries.out,"_",tY_dff$products.in)
