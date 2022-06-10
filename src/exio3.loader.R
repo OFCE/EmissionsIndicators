@@ -3,16 +3,16 @@
 #A mettre dans header si besoin
 #path_codedata <- str_c(path_user,".../src/")
 
-A <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/A.rds"))
-Y <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/Y.rds"))
-Fe <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/F.rds"))
+A <- readRDS(str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/A.rds"))
+Y <- readRDS(str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/Y.rds"))
+Fe <- readRDS(str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/F.rds"))
 
-Y_d <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/Y_types_DF.rds"))
-A_cd <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/A_pays_secteurs.rds"))
-Y_cd <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/Y_pays_types_DF.rds"))
-Y_c <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/Y_pays.rds"))
-F_cd <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/F_pays_secteurs.rds"))
-F_noms_extensions <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/F_noms_extensions.rds"))
+Y_d <- readRDS(str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/Y_types_DF.rds"))
+A_cd <- readRDS(str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/A_pays_secteurs.rds"))
+Y_cd <- readRDS(str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/Y_pays_types_DF.rds"))
+Y_c <- readRDS(str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/Y_pays.rds"))
+F_cd <- readRDS(str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/F_pays_secteurs.rds"))
+F_noms_extensions <- readRDS(str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/F_noms_extensions.rds"))
 
 Y_df <- Y %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
                                          products.in = str_sub(rownames(.),4))
@@ -84,7 +84,7 @@ row.Y_dfff <- str_c(tY_dff$countries.out,"_",tY_dff$products.in)
 tY_dfff <- tY_dff %>% select(-countries.out,- products.in) %>% 
   as.matrix(length(nrow(tY_dff)),length(ncol(tY_dff)),
             dimnames = list(row.Y_dff,col.Y_dfff)) %>%
-  t() %>% as.data.frame()  %>% `colnames<-`(row.Y_dff)
+  t() %>% as.data.frame()  %>% `colnames<-`(row.Y_dfff)
 View(tY_dfff)
 (sum(tY_dfff[,-1:-2]) - sum(Y)) /sum(Y) *100 #Erreur: 0.027%
 
@@ -166,3 +166,9 @@ View(tF_dfff)
 #difference in value from the original database Y and the transformed Y_dff. Should be equal to 0 
 (sum(tF_dfff[,-1:-2]) - sum(Fe))  /sum(Fe) *100 #Erreur de 0.95%
 
+### Save and export
+saveRDS(tA_dfff, str_c(path_out, "A_ThreeMe.rds"))
+
+saveRDS(tY_dfff, str_c(path_out, "Y_ThreeMe.rds"))
+
+saveRDS(tF_dfff, str_c(path_out, "Fe_ThreeMe.rds"))
