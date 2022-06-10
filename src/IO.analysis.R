@@ -66,7 +66,10 @@ for (ges in glist){
   GES_list[[str_c(ges)]] <- GES_list[["GES.raw"]][id_row,] %>% colSums() %>% as.data.frame()
 }
 
-# Conversion en MtCO2e 
+# Conversion en MtCO2e
+#Suggestion instead: 
+#for (ges in c("CH4","N2O","SF6")){GES_list[[ges]] <- GHGToCO2eq(GES_list[[ges]])}
+
 GES_list[["CH4"]] <- 28 * GES_list[["CH4"]]
 GES_list[["N2O"]] <- 265 * GES_list[["N2O"]]
 GES_list[["SF6"]] <- 23500 * GES_list[["SF6"]]
@@ -83,7 +86,7 @@ GES_list[["GES"]] <- GES_list[["CO2"]] +
 print("Computation of the environemental impact (S) : done")  
 
 
-#M <- S %*% L
+M <- S %*% L
 for (ges in c(glist,"GES")){
   M.mat <-  GES_list[[str_c(ges)]] %>% unlist %>% as.numeric %>% diag
   
