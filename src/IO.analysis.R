@@ -16,6 +16,7 @@ Y_pays_types_DF<-colnames(Y)
 y_tot<- as.matrix(Y) %*% as.matrix(rep(1,length(Y_pays_types_DF)))
 rm(Y_pays_types_DF)
 rm(Y)
+#y_tot : demande totale par région et secteur
 
 
 ## calcul de S
@@ -33,7 +34,6 @@ x_1d <- diag(x_1)
 
 S <- as.matrix(Fe) %*% x_1d
 S[is.nan(S)]
-
 
 
 
