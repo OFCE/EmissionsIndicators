@@ -59,9 +59,14 @@ Fe.mat <-as.numeric(unlist(Fe.mat))
 Fe.mat <-matrix(Fe,length(Fe_noms_extensions),length(A_pays_secteurs),
                 dimnames=list(Fe_noms_extensions,A_pays_secteurs))
 
+##test for Fe
+Fe.mat <- Fe %>% as.data.frame() %>% select(-V1) %>% `colnames<-`(Fe_pays_secteurs)
+Fe.mat <- Fe.mat[-c(1,2),]
+Fe.mat = Fe.mat %>% summarise(across(all_of(A_pays_secteurs), ~ as.numeric(.))) %>% `rownames<-`(Fe_noms_extensions)
+
 ### Save and export
 # A: matrice des coefficients techniques
-saveRDS(A.mat, str_c( path_out, "A.rds"))
+saveRDS(A.mat, str_c(path_out, "A.rds"))
 saveRDS(A_pays_secteurs, str_c(path_out, "A_pays_secteurs.rds"))
 saveRDS(A_pays, str_c(path_out, "A_pays.rds"))
 saveRDS(A_secteurs, str_c(path_out, "A_secteurs.rds"))
