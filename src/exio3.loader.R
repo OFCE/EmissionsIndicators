@@ -1,13 +1,13 @@
 ### data loading
 
-A <- readRDS(str_c("data_out/IOT_",year,"_",nom,"/A.rds"))
-Y <- readRDS(str_c("data_out/IOT_",year,"_",nom,"/Y.rds"))
+A <- readRDS(str_c("data.out/IOT_",year,"_",nom,"/A.rds"))
+Y <- readRDS(str_c("data.out/IOT_",year,"_",nom,"/Y.rds"))
 #Fe <- readRDS(str_c("data_out/IOT_",year,"_",nom,"/Fe.rds"))
 
-Y_d <- readRDS(str_c("data_out/IOT_",year,"_",nom,"/Y_types_DF.rds"))
-A_cd <- readRDS(str_c("data_out/IOT_",year,"_",nom,"/A_pays_secteurs.rds"))
-Y_cd <- readRDS(str_c("data_out/IOT_",year,"_",nom,"/Y_pays_types_DF.rds"))
-Y_c <- readRDS(str_c("data_out/IOT_",year,"_",nom,"/Y_pays.rds"))
+Y_d <- readRDS(str_c("data.out/IOT_",year,"_",nom,"/Y_types_DF.rds"))
+A_cd <- readRDS(str_c("data.out/IOT_",year,"_",nom,"/A_pays_secteurs.rds"))
+Y_cd <- readRDS(str_c("data.out/IOT_",year,"_",nom,"/Y_pays_types_DF.rds"))
+Y_c <- readRDS(str_c("data.out/IOT_",year,"_",nom,"/Y_pays.rds"))
 
 Y_df <- Y %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
                                          products.in = str_sub(rownames(.),4))
