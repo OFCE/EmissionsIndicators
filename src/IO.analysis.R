@@ -13,7 +13,7 @@ print("Computation of the Leontief matrix (L) : done")
 
 
 Y_pays_types_DF<-colnames(Y)
-y_tot<-Y %*% rep(1,length(Y_pays_types_DF))
+y_tot<- as.matrix(Y) %*% as.matrix(rep(1,length(Y_pays_types_DF)))
 rm(Y_pays_types_DF)
 rm(Y)
 
@@ -31,7 +31,7 @@ x_1 <- as.numeric(x_1)
 x_1d <- diag(x_1)
 
 
-S <- Fe %*% x_1d
+S <- as.matrix(Fe) %*% x_1d
 S[is.nan(S)]
 
 
