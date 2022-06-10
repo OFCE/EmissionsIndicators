@@ -76,3 +76,18 @@ sum(Y_dff[,-1]) - sum(Y)
 
 #Changer noms des lignes
 #rownames(tY_dff) <- str_c(tY_dff$countries.out,"_",tY_dff$products.in)
+
+####A
+A_df <- A %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
+                                         products.in = str_sub(rownames(.),4))
+A_dfff <- merge(A_df, br_lg, by = "countries.in" , all.x = TRUE) %>%
+  merge(., br.2_lg, by = "products.in") %>%
+  group_by(countries.out, products.out) %>%
+  # Somme pondérée par weight pour les produits (0>p>1)
+  summarise(across(all_of(A_cd), ~ sum(. * weight)))  %>% ungroup()
+
+A_dff <- merge(A_df, br_lg, by = "countries.in" , all = T) %>%
+  group_by(countries.out) %>%
+  summarise_at(A_cd,~sum(.x)) %>% arrange(countries.out) %>% ungroup()
+
+Y_dff_c <-as.vector(Y_dff$countries.out)
