@@ -5,7 +5,7 @@
 
 A <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/A.rds"))
 Y <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/Y.rds"))
-#Fe <- readRDS(str_c("data.out/IOT_",year,"_",nom,"/Fe.rds"))
+Fe <- readRDS(str_c("data.out/IOT_",year,"_",nom,"/F.rds"))
 
 Y_d <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/Y_types_DF.rds"))
 A_cd <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/A_pays_secteurs.rds"))
