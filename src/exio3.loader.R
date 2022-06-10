@@ -5,12 +5,14 @@
 
 A <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/A.rds"))
 Y <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/Y.rds"))
-Fe <- readRDS(str_c("data.out/IOT_",year,"_",nom,"/F.rds"))
+Fe <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/F.rds"))
 
-Y_d <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/Y_types_DF.rds"))
+#? Y_d <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/Y_types_DF.rds"))
 A_cd <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/A_pays_secteurs.rds"))
 Y_cd <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/Y_pays_types_DF.rds"))
 Y_c <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/Y_pays.rds"))
+F_cd <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/F_pays_secteurs.rds"))
+F_noms_extensions <- readRDS(str_c(path_codedata,"data.out/IOT_",year,"_",nom,"/F_noms_extensions.rds"))
 
 Y_df <- Y %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
                                          products.in = str_sub(rownames(.),4))
@@ -86,7 +88,7 @@ tY_dfff <- tY_dff %>% select(-countries.out,- products.in) %>%
 View(tY_dfff)
 (sum(tY_dfff[,-1:-2]) - sum(Y)) /sum(Y) *100 #Erreur: 0.027%
 
-####A
+####Mêmes étapes pour A
 A_df <- A %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
                                          products.in = str_sub(rownames(.),4))
 A_dfff <- merge(A_df, br_lg, by = "countries.in" , all.x = TRUE) %>%
@@ -130,3 +132,24 @@ tA_dfff <- tA_dff %>% select(-countries.out,- products.out) %>%
 View(tA_dfff)
 
 (sum(tA_dfff[,-1:-2]) - sum(A)) /sum(A) *100 #Erreur trop importante: 8,67%
+
+####Mêmes étapes pour Fe
+F_df <- Fe %>% as.data.frame() %>% t() %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
+                                         products.in = str_sub(rownames(.),4))
+F_dfff <- merge(F_df, br_lg, by = "countries.in" , all.x = TRUE) %>%
+  merge(., br.2_lg, by = "products.in") %>%
+  group_by(countries.out, products.out) %>%
+  # Somme pondérée par weight pour les produits (0>p>1)
+  summarise(across(all_of(F_noms_extensions), ~ sum(. * weight)))  %>% ungroup()
+
+F_dfff[is.na(F_dfff)]
+tF_dfff[is.na(tF_dfff)]
+
+row.F_dfff <- str_c(F_dfff$countries.out,"_",F_dfff$products.out)
+tF_dfff <- F_dfff %>% select(-countries.out,- products.out) %>% 
+  as.matrix(length(row.F_dfff),length(F_noms_extensions),
+            dimnames = list(row.F_dfff,F_noms_extensions)) %>%
+  t() %>% as.data.frame()  %>% `colnames<-`(row.F_dfff)
+View(tF_dfff)
+(sum(tF_dfff[,-1:-2]) - sum(Fe))  /sum(Fe) *100 #Erreur de 0.95%
+
