@@ -75,7 +75,11 @@ sum(Y_dff[,-1]) - sum(Y)
 (sum(tY_dff[,-1:-2]) - sum(Y)) #/sum(Y) *100
 
 #Changer noms des lignes
-#rownames(tY_dff) <- str_c(tY_dff$countries.out,"_",tY_dff$products.in)
+row.Y_dff <- str_c(tY_dff$countries.out,"_",tY_dff$products.in)
+tY_dfff <- tY_dff %>% select(-countries.out,- products.out) %>% 
+  as.matrix(length(nrow(tA_dff)),length(ncol(tA_dff)),
+            dimnames = list(row.Y_dff,col.Y_dff)) %>%
+  t() %>% as.data.frame()  %>% `colnames<-`(row.Y_dff)
 
 ####A
 A_df <- A %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
@@ -90,4 +94,32 @@ A_dff <- merge(A_df, br_lg, by = "countries.in" , all = T) %>%
   group_by(countries.out) %>%
   summarise_at(A_cd,~sum(.x)) %>% arrange(countries.out) %>% ungroup()
 
-Y_dff_c <-as.vector(Y_dff$countries.out)
+A_dff_c <-as.vector(A_dff$countries.out)
+
+col.A_dfff <- str_c(A_dfff$countries.out,"_",A_dfff$products.out)
+
+tA_dff <- A_dfff %>% select(-countries.out,- products.out) %>% 
+  as.matrix(length(col.A_dfff),length(A_cd),
+            dimnames = list(col.A_dfff,A_cd)) %>%
+  t() %>% as.data.frame()  %>% `colnames<-`(col.A_dfff) %>%
+  #transposée, maintenant bridge dans l'autre sens
+  mutate(countries.in = str_sub(rownames(.),1,2),
+         products.in = str_sub(rownames(.),4)) %>%
+  merge(br_lg, by = "countries.in" , all = T) %>%
+  merge(., br.2_lg, by = "products.in") %>%
+  group_by(countries.out, products.out) %>%
+  # Somme pondérée par weight pour les produits (0>p>1)
+  summarise(across(all_of(col.A_dfff), ~ sum(.)))  %>% ungroup()
+
+A_dff[is.na(A_dff)]
+A_dfff[is.na(A_dfff)]
+tA_dff[is.na(tA_dff)]
+
+sum(A_dff[,-1]) - sum(A)
+(sum(tA_dff[,-1:-2]) - sum(A))
+
+tA_dfff <- tA_dff %>% select(-countries.out,- products.out) %>% 
+  as.matrix(length(nrow(tA_dff)),length(ncol(tA_dff)),
+            dimnames = list(col.A_dfff,col.A_dfff)) %>%
+  t() %>% as.data.frame()  %>% `colnames<-`(col.A_dfff)
+View(tA_dfff)
