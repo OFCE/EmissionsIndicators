@@ -22,7 +22,8 @@ br_lg <-  loadBridge("Countries_1", "Countries_2.WD1", "Countries") %>%
   data.frame() %>% mutate(countries.out = rownames(.)) %>%
   pivot_longer(cols = exio3.desc$countries, names_to = "countries.in", values_to = "value") %>%
   filter(value ==1) %>% select(-value)
-
+regions<-unique(br_lg[,1])
+saveRDS(regions, str_c(path_out, "aggragate_regions.rds"))
 
 ### Bridge in long format for products
 br.2_lg <-  loadBridge("exio3", "threeMeEurostat", "Products", transverse = T) %>% 
