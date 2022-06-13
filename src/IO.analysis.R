@@ -107,8 +107,9 @@ print("Computation of the environmental impact multipliers (M) : done")
 #saveRDS( M.dir, str_c("EXIOBASE/data/IOT_",year,"_",nom,"/M.dir.rds"))
 #saveRDS( M.ndir, str_c("EXIOBASE/data/IOT_",year,"_",nom,"/M.ndir.rds"))
 print(str_c("Les matrices S, L, M et M.dir ainsi que le vecteur x ont ete calculees et enregistrees a l'adresse suivante~:EXIOBASE/data/IOT_",year,"_",nom,"/"))
-
+#où est M.dir ?
 
 
 rm(list=c("L", "L.s1","S","x"))
+#où est L.s1
 rm(GES_list)
