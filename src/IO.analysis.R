@@ -136,40 +136,60 @@ impact_input_of_france <- as.matrix(S_france %>% t()) %*% Id(S_france %>% t()) #
 #(impact total de la production française utilisant l'input en ligne)
 #peut-être ne garder que certains impacts? (pour que la somme ait un sens)
 
-GES_list_france <- list()
-GES_list_france[["GES.raw"]] <- S_france %>% as.data.frame %>% filter(str_detect(row.names(.), "CO2") |
-                                                          str_detect(row.names(.), "CH4") | 
-                                                          str_detect(row.names(.), "N2O") | 
-                                                          str_detect(row.names(.), "SF6") | 
-                                                          str_detect(row.names(.), "PFC") | 
-                                                          str_detect(row.names(.), "HFC") )
-
-
-# Total par type de gaz (toute source confondue)
-for (ges in glist){
-  #Row number for each GES in the S matrix
-  id_row <- str_which(row.names(GES_list_france[["GES.raw"]]),str_c(ges))
-  
-  GES_list_france[[str_c(ges)]] <- GES_list_france[["GES.raw"]][id_row,] %>% colSums() %>% as.data.frame()
-}
-for (ges in c("CH4","N2O","SF6")){GES_list_france[[ges]] <- GHGToCO2eq(GES_list_france[[ges]])}
-GES_list_france[["GES"]] <- GES_list_france[["CO2"]] +
-  GES_list_france[["CH4"]] +
-  GES_list_france[["N2O"]] +
-  GES_list_france[["SF6"]] +
-  GES_list_france[["HFC"]] + #déjà convertis
-  GES_list_france[["PFC"]]
-  
-
-
 M_france <- S_france %*% L_france #équivalent de M (une case =
 #impact en ligne de la production française du produit en colonne)
 impact_production_france <- as.matrix(M_france %>% t()) %*% Id(M_france %>% t()) #transposer pour somme par ligne 
 #(impact total de la production française du produit/output en ligne)
-GES_impact_input <- GES_list_france[["GES"]]
+
+for (matrix in list(S_france,M_france)) {
+  GES_list_france <- list()
+  GES_list_france[["GES.raw"]] <- matrix %>% 
+    as.data.frame %>% 
+    filter(str_detect(row.names(.), "CO2") | 
+             str_detect(row.names(.), "CH4") | 
+             str_detect(row.names(.), "N2O") | 
+             str_detect(row.names(.), "SF6") | 
+             str_detect(row.names(.), "PFC") | 
+             str_detect(row.names(.), "HFC") )
+  for (ges in glist){
+    #Row number for each GES in the S matrix
+    id_row <- str_which(row.names(GES_list_france[["GES.raw"]]),str_c(ges))
+    GES_list_france[[str_c(ges)]] <- GES_list_france[["GES.raw"]][id_row,] %>% colSums() %>% as.data.frame()
+  }
+  for (ges in c("CH4","N2O","SF6")){GES_list_france[[ges]] <- GHGToCO2eq(GES_list_france[[ges]])}
+  GES_list_france[["GES"]] <- GES_list_france[["CO2"]] +
+    GES_list_france[["CH4"]] +
+    GES_list_france[["N2O"]] +
+    GES_list_france[["SF6"]] +
+    GES_list_france[["HFC"]] +
+    GES_list_france[["PFC"]]
+  assign(str_c("GES_impact_",matrix), GES_list_france[["GES"]])
+}
+
+GES_list_M_france <- list()
+GES_list_M_france[["GES.raw"]] <- M_france %>% 
+  as.data.frame %>% 
+  filter(str_detect(row.names(.), "CO2") | 
+           str_detect(row.names(.), "CH4") | 
+           str_detect(row.names(.), "N2O") | 
+           str_detect(row.names(.), "SF6") | 
+           str_detect(row.names(.), "PFC") | 
+           str_detect(row.names(.), "HFC") )
+for (ges in glist){
+  #Row number for each GES in the S matrix
+  id_row <- str_which(row.names(GES_list_M_france[["GES.raw"]]),str_c(ges))
+  GES_list_M_france[[str_c(ges)]] <- GES_list_M_france[["GES.raw"]][id_row,] %>% colSums() %>% as.data.frame()
+}
+for (ges in c("CH4","N2O","SF6")){GES_list_M_france[[ges]] <- GHGToCO2eq(GES_list_M_france[[ges]])}
+GES_list_M_france[["GES"]] <- GES_list_M_france[["CO2"]] +
+  GES_list_M_france[["CH4"]] +
+  GES_list_M_france[["N2O"]] +
+  GES_list_M_france[["SF6"]] +
+  GES_list_M_france[["HFC"]] +
+  GES_list_M_france[["PFC"]]
 
 table = data.frame(
-  impact_production_france,production_france,DF_tot_to_france,CI_of_france,impact_input_of_france,GES_impact_input
+  impact_production_france,production_france,DF_tot_to_france,CI_of_france,impact_input_of_france,GES_impact_input,GES_list_M_france[["GES"]]
 )
 #Refaire pour S et pour M=impact_production_france, 
 #somme n'a pas de sens en l'état
@@ -200,11 +220,33 @@ for (pays in c("US","France")) {
   M_select <- S_select %*% L_select
   impact_production <- as.matrix(M_select %>% t()) %*% Id(M_select %>% t())
   
+  GES_list_select <- list()
+  GES_list_select[["GES.raw"]] <- S_france %>% as.data.frame %>% 
+    filter(str_detect(row.names(.), "CO2") |
+          str_detect(row.names(.), "CH4") | 
+          str_detect(row.names(.), "N2O") | 
+          str_detect(row.names(.), "SF6") | 
+          str_detect(row.names(.), "PFC") | 
+          str_detect(row.names(.), "HFC") )
+  for (ges in glist){
+    #Row number for each GES in the S matrix
+    id_row <- str_which(row.names(GES_list_select[["GES.raw"]]),str_c(ges))
+    GES_list_select[[str_c(ges)]] <- GES_list_select[["GES.raw"]][id_row,] %>% colSums() %>% as.data.frame()
+  }
+  for (ges in c("CH4","N2O","SF6")){GES_list_select[[ges]] <- GHGToCO2eq(GES_list_select[[ges]])}
+  GES_list_select[["GES"]] <- GES_list_select[["CO2"]] +
+    GES_list_select[["CH4"]] +
+    GES_list_select[["N2O"]] +
+    GES_list_select[["SF6"]] +
+    GES_list_select[["HFC"]] + #déjà convertis
+    GES_list_select[["PFC"]]
+  GES_impact_input <- GES_list_select[["GES"]]
+  
   nom_pays <- c(rep(pays,1056))
 
   assign(str_c("table_",pays),
          data.frame(nom_pays,
-           impact_production,production,DF_tot,CI,impact_input
+           impact_production,production,DF_tot,CI,impact_input,GES_impact_input
            )
          )
 }
