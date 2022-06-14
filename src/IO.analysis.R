@@ -141,7 +141,9 @@ M_france <- S_france %*% L_france #équivalent de M (une case =
 impact_production_france <- as.matrix(M_france %>% t()) %*% Id(M_france %>% t()) #transposer pour somme par ligne 
 #(impact total de la production française du produit/output en ligne)
 
-for (matrix in list(S_france,M_france)) {
+listdf=list(S=S_france,M=M_france)
+index=1
+for (matrix in listdf) {
   GES_list_france <- list()
   GES_list_france[["GES.raw"]] <- matrix %>% 
     as.data.frame %>% 
@@ -163,36 +165,14 @@ for (matrix in list(S_france,M_france)) {
     GES_list_france[["SF6"]] +
     GES_list_france[["HFC"]] +
     GES_list_france[["PFC"]]
-  assign(str_c("GES_impact_",matrix), GES_list_france[["GES"]])
+  assign(str_c("GES_impact_",names(listdf)[index]), GES_list_france[["GES"]])
+  index=index+1
 }
-
-GES_list_M_france <- list()
-GES_list_M_france[["GES.raw"]] <- M_france %>% 
-  as.data.frame %>% 
-  filter(str_detect(row.names(.), "CO2") | 
-           str_detect(row.names(.), "CH4") | 
-           str_detect(row.names(.), "N2O") | 
-           str_detect(row.names(.), "SF6") | 
-           str_detect(row.names(.), "PFC") | 
-           str_detect(row.names(.), "HFC") )
-for (ges in glist){
-  #Row number for each GES in the S matrix
-  id_row <- str_which(row.names(GES_list_M_france[["GES.raw"]]),str_c(ges))
-  GES_list_M_france[[str_c(ges)]] <- GES_list_M_france[["GES.raw"]][id_row,] %>% colSums() %>% as.data.frame()
-}
-for (ges in c("CH4","N2O","SF6")){GES_list_M_france[[ges]] <- GHGToCO2eq(GES_list_M_france[[ges]])}
-GES_list_M_france[["GES"]] <- GES_list_M_france[["CO2"]] +
-  GES_list_M_france[["CH4"]] +
-  GES_list_M_france[["N2O"]] +
-  GES_list_M_france[["SF6"]] +
-  GES_list_M_france[["HFC"]] +
-  GES_list_M_france[["PFC"]]
 
 table = data.frame(
-  impact_production_france,production_france,DF_tot_to_france,CI_of_france,impact_input_of_france,GES_impact_input,GES_list_M_france[["GES"]]
+  impact_production_france,production_france,DF_tot_to_france,CI_of_france,impact_input_of_france,GES_impact_S,GES_impact_M
 )
-#Refaire pour S et pour M=impact_production_france, 
-#somme n'a pas de sens en l'état
+#deux dernières colonnes=meaningful sum for S & for M
 
 ###généralisation
 TableFinale<-function(vecteur_régions){
