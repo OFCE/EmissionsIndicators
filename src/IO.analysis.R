@@ -148,15 +148,36 @@ table = data.frame(
 
 ###généralisation
 TableFinale<-function(pays){
-  for (pays in regions) { 
-    pays_select=
-    M_select=
-    x_select=
-    DF_select=
-    L_select=
-    S_select=
-    table = data.frame(
-      pays_select,M_select,x_select,DF_select,L_select,S_select
-      )
-  }
+  
 }
+for (pays in c("US","France")) {
+  
+  DF=Y
+  DF[-str_which(rownames(DF),as.character(pays)),]<-0
+  DF_tot <- as.matrix(DF) %*% Id(DF) 
+  
+  L_select = L
+  L_select[,-str_which(colnames(L),as.character(pays))]<-0
+  CI <- as.matrix(L_select) %*% Id(L_select)
+  
+  production <- (L_select %*% y_tot) %>% as.numeric
+  
+  x_1_select <- 1/production
+  x_1_select[is.infinite(x_1_select)] <- 0 
+  x_1_select <- as.numeric(x_1_select)
+  x_1d_select <- diag(x_1_select)
+  S_select <- as.matrix(Fe) %*% x_1d_select
+  impact_input <- as.matrix(S_select %>% t()) %*% Id(S_select %>% t())
+  
+  M_select <- S_select %*% L_select
+  impact_production <- as.matrix(M_select %>% t()) %*% Id(M_select %>% t())
+
+  assign(str_c("table_",pays),
+         data.frame(
+           impact_production,production,DF_tot,CI,impact_input
+           )
+         )
+}
+
+bigtable=rbind(table_US,table_France)
+
