@@ -175,6 +175,11 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   #mettre à 0 production pour les autres pays
   io_table[-str_which(rownames(io_table),as.character(pays)),5]<-0
   
+  #Créer une colonne produits, ordonner les colonnes
+  io_table$produits=rownames(io_table)
+  io_table$produits=sub(".*?_", "",io_table$produits)
+  io_table = io_table %>% select(nom_pays,produits,DF_tot,production,GES_impact_producteur,GES_impact_demande)
+  
   #exporter
   saveRDS(io_table, str_c(path_IOpays_tables, "/IO_", pays, ".rds"))
 }
@@ -184,3 +189,6 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   IO <- readRDS(str_c(path_IOpays_tables, "/IO_", pays, ".rds"))
   assign(str_c("IO_",pays),IO)
   }
+View(IO_Afrique)
+View(IO_Russie)
+IO_Russie=IO_Russie %>% select(nom_pays,products,DF_tot,production,GES_impact_producteur,GES_impact_demande)
