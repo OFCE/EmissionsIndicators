@@ -110,98 +110,33 @@ print(str_c("Les matrices S, L et M ainsi que le vecteur x ont ete calculees et 
 rm(list=c("L","S","x"))
 rm(GES_list)
 
+
 #Obtenir un dataframe avec les données pour un pays
-###exemple pour un seul pays/région
-DF_france = Y
-DF_france[-str_which(rownames(DF_france),"France"),]<-0
-DF_tot_to_france <- as.matrix(DF_france) %*% Id(DF_france) #somme ligne, équivalent de y_tot
+###Généralisation pour n'importe quel pays
 
-L_france = L
-L_france[,-str_which(colnames(L),"France")]<-0 #filtrer les colonnes = tous les inputs nécessaires pour produire output français
-#prochain bloc = pour que L (matrice) "rentre dans une ligne": le total 
-#des CI venant de chaque region-secteur nécessaires à la France
-CI_of_france <- as.matrix(L_france) %*% Id(L_france)
+#Chemin pour exporter
+#dir.create(str_c(path_out, "/IO_pays"), recursive = TRUE)
+#path_IOpays_tables <- str_c(path_out, "/IO_pays")
 
-production_france <- (L_france %*% y_tot) %>% as.numeric #équivalent de x:
-#production de la France grâce à l'input en ligne
-
-#le reste=A VERIFIER
-x_1_france <- 1/production_france
-x_1_france[is.infinite(x_1_france)] <- 0 
-x_1_france <- as.numeric(x_1_france)
-x_1d_france <- diag(x_1_france)
-S_france <- as.matrix(Fe) %*% x_1d_france #équivalent de S (une case = 
-#impact en ligne de la production française réalisée grâce à l'input en colonne)
-impact_input_of_france <- as.matrix(S_france %>% t()) %*% Id(S_france %>% t()) #transposer pour somme par ligne 
-#(impact total de la production française utilisant l'input en ligne)
-#peut-être ne garder que certains impacts? (pour que la somme ait un sens)
-
-M_france <- S_france %*% L_france #équivalent de M (une case =
-#impact en ligne de la production française du produit en colonne)
-impact_production_france <- as.matrix(M_france %>% t()) %*% Id(M_france %>% t()) #transposer pour somme par ligne 
-#(impact total de la production française du produit/output en ligne)
-
-listdf=list(S=S_france,M=M_france)
-index=1
-for (matrix in listdf) {
-  GES_list_france <- list()
-  GES_list_france[["GES.raw"]] <- matrix %>% 
-    as.data.frame %>% 
-    filter(str_detect(row.names(.), "CO2") | 
-             str_detect(row.names(.), "CH4") | 
-             str_detect(row.names(.), "N2O") | 
-             str_detect(row.names(.), "SF6") | 
-             str_detect(row.names(.), "PFC") | 
-             str_detect(row.names(.), "HFC") )
-  for (ges in glist){
-    #Row number for each GES in the S matrix
-    id_row <- str_which(row.names(GES_list_france[["GES.raw"]]),str_c(ges))
-    GES_list_france[[str_c(ges)]] <- GES_list_france[["GES.raw"]][id_row,] %>% colSums() %>% as.data.frame()
-  }
-  for (ges in c("CH4","N2O","SF6")){GES_list_france[[ges]] <- GHGToCO2eq(GES_list_france[[ges]])}
-  GES_list_france[["GES"]] <- GES_list_france[["CO2"]] +
-    GES_list_france[["CH4"]] +
-    GES_list_france[["N2O"]] +
-    GES_list_france[["SF6"]] +
-    GES_list_france[["HFC"]] +
-    GES_list_france[["PFC"]]
-  assign(str_c("GES_impact_",names(listdf)[index]), GES_list_france[["GES"]])
-  index=index+1
-}
-
-table = data.frame(
-  impact_production_france,production_france,DF_tot_to_france,CI_of_france,impact_input_of_france,GES_impact_S,GES_impact_M
-)
-#deux dernières colonnes=meaningful sum for S & for M
-
-###généralisation
-TableFinale<-function(vecteur_régions){
+for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afrique","Russie","Europe (autres)","Asie","Moyen-Orient","Oceanie" )) {
   
-}
-for (pays in c("US","France")) {
-  
+  #Colonne demande finale
   DF=Y
   DF[-str_which(rownames(DF),as.character(pays)),]<-0
-  DF_tot <- as.matrix(DF) %*% Id(DF) 
+  DF_tot <- as.matrix(DF) %*% Id(DF)
   
-  L_select = L
-  L_select[,-str_which(colnames(L),as.character(pays))]<-0
-  CI <- as.matrix(L_select) %*% Id(L_select)
+  #Colonne production
+  production <- (L %*% DF_tot) %>% as.numeric
   
-  production <- (L_select %*% y_tot) %>% as.numeric
-  
+  #Matrice S (impact producteur)
   x_1_select <- 1/production
   x_1_select[is.infinite(x_1_select)] <- 0 
   x_1_select <- as.numeric(x_1_select)
   x_1d_select <- diag(x_1_select)
   S_select <- as.matrix(Fe) %*% x_1d_select
-  impact_input <- as.matrix(S_select %>% t()) %*% Id(S_select %>% t())
-  
-  M_select <- S_select %*% L_select
-  impact_production <- as.matrix(M_select %>% t()) %*% Id(M_select %>% t())
   
   GES_list_select <- list()
-  GES_list_select[["GES.raw"]] <- S_france %>% as.data.frame %>% 
+  GES_list_select[["GES.raw"]] <- S_select %>% as.data.frame %>% 
     filter(str_detect(row.names(.), "CO2") |
           str_detect(row.names(.), "CH4") | 
           str_detect(row.names(.), "N2O") | 
@@ -220,16 +155,32 @@ for (pays in c("US","France")) {
     GES_list_select[["SF6"]] +
     GES_list_select[["HFC"]] + #déjà convertis
     GES_list_select[["PFC"]]
-  GES_impact_input <- GES_list_select[["GES"]]
+  GES_impact_prod <- GES_list_select[["GES"]]
   
+  #Matrice M (impact demande finale)
+  GES_impact_DF <- as.matrix(GES_impact_prod %>% t()) %*% L %>% t()
+  
+  #pas utile si pas rbind par la suite
   nom_pays <- c(rep(pays,1056))
-
-  assign(str_c("table_",pays),
+  
+  #créer le tableau
+  GES_impact_producteur=as.numeric(unlist(GES_impact_prod))
+  GES_impact_demande=as.numeric(unlist(GES_impact_DF))
+  assign("io_table",
          data.frame(nom_pays,
-           impact_production,production,DF_tot,CI,impact_input,GES_impact_input
+                    DF_tot,production,GES_impact_producteur,GES_impact_demande
            )
          )
+  
+  #mettre à 0 production pour les autres pays
+  io_table[-str_which(rownames(io_table),as.character(pays)),3]<-0
+  
+  #exporter
+  saveRDS(io_table, str_c(path_IOpays_tables, "/IO_", pays, ".rds"))
 }
 
-bigtable=rbind(table_US,table_France)
-
+#Charger les datasets
+for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afrique","Russie","Europe (autres)","Asie","Moyen-Orient","Oceanie" )) {
+  IO <- readRDS(str_c(path_IOpays_tables, "/IO_", pays, ".rds"))
+  assign(str_c("IO_",pays),IO)
+  }
