@@ -114,31 +114,36 @@ rm(GES_list)
 ###exemple pour un seul pays/région
 DF_france = Y
 DF_france[-str_which(rownames(DF_france),"France"),]<-0
-DF_tot_to_france <- as.matrix(DF_france)
-DF_tot_to_france <- DF_tot_to_france %*% Id(DF_tot_to_france)
+DF_tot_to_france <- as.matrix(DF_france) %*% Id(DF_france) #somme ligne, équivalent de y_tot
 
 L_france = L
-L_france[,-str_which(colnames(L),"France")]<-0
+L_france[,-str_which(colnames(L),"France")]<-0 #filtrer les colonnes = tous les inputs nécessaires pour produire output français
 #prochain bloc = pour que L (matrice) "rentre dans une ligne": le total 
-#des CI nécessaires à la France pour produire chaque produit
-CI_of_france <- as.matrix(L_france) %>% t()
-CI_of_france <- CI_of_france %*% Id(CI_of_france)
+#des CI venant de chaque region-secteur nécessaires à la France
+CI_of_france <- as.matrix(L_france) %*% Id(L_france)
 
-x_france <- (L_france %*% y_tot) %>% as.numeric
+production_france <- (L_france %*% y_tot) %>% as.numeric #équivalent de x:
+#production de la France grâce à l'input en ligne
 
 #le reste=A VERIFIER
-x_1_france <- 1/x_france
+x_1_france <- 1/production_france
 x_1_france[is.infinite(x_1_france)] <- 0 
 x_1_france <- as.numeric(x_1_france)
 x_1d_france <- diag(x_1_france)
-coef_envir_france <- as.matrix(Fe) %*% x_1d_france %>% t()
-coef_envir_france <- coef_envir_france %*% Id(coef_envir_france)
+S_france <- as.matrix(Fe) %*% x_1d_france #équivalent de S (une case = 
+#impact en ligne de la production française réalisée grâce à l'input en colonne)
+impact_input_of_france <- as.matrix(S_france %>% t()) %*% Id(S_france %>% t()) #transposer pour somme par ligne 
+#(impact total de la production française utilisant l'input en ligne)
+#peut-être ne garder que certains impacts? (pour que la somme ait un sens)
 
-impact_production_france <- coef_envir_france %*% L_france %>% t()
-impact_production_france <- impact_production_france %*% Id(impact_production_france)
+
+M_france <- S_france %*% L_france #équivalent de M (une case =
+#impact en ligne de la production française du produit en colonne)
+impact_production_france <- as.matrix(M_france %>% t()) %*% Id(M_france %>% t()) #transposer pour somme par ligne 
+#(impact total de la production française du produit/output en ligne)
 
 table = data.frame(
-  impact_production_france,x_france,DF_tot_to_france,CI_of_france,coef_envir_france
+  impact_production_france,production_france,DF_tot_to_france,CI_of_france,impact_input_of_france
 )
 
 ###généralisation
