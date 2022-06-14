@@ -147,7 +147,7 @@ table = data.frame(
 )
 
 ###généralisation
-TableFinale<-function(pays){
+TableFinale<-function(vecteur_régions){
   
 }
 for (pays in c("US","France")) {
@@ -171,9 +171,11 @@ for (pays in c("US","France")) {
   
   M_select <- S_select %*% L_select
   impact_production <- as.matrix(M_select %>% t()) %*% Id(M_select %>% t())
+  
+  nom_pays <- c(rep(pays,1056))
 
   assign(str_c("table_",pays),
-         data.frame(
+         data.frame(nom_pays,
            impact_production,production,DF_tot,CI,impact_input
            )
          )
