@@ -173,7 +173,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
          )
   
   #mettre à 0 production pour les autres pays
-  io_table[-str_which(rownames(io_table),as.character(pays)),3]<-0
+  io_table[-str_which(rownames(io_table),as.character(pays)),5]<-0
   
   #exporter
   saveRDS(io_table, str_c(path_IOpays_tables, "/IO_", pays, ".rds"))
