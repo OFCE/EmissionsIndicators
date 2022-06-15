@@ -2,7 +2,7 @@
 #for (year in year.min:year.max){
 
 ### Settings
-path_out <- str_c("data.out/IOT_",year,"_",nom,"/")
+path_out <- str_c("data_out/IOT_",year,"_",nom,"/")
 dir.create(str_c(path_out), recursive = TRUE)
 
 ### Data loading
