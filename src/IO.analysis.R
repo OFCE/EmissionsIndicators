@@ -230,3 +230,11 @@ IO_agg.secteur = IO_France %>%
             agg.production=sum(production),
             agg.demande_finale=sum(DF_tot))
 View(IO_agg.secteur)
+
+IO_agg.produits = IO_all %>% 
+  mutate(categorie.produit=substr(produits, 1,5)) %>%
+  group_by(produits) %>%
+  summarise(agg.demande_impact=sum(GES_impact_demande),
+            agg.producteur_impact=sum(GES_impact_producteur),
+            agg.production=sum(production),
+            agg.demande_finale=sum(DF_tot))

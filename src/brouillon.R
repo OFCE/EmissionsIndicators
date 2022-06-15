@@ -155,7 +155,8 @@ ggsave(str_c(name_plot,".pdf"), rep_plot[[str_c("plot.dNElas")]], device = cairo
 
 ##IO
 View(IO_France)
-IO_France %>% pivot_longer(cols = c("GES_impact_producteur","GES_impact_demande"), 
+IO_France %>% 
+  pivot_longer(cols = c("GES_impact_producteur","GES_impact_demande"), 
                                   names_to = "indicator",
                                   values_to = "impact") %>%
   as.data.frame() %>% 
@@ -174,9 +175,19 @@ IO_agg.secteur %>% pivot_longer(cols = c("agg.producteur_impact","agg.demande_im
   geom_bar(stat='identity')
 
 
-IO_all_agg.pays %>% ggplot(aes(x = nom_pays, 
-                               y = agg.production)) +
-  geom_bar(stat = "identity")
+#graph production et demande
+IO_all_agg.pays %>% 
+  pivot_longer(
+    cols = c("agg.production","agg.demande_finale"),
+    names_to = "econ_multiplier",
+    values_to = "variable") %>%
+  as.data.frame() %>%
+  ggplot(aes(x = nom_pays, 
+             y = variable,
+             fill = econ_multiplier)) +
+  geom_bar(stat = "identity",position = "dodge") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+#graph impact
 IO_all_agg.pays %>% pivot_longer(
   cols = c("agg.producteur_impact","agg.demande_impact"),
   names_to = "indicator",
@@ -186,4 +197,16 @@ IO_all_agg.pays %>% pivot_longer(
     aes(x= nom_pays, 
         y = impact,
         fill = indicator)) +
-  geom_bar(stat='identity',position = "dodge")
+  geom_bar(stat='identity',position = "dodge") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+IO_agg.produits %>% pivot_longer(
+  cols = c("agg.producteur_impact","agg.demande_impact"),
+  names_to = "indicator",
+  values_to = "impact") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= produits, 
+        y = impact,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") 
