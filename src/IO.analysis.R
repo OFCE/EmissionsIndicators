@@ -1,9 +1,9 @@
 br <- "ThreeMe"
 
 # Chargement des données I-O sauvegardées par le script exio3.Pre-loader.R
-A <-readRDS(str_c("data_out/IOT_",year,"_",nom,"/A_",br,".rds"))
+A <-readRDS(str_c(path_out,"/A_",br,".rds"))
 Y <-readRDS(str_c(path_out,"/Y_",br,".rds"))
-Fe <-readRDS(str_c("data_out/IOT_",year,"_",nom,"/Fe_",br,".rds"))
+Fe <-readRDS(str_c(path_out,"/Fe_",br,".rds"))
 
 ## Calcul de L: matrice de Leontief
 L <- LeontiefInverse(A)
@@ -118,7 +118,7 @@ rm(GES_list)
 #path_IOpays_tables <- str_c(path_out, "/IO_pays")
 
 #Boucle qui crée un tableau avec les indicateurs pour chaque pays
-#(il faut avoir Y et L au préalable)
+#(il faut avoir Y, Fe et L au préalable)
 for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afrique","Russie","Europe (autres)","Asie","Moyen-Orient","Oceanie" )) {
   
   #Colonne nom pays (pas nécessaire si pas rbind par la suite)
@@ -190,16 +190,43 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   io_table[-str_which(rownames(io_table),as.character(pays)),5]<-0
   
   #Créer une colonne produits, ordonner les colonnes
-  io_table$produits=rownames(io_table)
-  io_table$produits=sub(".*?_", "",io_table$produits)
-  io_table = io_table %>% select(nom_pays,produits,DF_tot,production,GES_impact_producteur,GES_impact_demande)
+  io_table$pays.produits=rownames(io_table)
+  io_table$produits=sub(".*?_", "",io_table$pays.produits)
+  io_table$regions=sub("_.*", "",io_table$pays.produits)
+  io_table = io_table %>% 
+    select(regions,nom_pays,produits,DF_tot,production,GES_impact_producteur,GES_impact_demande)
   
   #Exporter le tableau
   saveRDS(io_table, str_c(path_IOpays_tables, "/IO_", pays, ".rds"))
-}
-
-#Charger les datasets
-for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afrique","Russie","Europe (autres)","Asie","Moyen-Orient","Oceanie" )) {
+  
+  #Charger le tableau dans l'environnement
   IO <- readRDS(str_c(path_IOpays_tables, "/IO_", pays, ".rds"))
   assign(str_c("IO_",pays),IO)
-  }
+  
+  #Aggréger les produits?
+  #Créer un graphique
+  
+}
+
+#Créer grand dataframe
+rm(IO,IO_all,io_table)
+IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
+
+##Aggréger par pays pour graphique
+IO_all_agg.pays <- IO_all %>% select(-produits) %>%
+  group_by(nom_pays) %>%
+  summarise(agg.demande_impact=sum(GES_impact_demande),
+            agg.producteur_impact=sum(GES_impact_producteur),
+            agg.production=sum(production),
+            agg.demande_finale=sum(DF_tot))
+View(IO_all_agg.pays)
+
+##Aggréger par secteur pour graphique
+IO_agg.secteur = IO_France %>% 
+  mutate(categorie.produit=substr(produits, 1,5)) %>%
+  group_by(categorie.produit) %>%
+  summarise(agg.demande_impact=sum(GES_impact_demande),
+            agg.producteur_impact=sum(GES_impact_producteur),
+            agg.production=sum(production),
+            agg.demande_finale=sum(DF_tot))
+View(IO_agg.secteur)
