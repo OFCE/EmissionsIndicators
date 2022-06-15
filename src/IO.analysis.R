@@ -159,7 +159,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
     #Row number for each GES in the S matrix
     id_row <- str_which(row.names(GES_list_select[["GES.raw"]]),str_c(ges))
     GES_list_select[[str_c(ges)]] <- GES_list_select[["GES.raw"]][id_row,] %>% colSums() %>% as.data.frame()
-    GES_list_select[[ges]] <- GHGToCO2eq(GES_list_select[[ges]])
+    GES_list_select[[ges]] <- GHGToCO2eq(GES_list_select[[ges]]) #dossier functions
   }
   ##Total par type de gaz (toute source confondue)
   GES_list_select[["GES"]] <- GES_list_select[["CO2"]] +
