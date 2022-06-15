@@ -20,8 +20,7 @@ rm(Y)
 
 
 ## calcul de S
-# x (production totale (pour CI + pour DF))
-#filtrer L ici pour avoir l'indicateur pour un pays donné?
+#x (production totale (pour CI + pour DF))
 x <- (L %*% y_tot) %>% as.numeric()
 
 
@@ -130,11 +129,12 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   #mettre à 0 les entrées des autres pays (demande finale adressée au pays en question)
   DF[-str_which(rownames(DF),as.character(pays)),]<-0
   DF_tot <- as.matrix(DF) %*% Id(DF) #somme de toutes les composantes
-  #interprétation : 
+  #interprétation : quantité (en ) consommée dans le monde et produite par ce pays
   
   #Vecteur production (identique au vecteur monde)
+  ##x (production totale (pour CI + pour DF))
   production <- (L %*% DF_tot) %>% as.numeric
-  #interprétation :
+  #interprétation : quantité d'inputs (en ) nécessaire pour produire une unité d'output dans ce pays
   
   #Matrice S ("impact producteur") : impact environnemental (uniquement demande pays)
   x_1_select <- 1/production
@@ -142,7 +142,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   x_1_select <- as.numeric(x_1_select)
   x_1d_select <- diag(x_1_select)
   S_select <- as.matrix(Fe) %*% x_1d_select
-  #interprétation
+  #interprétation : impact de la production de ce pays (par input)
   
   #Convertir en CO2 équivalent (éliminer les autres impacts)
   GES_list_select <- list()
@@ -170,11 +170,12 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
     GES_list_select[["PFC"]]
   #Colonne impact GES
   GES_impact_prod <- GES_list_select[["GES"]]
-  #interprétation :
+  #interprétation : impact de la production de ce pays en CO2 équivalent
   
   #Vecteur équivalent à M ("impact demande finale" adressée au pays)
+  ##(donc déjà en CO2eq)
   GES_impact_DF <- as.matrix(GES_impact_prod %>% t()) %*% L %>% t()
-  #interprétation : 
+  #interprétation : impact de la demande de ces produits
   
   #Créer le tableau en assemblant les colonnes
   GES_impact_producteur=as.numeric(unlist(GES_impact_prod))
