@@ -212,7 +212,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
 rm(IO,IO_all,io_table)
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
 
-##Aggréger par pays pour graphique
+##Aggréger tous secteurs par pays pour graphique
 IO_all_agg.pays <- IO_all %>% select(-produits) %>%
   group_by(nom_pays) %>%
   summarise(agg.demande_impact=sum(GES_impact_demande),
@@ -221,9 +221,9 @@ IO_all_agg.pays <- IO_all %>% select(-produits) %>%
             agg.demande_finale=sum(DF_tot))
 View(IO_all_agg.pays)
 
-##Aggréger par secteur pour graphique
+##Aggréger par un pays secteur pour graphique
 IO_agg.secteur = IO_France %>% 
-  mutate(categorie.produit=substr(produits, 1,5)) %>%
+  mutate(categorie.produit=substr(produits, 1,1)) %>%
   group_by(categorie.produit) %>%
   summarise(agg.demande_impact=sum(GES_impact_demande),
             agg.producteur_impact=sum(GES_impact_producteur),
@@ -231,9 +231,10 @@ IO_agg.secteur = IO_France %>%
             agg.demande_finale=sum(DF_tot))
 View(IO_agg.secteur)
 
+#Aggréger niveau mondial par produit pour graphique
 IO_agg.produits = IO_all %>% 
   mutate(categorie.produit=substr(produits, 1,5)) %>%
-  group_by(produits) %>%
+  group_by(categorie.produit) %>%
   summarise(agg.demande_impact=sum(GES_impact_demande),
             agg.producteur_impact=sum(GES_impact_producteur),
             agg.production=sum(production),

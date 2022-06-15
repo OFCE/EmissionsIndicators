@@ -165,6 +165,7 @@ IO_France %>%
              fill=indicator)) +
   geom_bar(stat='identity')
 
+#graph impact niveau mondial par secteurs
 IO_agg.secteur %>% pivot_longer(cols = c("agg.producteur_impact","agg.demande_impact"), 
                            names_to = "indicator",
                            values_to = "impact") %>%
@@ -172,10 +173,10 @@ IO_agg.secteur %>% pivot_longer(cols = c("agg.producteur_impact","agg.demande_im
   ggplot(aes(x= categorie.produit,
              y = impact,
              fill=indicator)) +
-  geom_bar(stat='identity')
+  geom_bar(stat='identity', position = "dodge")
 
 
-#graph production et demande
+#graph production et demande tous secteurs par pays
 IO_all_agg.pays %>% 
   pivot_longer(
     cols = c("agg.production","agg.demande_finale"),
@@ -187,7 +188,7 @@ IO_all_agg.pays %>%
              fill = econ_multiplier)) +
   geom_bar(stat = "identity",position = "dodge") + 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-#graph impact
+#graph impact tous secteurs par pays
 IO_all_agg.pays %>% pivot_longer(
   cols = c("agg.producteur_impact","agg.demande_impact"),
   names_to = "indicator",
@@ -200,13 +201,16 @@ IO_all_agg.pays %>% pivot_longer(
   geom_bar(stat='identity',position = "dodge") + 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
+#graph niveau mondial par produit
 IO_agg.produits %>% pivot_longer(
   cols = c("agg.producteur_impact","agg.demande_impact"),
   names_to = "indicator",
   values_to = "impact") %>%
   as.data.frame() %>% 
   ggplot( 
-    aes(x= produits, 
+    aes(x= categorie.produit, 
         y = impact,
         fill = indicator)) +
   geom_bar(stat='identity',position = "dodge") 
+
+#idées: facet par secteur?
