@@ -166,15 +166,22 @@ IO_France %>%
   geom_bar(stat='identity')
 
 #graph impact niveau mondial par secteurs
-IO_agg.secteur %>% pivot_longer(cols = c("agg.producteur_impact","agg.demande_impact"), 
-                           names_to = "indicator",
-                           values_to = "impact") %>%
-  as.data.frame() %>% 
-  ggplot(aes(x= categorie.produit,
-             y = impact,
-             fill=indicator)) +
-  geom_bar(stat='identity', position = "dodge")
-
+##(essai facet non concluant)
+for(cat in c("C","H","P")){
+  plot=IO_agg.secteur %>% pivot_longer(cols = c("agg.producteur_impact","agg.demande_impact"), 
+                                  names_to = "indicator",
+                                  values_to = "impact") %>%
+    as.data.frame() %>% 
+    filter(categorie.facet==as.character(cat)) %>%
+    select(-categorie.facet)%>%
+    ggplot(aes(x= categorie.produit,
+               y = impact,
+               fill=indicator)) +
+    geom_bar(stat='identity', position = "dodge") #+ facet_grid(categorie.facet ~ .,scales='free_y')
+  assign(str_c("impact_by.sector_",cat),plot)
+}
+ggarrange(impact_by.sector_C,impact_by.sector_H,impact_by.sector_P,
+          nrow=1,ncol=3)
 
 #graph production et demande tous secteurs par pays
 IO_all_agg.pays %>% 
@@ -188,7 +195,9 @@ IO_all_agg.pays %>%
              fill = econ_multiplier)) +
   geom_bar(stat = "identity",position = "dodge") + 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
 #graph impact tous secteurs par pays
+#pas très cohérent: Amérique du Sud???
 IO_all_agg.pays %>% pivot_longer(
   cols = c("agg.producteur_impact","agg.demande_impact"),
   names_to = "indicator",
@@ -202,15 +211,24 @@ IO_all_agg.pays %>% pivot_longer(
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 #graph niveau mondial par produit
-IO_agg.produits %>% pivot_longer(
+#(ce graphique à creuser)
+plot_produit=IO_agg.produits %>% 
+  #remove outlier
+  filter(agg.producteur_impact!=min(agg.producteur_impact),
+         agg.demande_impact!=min(agg.demande_impact)) %>%
+  pivot_longer(
   cols = c("agg.producteur_impact","agg.demande_impact"),
   names_to = "indicator",
   values_to = "impact") %>%
   as.data.frame() %>% 
   ggplot( 
-    aes(x= categorie.produit, 
+    aes(x= produits, 
         y = impact,
         fill = indicator)) +
-  geom_bar(stat='identity',position = "dodge") 
+  geom_bar(stat='identity',position = "dodge") + 
+  scale_x_discrete(breaks=IO_agg.produits$produits,
+                   labels=IO_agg.produits$categorie.produit)
+plot_produit +
+  theme(axis.text.x = element_text(angle = 60, vjust = 0.5, hjust=1, size=4))
 
 #idées: facet par secteur?

@@ -223,8 +223,9 @@ View(IO_all_agg.pays)
 
 ##Aggréger par un pays secteur pour graphique
 IO_agg.secteur = IO_France %>% 
-  mutate(categorie.produit=substr(produits, 1,1)) %>%
-  group_by(categorie.produit) %>%
+  mutate(categorie.produit=substr(produits, 1,3),
+         categorie.facet=substr(produits, 1,1)) %>%
+  group_by(categorie.produit,categorie.facet) %>%
   summarise(agg.demande_impact=sum(GES_impact_demande),
             agg.producteur_impact=sum(GES_impact_producteur),
             agg.production=sum(production),
@@ -233,9 +234,11 @@ View(IO_agg.secteur)
 
 #Aggréger niveau mondial par produit pour graphique
 IO_agg.produits = IO_all %>% 
-  mutate(categorie.produit=substr(produits, 1,5)) %>%
-  group_by(categorie.produit) %>%
+  group_by(produits) %>%
   summarise(agg.demande_impact=sum(GES_impact_demande),
             agg.producteur_impact=sum(GES_impact_producteur),
             agg.production=sum(production),
-            agg.demande_finale=sum(DF_tot))
+            agg.demande_finale=sum(DF_tot)) %>%
+  ungroup() %>%
+  mutate(categorie.produit=substr(produits, 1,5))
+View(IO_agg.produits)
