@@ -1,3 +1,10 @@
+#Rappel du calcul IO 
+#Égalité comptable de base 
+#X = CI + Y 
+#X  - CI = Y
+#X(1-a) = Y avec (1-a)^1 = L
+#X = L.Y 
+
 br <- "ThreeMe"
 
 # Chargement des données I-O sauvegardées par le script exio3.Pre-loader.R
@@ -22,7 +29,8 @@ rm(Y)
 ## calcul de S
 #x (production totale (pour CI + pour DF))
 x <- (L %*% y_tot) %>% as.numeric()
-
+sum(x)-sum(y_tot)
+#FALSE normal
 
 #print("J'ai calcule le vecteur de la production totale x. Je vais pouvoir calculer S=Fxdiag(1/x)")
 
@@ -206,7 +214,8 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
          )
   
   #Mettre à 0 la production pour les autres pays (tableau spécifique à un seul pays)
-  io_table[-str_which(rownames(io_table),as.character(pays)),5]<-0
+  #io_table$production[-str_which(rownames(io_table),as.character(pays)),]<-0
+  #-> fait automatiquement avec production_2
   
   #Créer une colonne produits, ordonner les colonnes
   io_table$pays.produits=rownames(io_table)
@@ -241,6 +250,8 @@ sum(IO_all$production_2)-sum(IO_all$DF_tot)
 sum(IO_all$production)-sum(IO_all$production_2)
 #les deux calculs production sont équivalents au niveau mondial (filtrer y ou filtrer L)
 
+#c'est normal que production et production_2 s'équilibrent, 
+#mais production et DF_tot devraient être équivalents (?). Donc problème
 
 
 
