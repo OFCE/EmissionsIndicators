@@ -143,13 +143,14 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   #Vecteur production (identique au vecteur monde)
   ##x (production totale (pour CI + pour DF))
   production <- (L %*% DF_tot) %>% as.numeric
-  #interprétation : quantité de chaque input (produits en ligne) nécessaire pour produire une unité d'output demandée dans ce pays
+  #interprétation : quantité de chaque input (produits en ligne) nécessaire pour produire (dans le monde) une unité d'output demandée dans ce pays
   
   #test autre façon de calculer la production
   #(au lieu de prendre L* DF pays, prendre les outputs du pays dans L et multiplier par la demande mondiale: L_select*y_tot)
   L_select=L
   L_select[,-str_which(colnames(L_select),as.character(pays))]<-0
   production_2 <- (as.matrix(L_select) %*% y_tot) %>% as.numeric
+  #interprétation : quantité de chaque input (produits en ligne) nécessaire pour produire dans ce pays une unité d'output consommée dans le monde
   
   #check pour ce calcul
   checklist_production[pays] <- sum(production)==sum(production_2)
