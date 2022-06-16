@@ -153,9 +153,14 @@ for (frmt in format_img){
 }
 ggsave(str_c(name_plot,".pdf"), rep_plot[[str_c("plot.dNElas")]], device = cairo_pdf, path = str_c(path_res.plot,name_plot,"/pdf"), width = 280 , height = 140 , units = "mm", dpi = 600)
 
-##IO
+##IO plots
+
+#exemple France
 View(IO_France)
 IO_France %>% 
+  group_by(produits) %>%
+  mutate(GES_impact_producteur=sum(GES_impact_producteur),
+         GES_impact_demande=sum(GES_impact_demande)) %>%
   pivot_longer(cols = c("GES_impact_producteur","GES_impact_demande"), 
                                   names_to = "indicator",
                                   values_to = "impact") %>%
@@ -163,7 +168,21 @@ IO_France %>%
   ggplot(aes(x= produits,
              y = impact,
              fill=indicator)) +
-  geom_bar(stat='identity')
+  geom_bar(stat='identity', position = 'dodge')
+
+#monde
+##plot OK si outlier retiré
+IO_agg.produits %>% 
+  filter(agg.producteur_impact!=min(agg.producteur_impact),
+         agg.demande_impact!=min(agg.demande_impact))%>%
+  pivot_longer(cols = c("agg.producteur_impact","agg.demande_impact"), 
+               names_to = "indicator",
+               values_to = "impact") %>%
+  as.data.frame() %>% 
+  ggplot(aes(x= produits,
+             y = impact,
+             fill=indicator)) +
+  geom_bar(stat='identity', position = 'dodge')
 
 #graph impact niveau mondial par secteurs
 ##(essai facet non concluant)
@@ -184,9 +203,10 @@ ggarrange(impact_by.sector_C,impact_by.sector_H,impact_by.sector_P,
           nrow=1,ncol=3)
 
 #graph production et demande tous secteurs par pays
+##plot OK
 IO_all_agg.pays %>% 
   pivot_longer(
-    cols = c("agg.production","agg.demande_finale"),
+    cols = c("agg.production","agg.production_2"),
     names_to = "econ_multiplier",
     values_to = "variable") %>%
   as.data.frame() %>%

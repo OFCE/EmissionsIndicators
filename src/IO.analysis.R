@@ -28,18 +28,23 @@ rm(Y)
 
 ## calcul de S
 #x (production totale (pour CI + pour DF))
-x <- (L %*% y_tot) %>% as.numeric() %>% as.matrix() %>% t()
+x <- (L %*% y_tot) %>% as.numeric() %>% as.matrix() #%>% t()
 
+#Checks sur les valeurs
+#########
 I <- diag(rep(1, dim(A)[1]))
 invL=(I-A)
-checkY=x %*% as.matrix((I-A))
+checkY=as.matrix((I-A))%*%x
 sum(checkY)==sum(Y)
+sum(checkY)-sum(Y)
 
-checkX= as.matrix(L) %*% (checkY%>%t())
+checkX= as.matrix(L) %*% (checkY)
 sum(x)==sum(checkX)
+sum(x)-sum(checkX)
 
 checkX= as.matrix(L) %*% (y_tot)
 sum(x)==sum(checkX)
+#########
 
 #print("J'ai calcule le vecteur de la production totale x. Je vais pouvoir calculer S=Fxdiag(1/x)")
 
@@ -127,14 +132,14 @@ rm(list=c("L","S","x"))
 rm(GES_list)
 
 
+
+
 #Obtenir un dataframe avec les données pour un pays:
 ###Généralisation pour n'importe quel pays
 
 #Chemin pour exporter
 #dir.create(str_c(path_out, "/IO_pays"), recursive = TRUE)
 #path_IOpays_tables <- str_c(path_out, "/IO_pays")
-
-autres pays = "EU","US","Chine","Amerique du N.","Amerique du S.","Afrique","Russie","Europe (autres)","Asie","Moyen-Orient","Oceanie" 
 
 checklist_demande <- list()
 checklist_production <- list()
@@ -173,7 +178,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   checklist_production[pays] <- sum(production)==sum(production_2)
   
   #Matrice S ("impact producteur") : impact environnemental (uniquement demande pays)
-  x_1_select <- 1/production
+  x_1_select <- 1/production_2
   x_1_select[is.infinite(x_1_select)] <- 0 
   x_1_select <- as.numeric(x_1_select)
   x_1d_select <- diag(x_1_select)
@@ -271,7 +276,8 @@ IO_all_agg.pays <- IO_all %>% select(-produits) %>%
   summarise(agg.demande_impact=sum(GES_impact_demande),
             agg.producteur_impact=sum(GES_impact_producteur),
             agg.production=sum(production),
-            agg.demande_finale=sum(DF_tot))
+            agg.demande_finale=sum(DF_tot),
+            agg.production_2=sum(production_2))
 View(IO_all_agg.pays)
 
 ##Aggréger par un pays secteur pour graphique
@@ -290,8 +296,8 @@ IO_agg.produits = IO_all %>%
   group_by(produits) %>%
   summarise(agg.demande_impact=sum(GES_impact_demande),
             agg.producteur_impact=sum(GES_impact_producteur),
-            agg.production=sum(production),
-            agg.demande_finale=sum(DF_tot)) %>%
+            agg.production=sum(production_2),
+            agg.demande_finale=sum(production)) %>%
   ungroup() %>%
   mutate(categorie.produit=substr(produits, 1,5))
 View(IO_agg.produits)
