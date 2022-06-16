@@ -312,5 +312,5 @@ IO_France %>%
          agg.production=sum(production_2),
          agg.demande_finale=sum(production)) %>%
   ungroup() %>%
-  mutate(categorie.produit=substr(produits, 1,5)) %>%
+  mutate(categorie.produit=substr(produits, 1,5))
   

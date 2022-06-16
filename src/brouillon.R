@@ -228,7 +228,7 @@ IO_all_agg.pays %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 #graph impact tous secteurs par pays (même que le précédent mais pour d'autres variables)
-#pas très cohérent: Amérique du Sud???
+#pas très cohérent: Amérique du Sud??? France???
 #problème dans la conversion??
 IO_all_agg.pays %>% 
   pivot_longer(
