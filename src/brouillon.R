@@ -184,6 +184,17 @@ IO_agg.produits %>%
              fill=indicator)) +
   geom_bar(stat='identity', position = 'dodge')
 
+#monde multiplicateur éco
+IO_agg.produits %>% 
+  pivot_longer(cols = c("agg.production","agg.demande_finale"), 
+               names_to = "indicator",
+               values_to = "multip_eco") %>%
+  as.data.frame() %>% 
+  ggplot(aes(x= produits,
+             y = multip_eco,
+             fill=indicator)) +
+  geom_bar(stat='identity', position = 'dodge')
+
 #graph impact niveau mondial par secteurs
 ##(essai facet non concluant)
 for(cat in c("C","H","P")){
@@ -218,6 +229,7 @@ IO_all_agg.pays %>%
 
 #graph impact tous secteurs par pays (même que le précédent mais pour d'autres variables)
 #pas très cohérent: Amérique du Sud???
+#problème dans la conversion??
 IO_all_agg.pays %>% 
   pivot_longer(
   cols = c("agg.producteur_impact","agg.demande_impact"),

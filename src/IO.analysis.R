@@ -44,6 +44,7 @@ sum(x)-sum(checkX)
 
 checkX= as.matrix(L) %*% (y_tot)
 sum(x)==sum(checkX)
+sum(x)-sum(checkX)
 #########
 
 #print("J'ai calcule le vecteur de la production totale x. Je vais pouvoir calculer S=Fxdiag(1/x)")
@@ -87,6 +88,7 @@ for (ges in glist){
   
   GES_list[[str_c(ges)]] <- GES_list[["GES.raw"]][id_row,] %>% colSums() %>% as.data.frame()
 }
+
 
 # Conversion en MtCO2e
 #Suggestion instead: 
@@ -292,12 +294,23 @@ IO_agg.secteur = IO_France %>%
 View(IO_agg.secteur)
 
 #Aggréger niveau mondial par produit pour graphique
+#(aucun intérêt si ce n'est vérifier l'égalité, à faire par pays)
 IO_agg.produits = IO_all %>% 
   group_by(produits) %>%
-  summarise(agg.demande_impact=sum(GES_impact_demande),
-            agg.producteur_impact=sum(GES_impact_producteur),
-            agg.production=sum(production_2),
-            agg.demande_finale=sum(production)) %>%
+  mutate(agg.demande_impact=sum(GES_impact_demande),
+         agg.producteur_impact=sum(GES_impact_producteur),
+         agg.production=sum(production_2),
+         agg.demande_finale=sum(production)) %>%
   ungroup() %>%
   mutate(categorie.produit=substr(produits, 1,5))
 View(IO_agg.produits)
+
+IO_France %>% 
+  group_by(produits) %>%
+  mutate(agg.demande_impact=sum(GES_impact_demande),
+         agg.producteur_impact=sum(GES_impact_producteur),
+         agg.production=sum(production_2),
+         agg.demande_finale=sum(production)) %>%
+  ungroup() %>%
+  mutate(categorie.produit=substr(produits, 1,5)) %>%
+  
