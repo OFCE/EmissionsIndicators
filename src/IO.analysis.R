@@ -28,9 +28,16 @@ rm(Y)
 
 ## calcul de S
 #x (production totale (pour CI + pour DF))
-x <- (L %*% y_tot) %>% as.numeric()
+x <- (L %*% y_tot) %>% as.numeric() %>% as.matrix() %>% t()
 sum(x)-sum(y_tot)
 #FALSE normal
+
+I <- diag(rep(1, dim(A)[1]))
+invL=(I-A)
+checkY=x %*% as.matrix(invL)
+sum(checkY)==sum(Y)
+checkY2= as.matrix(L) %*% (checkY%>%t())
+sum(x)==sum(checkY2)
 
 #print("J'ai calcule le vecteur de la production totale x. Je vais pouvoir calculer S=Fxdiag(1/x)")
 
