@@ -196,9 +196,10 @@ IO_all_agg.pays %>%
   geom_bar(stat = "identity",position = "dodge") + 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
-#graph impact tous secteurs par pays
+#graph impact tous secteurs par pays (même que le précédent mais pour d'autres variables)
 #pas très cohérent: Amérique du Sud???
-IO_all_agg.pays %>% pivot_longer(
+IO_all_agg.pays %>% 
+  pivot_longer(
   cols = c("agg.producteur_impact","agg.demande_impact"),
   names_to = "indicator",
   values_to = "impact") %>%
@@ -231,4 +232,4 @@ plot_produit=IO_agg.produits %>%
 plot_produit +
   theme(axis.text.x = element_text(angle = 60, vjust = 0.5, hjust=1, size=4))
 
-#idées: facet par secteur?
+#idées: facet par secteur? séparer valeurs positives et négatives?

@@ -117,9 +117,14 @@ rm(GES_list)
 #dir.create(str_c(path_out, "/IO_pays"), recursive = TRUE)
 #path_IOpays_tables <- str_c(path_out, "/IO_pays")
 
+autres pays = "EU","US","Chine","Amerique du N.","Amerique du S.","Afrique","Russie","Europe (autres)","Asie","Moyen-Orient","Oceanie" 
+
+checklist_demande <- list()
+#Attention, il faut mettre "Europe" et non "Europe (autres)", sinon la sélection ne marche pas
+
 #Boucle qui crée un tableau avec les indicateurs pour chaque pays
 #(il faut avoir Y, Fe et L au préalable)
-for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afrique","Russie","Europe (autres)","Asie","Moyen-Orient","Oceanie" )) {
+for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afrique","Russie","Europe","Asie","Moyen-Orient","Oceanie")) {
   
   #Colonne nom pays (pas nécessaire si pas rbind par la suite)
   nom_pays <- c(rep(pays,1056))
@@ -127,14 +132,23 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   #Colonne demande finale
   DF=Y
   #mettre à 0 les entrées des autres pays (demande finale adressée au pays en question)
-  DF[-str_which(rownames(DF),as.character(pays)),]<-0
+  DF[,-str_which(colnames(DF),as.character(pays))]<-0
   DF_tot <- as.matrix(DF) %*% Id(DF) #somme de toutes les composantes
-  #interprétation : quantité (en ) consommée dans le monde et produite par ce pays
+  #interprétation : quantité consommée par ce pays et produite dans le monde
+  #check: sum(Y[,str_which(colnames(Y),as.character(pays))])==sum(DF_tot)
+  #...TRUE
+  checklist_demande[pays] <- sum(Y[,str_which(colnames(Y),as.character(pays))])==sum(DF_tot)
   
   #Vecteur production (identique au vecteur monde)
   ##x (production totale (pour CI + pour DF))
   production <- (L %*% DF_tot) %>% as.numeric
-  #interprétation : quantité d'inputs (en ) nécessaire pour produire une unité d'output dans ce pays
+  #interprétation : quantité de chaque input (produits en ligne) nécessaire pour produire une unité d'output demandée dans ce pays
+  
+  #test autre façon de calculer la production
+  #(au lieu de prendre L* DF pays, prendre les outputs du pays dans L et multiplier par la demande mondiale: L_select*y_tot)
+  L_select=L
+  L_select[,-str_which(colnames(L_select),as.character(pays))]<-0
+  production_2 <- (as.matrix(L_select) %*% y_tot) %>% as.numeric
   
   #Matrice S ("impact producteur") : impact environnemental (uniquement demande pays)
   x_1_select <- 1/production
@@ -182,7 +196,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   GES_impact_demande=as.numeric(unlist(GES_impact_DF))
   assign("io_table",
          data.frame(nom_pays,
-                    DF_tot,production,GES_impact_producteur,GES_impact_demande
+                    DF_tot,production,production_2,GES_impact_producteur,GES_impact_demande
            )
          )
   
@@ -194,7 +208,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   io_table$produits=sub(".*?_", "",io_table$pays.produits)
   io_table$regions=sub("_.*", "",io_table$pays.produits)
   io_table = io_table %>% 
-    select(regions,nom_pays,produits,DF_tot,production,GES_impact_producteur,GES_impact_demande)
+    select(regions,nom_pays,produits,DF_tot,production,production_2,GES_impact_producteur,GES_impact_demande)
   
   #Exporter le tableau
   saveRDS(io_table, str_c(path_IOpays_tables, "/IO_", pays, ".rds"))
@@ -203,14 +217,27 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   IO <- readRDS(str_c(path_IOpays_tables, "/IO_", pays, ".rds"))
   assign(str_c("IO_",pays),IO)
   
+  rm(IO,IO_all,io_table)
   #Aggréger les produits?
   #Créer un graphique
   
 }
 
+View(checklist_demande)
+
 #Créer grand dataframe
-rm(IO,IO_all,io_table)
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
+sum(IO_all$production)-sum(IO_all$DF_tot) #! 
+#problème ici car production n'est pas égale à demande
+sum(IO_all$production_2)-sum(IO_all$DF_tot)
+#pareil avec autre calcul production
+
+sum(IO_all$production)-sum(IO_all$production_2)
+#les deux calculs production sont équivalents (filtrer y ou filtrer L)
+
+
+
+
 
 ##Aggréger tous secteurs par pays pour graphique
 IO_all_agg.pays <- IO_all %>% select(-produits) %>%
