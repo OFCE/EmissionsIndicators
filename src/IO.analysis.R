@@ -120,6 +120,7 @@ rm(GES_list)
 autres pays = "EU","US","Chine","Amerique du N.","Amerique du S.","Afrique","Russie","Europe (autres)","Asie","Moyen-Orient","Oceanie" 
 
 checklist_demande <- list()
+checklist_production <- list()
 #Attention, il faut mettre "Europe" et non "Europe (autres)", sinon la sélection ne marche pas
 
 #Boucle qui crée un tableau avec les indicateurs pour chaque pays
@@ -149,6 +150,9 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   L_select=L
   L_select[,-str_which(colnames(L_select),as.character(pays))]<-0
   production_2 <- (as.matrix(L_select) %*% y_tot) %>% as.numeric
+  
+  #check pour ce calcul
+  checklist_production[pays] <- sum(production)==sum(production_2)
   
   #Matrice S ("impact producteur") : impact environnemental (uniquement demande pays)
   x_1_select <- 1/production
@@ -224,6 +228,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
 }
 
 View(checklist_demande)
+View(checklist_production)
 
 #Créer grand dataframe
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
@@ -233,7 +238,7 @@ sum(IO_all$production_2)-sum(IO_all$DF_tot)
 #pareil avec autre calcul production
 
 sum(IO_all$production)-sum(IO_all$production_2)
-#les deux calculs production sont équivalents (filtrer y ou filtrer L)
+#les deux calculs production sont équivalents au niveau mondial (filtrer y ou filtrer L)
 
 
 
