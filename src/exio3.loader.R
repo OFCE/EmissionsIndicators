@@ -120,14 +120,16 @@ tA_dff <- A_dfff %>% select(-countries.out,- products.out) %>%
   merge(., br.2_lg, by = "products.in",all.x = TRUE) %>%
   group_by(countries.out, products.out) %>%
   # Somme pondérée par weight pour les produits (0>p>1)
-  summarise(across(all_of(col.A_dfff), ~ sum(.)))  %>% ungroup()
+  summarise(across(all_of(col.A_dfff), ~ sum(. * weight)))  %>% ungroup()
+#Ajout weight ici
+
 
 # Check for NA
 #A_dff[is.na(A_dff)]
 A_dfff[is.na(A_dfff)]
 tA_dff[is.na(tA_dff)]
 
-#difference in value from the original database Y and the transformed Y_dff. Should be equal to 0 
+#difference in value from the original database A and the transformed tA_dff. Should be equal to 0 
 sum(A_dff[,-1]) - sum(A)
 (sum(tA_dff[,-1:-2]) - sum(A)) /sum(A) *100
 
