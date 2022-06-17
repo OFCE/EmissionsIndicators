@@ -1,16 +1,34 @@
 #Rappel du calcul IO 
 #Égalité comptable de base 
 #X = CI + Y 
-#X  - CI = Y
-#X(1-a) = Y avec (1-a)^1 = L
+#X - CI = Y
+#(1-a)X = Y avec (1-a)^1 = L
 #X = L.Y 
 
 br <- "ThreeMe"
 
-# Chargement des données I-O sauvegardées par le script exio3.Pre-loader.R
+# Chargement des données I-O sauvegardées par le script exio3.loader.R
 A <-readRDS(str_c(path_out,"/A_",br,".rds"))
 Y <-readRDS(str_c(path_out,"/Y_",br,".rds"))
 Fe <-readRDS(str_c(path_out,"/Fe_",br,".rds"))
+
+Z <-readRDS(str_c(path_out,"/Z_",br,".rds"))
+X <-readRDS(str_c(path_out,"/X_",br,".rds"))
+
+#Vérification de l'équation comptable:
+(sum(Y)+sum(Z)-sum(X))/sum(X)*100 #une petite erreur (1%)
+
+coefs = 1/X
+coefs <- as.numeric(unlist(coefs))
+coefs[is.infinite(unlist(coefs))] <- 0 
+coefs <- diag(coefs)
+test= as.matrix(Z) %*% as.matrix(coefs)
+test[is.infinite(unlist(test))] <- 0 
+dev=as.numeric(unlist(as.vector(X)))
+test2=t(t(Z)/dev)
+View(test2)
+
+t(apply(mat, 1, function(x) x/dev))
 
 ## Calcul de L: matrice de Leontief
 L <- LeontiefInverse(A)
@@ -29,37 +47,19 @@ rm(Y)
 ## calcul de S
 #x (production totale (pour CI + pour DF))
 x <- (L %*% y_tot) %>% as.numeric() #%>% as.matrix() %>% t()
-X <- (L %*% Y)
+#X <- (L %*% as.matrix(Y)) revient au même
 
 #####test pour la matrice X
-X_exio <- fread(file = str_c(path_data.source,"IOT_",year,"_",nom,"/x.txt"),
-           sep = "\t",
-           header = FALSE) %>%
-  as.data.frame()
-X.mat <- as.matrix(X_exio)[-1,-1:-2] %>% as.numeric()
 (sum(X.mat)-sum(x))/sum(X.mat) * 100 #grosse erreur
-
-X.mat <- matrix(X.mat,length(A_pays_secteurs),1,
-                dimnames=list(A_pays_secteurs,1)) %>% as.data.frame() # on cree la matrice X (valeurs numeriques)
-rownames(X.mat) <- A_pays_secteurs
-X.mat <- X.mat %>% rename(production=1)
-X_df <- X.mat %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
-                                         products.in = str_sub(rownames(.),4))
-X_dfff <- merge(X_df, br_lg, by = "countries.in" , all.x = TRUE) %>%
-  merge(., br.2_lg, by = "products.in") %>%
-  group_by(countries.out, products.out) %>%
-  # Somme pondérée par weight pour les produits (0>p>1)
-  summarise(across(production, ~ sum(. * weight)))  %>% ungroup()
-
 x_abs <- x %>% as.data.frame() %>% summarise(abs(.))
-(sum(x_abs)-sum(X_dfff$production))/sum(x_abs) * 100 #erreur moins grosse mais quand même trop grande (devrait provenir de A)
+(sum(x_abs)-sum(X_df$production))/sum(x_abs) * 100 #erreur moins grosse mais quand même trop grande (devrait provenir de A)
 #####
 
 #Checks sur les valeurs
 #########
 I <- diag(rep(1, dim(A)[1]))
 invL=(I-A)
-checkY=as.matrix((I-A))%*%x
+checkY=as.matrix((I-A))%*%as.matrix(X)
 sum(checkY)==sum(Y)
 sum(checkY)-sum(Y)
 

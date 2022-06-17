@@ -123,3 +123,29 @@ print(str_c("les fichiers sont sauvegardés à cette adresse : ",path_out))
 ######## Pour vider la memoire ###########
 rm(list=c("A","Y", "Fe"))
 #}
+
+#comparaison de A calculé et A exiobase:
+#besoin de X et de Z
+
+#X: total output
+X_exio <- fread(file = str_c(path_data.source,"IOT_",year,"_",nom,"/x.txt"),
+                sep = "\t",
+                header = FALSE) %>%
+  as.data.frame()
+X.mat <- as.matrix(X_exio)[-1,-1:-2] %>% as.numeric()
+X.mat <- matrix(X.mat,length(A_pays_secteurs),1,
+                dimnames=list(A_pays_secteurs,1)) %>% as.data.frame() # on cree la matrice X (valeurs numeriques)
+rownames(X.mat) <- A_pays_secteurs
+X.mat <- X.mat %>% rename(production=1)
+saveRDS(X.mat, str_c(path_out, "x.rds"))
+
+#Z: flow matrix
+Z <- fread(file = str_c(path_data.source,"IOT_",year,"_",nom,"/Z.txt"),
+                sep = "\t",
+                header = FALSE) %>%
+  as.data.frame()
+Z.mat <- as.matrix(Z)[-1:-3,-1:-2] # on ne garde que les valeurs numeriques de A et plus les noms de ligne et colonnes
+Z.mat <- as.numeric(unlist(Z.mat)) # on transforme les valeur de A en valeurs numeriques et non plus en chaines de caracteres
+Z.mat <- matrix(Z.mat,length(A_pays_secteurs),length(A_pays_secteurs),
+                dimnames=list(A_pays_secteurs,A_pays_secteurs)) # on cree la matrice A (valeurs numeriques)
+saveRDS(Z.mat, str_c(path_out, "Z.rds"))

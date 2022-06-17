@@ -29,7 +29,7 @@ saveRDS(regions, str_c(path_out, "aggragate_regions.rds"))
 br.2_lg <-  loadBridge("exio3", "threeMeEurostat", "Products", transverse = T) %>% 
   as.data.frame() %>% mutate(products.out = rownames(.)) %>%
   pivot_longer(cols = exio3.desc$products, names_to = "products.in", values_to = "weight") %>% 
-filter(weight > 0 )
+filter(weight > 0)
 
 ## Merge and aggregation
 Y_dfff <- merge(Y_df, br_lg, by = "countries.in" , all.x = TRUE) %>%
@@ -175,3 +175,55 @@ saveRDS(tA_dfff, str_c(path_out, "A_ThreeMe.rds"))
 saveRDS(tY_dfff, str_c(path_out, "Y_ThreeMe.rds"))
 
 saveRDS(tF_dfff, str_c(path_out, "Fe_ThreeMe.rds"))
+
+####Pour X et Z
+#X
+X <- readRDS(str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/x.rds"))
+X_df <- X %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
+                                             products.in = str_sub(rownames(.),4))
+X_df <- merge(X_df, br_lg, by = "countries.in" , all.x = TRUE) %>%
+  merge(., br.2_lg, by = "products.in") %>%
+  group_by(countries.out, products.out) %>%
+  # Somme pondérée par weight pour les produits (0>p>1)
+  summarise(across(production, ~ sum(. * weight)))  %>% ungroup() %>%
+  select(production) %>% as.data.frame %>% `rownames<-`(col.A_dfff)
+(sum(X_df) - sum(X)) /sum(X) *100 #petite erreur (0.79%)
+saveRDS(X_df, str_c(path_out, "X_ThreeMe.rds"))
+
+#Z
+Z <- readRDS(str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/Z.rds"))
+Z_df <- Z %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
+                                         products.in = str_sub(rownames(.),4))
+Z_dfff <- merge(Z_df, br_lg, by = "countries.in" , all.x = TRUE) %>%
+  merge(., br.2_lg, by = "products.in") %>%
+  group_by(countries.out, products.out) %>%
+  # Somme pondérée par weight pour les produits (0>p>1)
+  summarise(across(all_of(A_cd), ~ sum(. * weight)))  %>% ungroup()
+col.Z_dfff <- str_c(Z_dfff$countries.out,"_",Z_dfff$products.out)
+#autre sens
+tZ_dff <- Z_dfff %>% select(-countries.out,- products.out) %>% 
+  as.matrix(length(col.Z_dfff),length(A_cd),
+            dimnames = list(col.Z_dfff,A_cd)) %>%
+  t() %>% as.data.frame()  %>% `colnames<-`(col.Z_dfff) %>%
+  #transposée, maintenant bridge dans l'autre sens
+  mutate(countries.in = str_sub(rownames(.),1,2),
+         products.in = str_sub(rownames(.),4)) %>%
+  merge(br_lg, by = "countries.in" ,all.x = TRUE) %>%
+  merge(., br.2_lg, by = "products.in",all.x = TRUE) %>%
+  group_by(countries.out, products.out) %>%
+  # Somme pondérée par weight pour les produits (0>p>1)
+  summarise(across(all_of(col.Z_dfff), ~ sum(. * weight)))  %>% ungroup()
+# Check for NA
+#A_dff[is.na(A_dff)]
+Z_dfff[is.na(Z_dfff)]
+tZ_dff[is.na(tZ_dff)]
+tZ_dfff <- tZ_dff %>% select(-countries.out,- products.out) %>% 
+  as.matrix(length(nrow(tZ_dff)),length(ncol(tZ_dff)),
+            dimnames = list(col.Z_dfff,col.Z_dfff)) %>%
+  t() %>% #remettre dans le bon sens
+  as.data.frame()  %>% `colnames<-`(col.Z_dfff)
+View(tZ_dfff)
+(sum(tZ_dfff) - sum(Z)) /sum(Z) *100 #erreur 1.96% ...
+saveRDS(tZ_dfff, str_c(path_out, "Z_ThreeMe.rds"))
+
+
