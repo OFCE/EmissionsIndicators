@@ -50,9 +50,9 @@ x <- (L %*% y_tot) %>% as.numeric() #%>% as.matrix() %>% t()
 #X <- (L %*% as.matrix(Y)) revient au même
 
 #####test pour la matrice X
-(sum(X.mat)-sum(x))/sum(X.mat) * 100 #grosse erreur
+(sum(X)-sum(x))/sum(X) * 100 #grosse erreur
 x_abs <- x %>% as.data.frame() %>% summarise(abs(.))
-(sum(x_abs)-sum(X_df$production))/sum(x_abs) * 100 #erreur moins grosse mais quand même trop grande (devrait provenir de A)
+(sum(x_abs)-sum(X_df$production))/sum(x_abs) * 100 #erreur moins grosse mais quand même trop grande (devrait provenir de A ou de L ?)
 #####
 
 #Checks sur les valeurs
@@ -63,14 +63,23 @@ checkY=as.matrix((I-A))%*%as.matrix(X)
 sum(checkY)==sum(Y)
 sum(checkY)-sum(Y)
 
+invL_test=(I-test)
+checkY=as.matrix((I-test))%*%as.matrix(X)
+sum(checkY)==sum(Y)
+sum(checkY)-sum(Y)
+
 checkX= as.matrix(L) %*% (checkY)
 sum(x)==sum(checkX)
 sum(x)-sum(checkX)
+checkY=as.matrix((I-A))%*%as.matrix(X)
 
 checkX= as.matrix(L) %*% (y_tot)
 sum(x)==sum(checkX)
 sum(x)-sum(checkX)
 #########
+
+#valeurs négatives?
+mean(apply(A,2,mean))
 
 #print("J'ai calcule le vecteur de la production totale x. Je vais pouvoir calculer S=Fxdiag(1/x)")
 
