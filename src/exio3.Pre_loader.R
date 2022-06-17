@@ -85,7 +85,7 @@ Fe.mat <-as.numeric(unlist(Fe.mat))
 Fe.mat <-matrix(Fe,length(Fe_noms_extensions),length(A_pays_secteurs),
                 dimnames=list(Fe_noms_extensions,A_pays_secteurs))
 
-##test for Fe à la place
+##test pour Fe à la place
 Fe.mat <- Fe %>% as.data.frame() %>% select(-V1) %>% `colnames<-`(Fe_pays_secteurs)
 Fe.mat <- Fe.mat[-c(1,2,3),]
 Fe.mat = Fe.mat %>% summarise(across(all_of(A_pays_secteurs), ~ as.numeric(.))) %>% `rownames<-`(Fe_noms_extensions)
@@ -149,3 +149,41 @@ Z.mat <- as.numeric(unlist(Z.mat)) # on transforme les valeur de A en valeurs nu
 Z.mat <- matrix(Z.mat,length(A_pays_secteurs),length(A_pays_secteurs),
                 dimnames=list(A_pays_secteurs,A_pays_secteurs)) # on cree la matrice A (valeurs numeriques)
 saveRDS(Z.mat, str_c(path_out, "Z.rds"))
+
+##Comparaison des impacts:
+#besoin de S et M
+#S: coefficients d'impact
+S <- fread(file = str_c(path_data.source,"IOT_",year,"_",nom,"/impacts/S.txt"),
+                sep = "\t",
+                header = FALSE) %>%
+  as.data.frame()
+S_noms_extensions <- S[-1:-3,1]
+#A_pays_secteurs=readRDS(str_c(path_out, "A_pays_secteurs.rds"))
+S_pays_secteurs <- A_pays_secteurs
+S.mat <- S %>% as.data.frame() %>% select(-V1) %>% `colnames<-`(S_pays_secteurs)
+S.mat <- S.mat[-c(1,2,3),]
+S.mat = S.mat %>% summarise(across(all_of(S_pays_secteurs), ~ as.numeric(.))) %>% `rownames<-`(S_noms_extensions)
+saveRDS(S.mat, str_c(path_out, "S.rds"))
+saveRDS(S_noms_extensions, str_c(path_out, "S_noms_extensions.rds"))
+
+
+M <- fread(file = str_c(path_data.source,"IOT_",year,"_",nom,"/impacts/S_Y.txt"),
+           sep = "\t",
+           header = FALSE) %>%
+  as.data.frame()
+M_noms_extensions <- M[-1:-3,1]
+#Y_types_DF=readRDS(str_c(path_out, "Y_types_DF.rds"))
+M_types_DF <- Y_types_DF
+M_pays <- M[1,-1] %>% as.character()
+M_pays_types_DF <- str_c(M_pays,"_",M_types_DF) %>% as.character()
+
+M[-1:-3,-1] %>% unlist %>% as.numeric()
+M.mat <- M[-1:-3,-1]
+M.mat <- as.numeric(unlist(M.mat))
+M.mat <- matrix(M.mat ,length(M_noms_extensions),length(M_pays_types_DF),
+                dimnames=list(M_noms_extensions,M_pays_types_DF))
+
+saveRDS(M.mat, str_c(path_out, "M.rds"))
+saveRDS(M_types_DF, str_c(path_out, "M_types_DF.rds"))
+saveRDS(M_pays_types_DF, str_c(path_out, "M_pays_types_DF.rds"))
+saveRDS(M_pays, str_c(path_out, "M_pays.rds"))

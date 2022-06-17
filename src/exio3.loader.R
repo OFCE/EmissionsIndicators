@@ -226,4 +226,45 @@ View(tZ_dfff)
 (sum(tZ_dfff) - sum(Z)) /sum(Z) *100 #erreur 1.96% ...
 saveRDS(tZ_dfff, str_c(path_out, "Z_ThreeMe.rds"))
 
+####Pour S et M
+#S
+S <- readRDS(str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/S.rds"))
 
+S_df <- t(S) %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
+                                         products.in = str_sub(rownames(.),4))
+
+S_dfff <- merge(S_df, br_lg, by = "countries.in" , all.x = TRUE) %>%
+  merge(., br.2_lg, by = "products.in") %>%
+  group_by(countries.out, products.out) %>%
+  # Somme pondérée par weight pour les produits (0>p>1)
+  summarise(across(all_of(S_noms_extensions), ~ sum(. * weight)))  %>% ungroup()
+View(S_dfff)
+
+col.S_dfff <- str_c(S_dfff$countries.out,"_",S_dfff$products.out)
+
+tS_dfff <- S_dfff %>% select(-countries.out,- products.out) %>% 
+  as.matrix(length(nrow(S_dfff)),length(ncol(S_dfff)),
+            dimnames = list(col.S_dfff,S_noms_extensions)) %>%
+  t() %>% as.data.frame()  %>% `colnames<-`(col.S_dfff)
+View(tS_dfff)
+(sum(tS_dfff) - sum(S)) /sum(S) *100 #petite erreur (4.755671e-06 %)
+saveRDS(tS_dfff, str_c(path_out, "S_ThreeMe.rds"))
+
+#M
+M <- readRDS(str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/M.rds"))
+M_df <- t(M) %>% as.data.frame() %>% 
+  mutate(countries.in = str_sub(rownames(.),1,2),
+         types.df = str_sub(rownames(.),4)) %>%
+  merge(., br_lg, by = "countries.in" , all.x = TRUE) 
+M_dfff <- M_df %>% 
+  group_by(countries.out,types.df) %>%
+  # Somme pondérée par weight pour les produits (0>p>1)
+  summarise(across(all_of(M_noms_extensions), ~ sum(.)))  %>% 
+  ungroup() 
+col.M_dfff = str_c(M_dfff$countries.out,"_",M_dfff$types.df)
+tM_dff <- M_dfff %>% select(-countries.out,- types.df) %>% 
+  as.matrix(length(col.M_dfff),length(M_noms_extensions),
+            dimnames = list(col.Y_dfff,M_noms_extensions)) %>% 
+  t() %>% as.data.frame()  %>% `colnames<-`(col.M_dfff)
+(sum(tM_dff) - sum(M)) /sum(M) *100 #0% erreur
+saveRDS(tM_dff, str_c(path_out, "M_ThreeMe.rds"))
