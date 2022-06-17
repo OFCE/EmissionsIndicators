@@ -29,19 +29,30 @@ rm(Y)
 ## calcul de S
 #x (production totale (pour CI + pour DF))
 x <- (L %*% y_tot) %>% as.numeric() #%>% as.matrix() %>% t()
-X <- (L %*% as.matrix(Y))
+X <- (L %*% Y)
 
 #####test pour la matrice X
 X_exio <- fread(file = str_c(path_data.source,"IOT_",year,"_",nom,"/x.txt"),
            sep = "\t",
            header = FALSE) %>%
   as.data.frame()
-X_exio <- X_exio[-1,] %>% rename(countries.in=V1,products.in=V2,production=V3)
-X_dfff <- merge(t(X_exio), br_lg, by = "countries.in" , all.x = TRUE) %>%
+X.mat <- as.matrix(X_exio)[-1,-1:-2] %>% as.numeric()
+(sum(X.mat)-sum(x))/sum(X.mat) * 100 #grosse erreur
+
+X.mat <- matrix(X.mat,length(A_pays_secteurs),1,
+                dimnames=list(A_pays_secteurs,1)) %>% as.data.frame() # on cree la matrice X (valeurs numeriques)
+rownames(X.mat) <- A_pays_secteurs
+X.mat <- X.mat %>% rename(production=1)
+X_df <- X.mat %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
+                                         products.in = str_sub(rownames(.),4))
+X_dfff <- merge(X_df, br_lg, by = "countries.in" , all.x = TRUE) %>%
   merge(., br.2_lg, by = "products.in") %>%
   group_by(countries.out, products.out) %>%
   # Somme pondérée par weight pour les produits (0>p>1)
-  summarise(across(all_of(Y_cd), ~ sum(. * weight)))  %>% ungroup()
+  summarise(across(production, ~ sum(. * weight)))  %>% ungroup()
+
+x_abs <- x %>% as.data.frame() %>% summarise(abs(.))
+(sum(x_abs)-sum(X_dfff$production))/sum(x_abs) * 100 #erreur moins grosse mais quand même trop grande (devrait provenir de A)
 #####
 
 #Checks sur les valeurs
