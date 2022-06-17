@@ -16,22 +16,21 @@ Z <-readRDS(str_c(path_out,"/Z_",br,".rds"))
 X <-readRDS(str_c(path_out,"/X_",br,".rds"))
 
 #Vérification de l'équation comptable:
-(sum(Y)+sum(Z)-sum(X))/sum(X)*100 #une petite erreur (1%)
+(sum(Y)+sum(Z)-sum(X))/sum(X)*100 #une petite erreur (0.22%)
 
-coefs = 1/X
-coefs <- as.numeric(unlist(coefs))
-coefs[is.infinite(unlist(coefs))] <- 0 
-coefs <- diag(coefs)
-test= as.matrix(Z) %*% as.matrix(coefs)
-test[is.infinite(unlist(test))] <- 0 
-dev=as.numeric(unlist(as.vector(X)))
-test2=t(t(Z)/dev)
-View(test2)
-
-t(apply(mat, 1, function(x) x/dev))
+#Calcul de A (marche aussi avec d'autres fonctions, résultats identiques)
+X_vect=X$production
+A.alternative <- sweep( Z , 
+                        MARGIN = 2 , 
+                        STATS=X_vect , 
+                        FUN='/' ,
+                        check.margin = TRUE)
+A.alternative[is.na(as.data.frame(A.alternative))] <- 0 
+sum(A.alternative)
 
 ## Calcul de L: matrice de Leontief
 L <- LeontiefInverse(A)
+L.alternative <- LeontiefInverse(A.alternative)
 #
 
 print("Computation of the Leontief matrix (L) : done")
@@ -46,11 +45,11 @@ rm(Y)
 
 ## calcul de S
 #x (production totale (pour CI + pour DF))
-x <- (L %*% y_tot) %>% as.numeric() #%>% as.matrix() %>% t()
+x <- (L.alternative %*% y_tot) %>% as.numeric() #%>% as.matrix() %>% t()
 #X <- (L %*% as.matrix(Y)) revient au même
 
 #####test pour la matrice X
-(sum(X)-sum(x))/sum(X) * 100 #grosse erreur
+(sum(X)-sum(x))/sum(X) * 100 #petite erreur (-0.48%)
 x_abs <- x %>% as.data.frame() %>% summarise(abs(.))
 (sum(x_abs)-sum(X_df$production))/sum(x_abs) * 100 #erreur moins grosse mais quand même trop grande (devrait provenir de A ou de L ?)
 #####
@@ -59,7 +58,7 @@ x_abs <- x %>% as.data.frame() %>% summarise(abs(.))
 #########
 I <- diag(rep(1, dim(A)[1]))
 invL=(I-A)
-checkY=as.matrix((I-A))%*%as.matrix(X)
+checkY=as.matrix((I-A.alternative))%*%as.matrix(X)
 sum(checkY)==sum(Y)
 sum(checkY)-sum(Y)
 
