@@ -36,6 +36,16 @@ A.mat <- as.numeric(unlist(A.mat))# on transforme les valeur de A en valeurs num
 A.mat <- matrix(A.mat,length(A_pays_secteurs),length(A_pays_secteurs),
                 dimnames=list(A_pays_secteurs,A_pays_secteurs)) # on cree la matrice A (valeurs numeriques)
 
+#check de données
+A_bis <- fread(file = str_c(path_data.source,"bis_IOT_",year,"_",nom,"/A.txt"),
+           sep = "\t",
+           header = FALSE) %>%
+  as.data.frame()
+A_bis.mat <- as.matrix(A_bis)[-1:-3,-1:-2] # on ne garde que les valeurs numeriques de A et plus les noms de ligne et colonnes
+A_bis.mat <- as.numeric(unlist(A_bis.mat))# on transforme les valeur de A en valeurs numeriques et non plus en chaines de caracteres
+A_bis.mat <- matrix(A_bis.mat,length(A_pays_secteurs),length(A_pays_secteurs),
+                dimnames=list(A_pays_secteurs,A_pays_secteurs)) # on cree la matrice A (valeurs numeriques)
+
 
 ### Matrix construction
 Y_pays_secteurs <- A_pays_secteurs %>% as.character()
@@ -43,26 +53,54 @@ Y_types_DF <- Y[2,-1:-2] %>% as.character()
 Y_pays <- Y[1,-1:-2] %>% as.character()
 Y_pays_types_DF <- str_c(Y_pays,"_",Y_types_DF) %>% as.character()
 
-Y[-1:-3,-1:-2] %>% as.numeric()
+Y[-1:-3,-1:-2] %>% unlist %>% as.numeric()
 Y.mat <- Y[-1:-3,-1:-2]
 Y.mat <- as.numeric(unlist(Y.mat))
 Y.mat <- matrix(Y.mat ,length(A_pays_secteurs),length(Y_pays_types_DF),
                dimnames=list(Y_pays_secteurs,Y_pays_types_DF))
 
+##check de données
+Y_bis <- fread(file = str_c(path_data.source, "bis_IOT_",year,"_",nom,"/Y.txt"),
+               sep = "\t",
+               header = FALSE) %>%
+  as.data.frame()
+Y_bis_pays_secteurs <- A_pays_secteurs %>% as.character()
+Y_bis_types_DF <- Y_bis[2,-1:-2] %>% as.character()
+Y_bis_pays <- Y_bis[1,-1:-2] %>% as.character()
+Y_bis_pays_types_DF <- str_c(Y_bis_pays,"_",Y_bis_types_DF) %>% as.character()
+Y_bis[-1:-3,-1:-2] %>% unlist %>% as.numeric()
+Y_bis.mat <- Y_bis[-1:-3,-1:-2]
+Y_bis.mat <- as.numeric(unlist(Y_bis.mat))
+Y_bis.mat <- matrix(Y_bis.mat ,length(A_pays_secteurs),length(Y_bis_pays_types_DF),
+                dimnames=list(Y_bis_pays_secteurs,Y_bis_pays_types_DF))
+
 
 # Recuperations des infos sur les lignes (types d'extensions env) et les colonnes (secteurs concernes) de F
-Fe_noms_extensions <- Fe[-1:-2,1]
+Fe_noms_extensions <- Fe[-c(1,2,3),1]
 Fe_pays_secteurs <- A_pays_secteurs
 
+#ne marche pas très bien
 Fe.mat <- Fe[-1:-2,-1]# extraction des valeurs
 Fe.mat <-as.numeric(unlist(Fe.mat))
 Fe.mat <-matrix(Fe,length(Fe_noms_extensions),length(A_pays_secteurs),
                 dimnames=list(Fe_noms_extensions,A_pays_secteurs))
 
-##test for Fe
+##test for Fe à la place
 Fe.mat <- Fe %>% as.data.frame() %>% select(-V1) %>% `colnames<-`(Fe_pays_secteurs)
-Fe.mat <- Fe.mat[-c(1,2),]
+Fe.mat <- Fe.mat[-c(1,2,3),]
 Fe.mat = Fe.mat %>% summarise(across(all_of(A_pays_secteurs), ~ as.numeric(.))) %>% `rownames<-`(Fe_noms_extensions)
+
+#check de données
+Fe_bis <- fread(file = str_c(path_data.source, "bis_IOT_",year,"_",nom,"/satellite/F.txt"),
+            sep = "\t",
+            header = FALSE) %>%
+  as.data.frame()
+Fe_bis_noms_extensions <- Fe_bis[-1:-2,1]
+Fe_bis_pays_secteurs <- A_pays_secteurs
+Fe_bis.mat <- Fe_bis %>% as.data.frame() %>% select(-V1) %>% `colnames<-`(Fe_bis_pays_secteurs)
+Fe_bis.mat <- Fe_bis.mat[-c(1,2),]
+Fe_bis.mat = Fe_bis.mat %>% summarise(across(all_of(A_pays_secteurs), ~ as.numeric(.))) %>% `rownames<-`(Fe_bis_noms_extensions)
+
 
 ### Save and export
 # A: matrice des coefficients techniques

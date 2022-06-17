@@ -28,7 +28,21 @@ rm(Y)
 
 ## calcul de S
 #x (production totale (pour CI + pour DF))
-x <- (L %*% y_tot) %>% as.numeric() %>% as.matrix() #%>% t()
+x <- (L %*% y_tot) %>% as.numeric() #%>% as.matrix() %>% t()
+X <- (L %*% as.matrix(Y))
+
+#####test pour la matrice X
+X_exio <- fread(file = str_c(path_data.source,"IOT_",year,"_",nom,"/x.txt"),
+           sep = "\t",
+           header = FALSE) %>%
+  as.data.frame()
+X_exio <- X_exio[-1,] %>% rename(countries.in=V1,products.in=V2,production=V3)
+X_dfff <- merge(t(X_exio), br_lg, by = "countries.in" , all.x = TRUE) %>%
+  merge(., br.2_lg, by = "products.in") %>%
+  group_by(countries.out, products.out) %>%
+  # Somme pondérée par weight pour les produits (0>p>1)
+  summarise(across(all_of(Y_cd), ~ sum(. * weight)))  %>% ungroup()
+#####
 
 #Checks sur les valeurs
 #########

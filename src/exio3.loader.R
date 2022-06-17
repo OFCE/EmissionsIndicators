@@ -77,7 +77,7 @@ tY_dff[is.na(tY_dff)]
 #difference in value from the original database Y and the transformed Y_dff. Should be equal to 0 
 sum(Y_dff[,-1]) - sum(Y)
 
-# Encore une petite erreur mais qui est négligable (0.032%)
+# Encore une petite erreur mais qui est négligable (0.032%) (0.074% avec les nouvelles données)
 (sum(tY_dff[,-1:-2]) - sum(Y)) #/sum(Y) *100
 
 #Changer noms des lignes
@@ -87,7 +87,7 @@ tY_dfff <- tY_dff %>% select(-countries.out,- products.in) %>%
             dimnames = list(row.Y_dff,col.Y_dfff)) %>%
   t() %>% as.data.frame()  %>% `colnames<-`(row.Y_dfff)
 View(tY_dfff)
-(sum(tY_dfff[,-1:-2]) - sum(Y)) /sum(Y) *100 #Erreur: 0.027%
+(sum(tY_dfff[,-1:-2]) - sum(Y)) /sum(Y) *100 #Erreur: 0.067%
 
 ####Mêmes étapes pour A
 A_df <- A %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
@@ -130,17 +130,18 @@ A_dfff[is.na(A_dfff)]
 tA_dff[is.na(tA_dff)]
 
 #difference in value from the original database A and the transformed tA_dff. Should be equal to 0 
-sum(A_dff[,-1]) - sum(A)
+(sum(A_dff[,-1]) - sum(A))#/sum(A) *100 #très petite erreur
 (sum(tA_dff[,-1:-2]) - sum(A)) /sum(A) *100
 
 #Cleaning (noms des lignes et colonnes,...)
 tA_dfff <- tA_dff %>% select(-countries.out,- products.out) %>% 
   as.matrix(length(nrow(tA_dff)),length(ncol(tA_dff)),
             dimnames = list(col.A_dfff,col.A_dfff)) %>%
-  t() %>% as.data.frame()  %>% `colnames<-`(col.A_dfff)
+  t() %>% #remettre dans le bon sens
+  as.data.frame()  %>% `colnames<-`(col.A_dfff)
 View(tA_dfff)
 
-(sum(tA_dfff[,-1:-2]) - sum(A)) /sum(A) *100 #Erreur trop importante: 8,67%
+(sum(tA_dfff[,-1:-2]) - sum(A)) /sum(A) *100 #Erreur trop importante: 8,67% (5.88% avec les nouvelles données)
 
 ####Mêmes étapes pour Fe (plus court)
 
@@ -156,7 +157,6 @@ F_dfff <- merge(F_df, br_lg, by = "countries.in" , all.x = TRUE) %>%
 
 # Check for NA
 F_dfff[is.na(F_dfff)]
-tF_dfff[is.na(tF_dfff)]
 
 #Cleaning (noms des lignes et colonnes,...)
 row.F_dfff <- str_c(F_dfff$countries.out,"_",F_dfff$products.out)
@@ -167,7 +167,7 @@ tF_dfff <- F_dfff %>% select(-countries.out,- products.out) %>%
 View(tF_dfff)
 
 #difference in value from the original database Y and the transformed Y_dff. Should be equal to 0 
-(sum(tF_dfff[,-1:-2]) - sum(Fe))  /sum(Fe) *100 #Erreur de 0.95%
+(sum(tF_dfff) - sum(Fe))  /sum(Fe) *100 #Erreur de 0.95% (1.52% avec les nouvelles données)
 
 ### Save and export
 saveRDS(tA_dfff, str_c(path_out, "A_ThreeMe.rds"))
