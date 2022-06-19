@@ -15,6 +15,9 @@ Fe <-readRDS(str_c(path_out,"/Fe_",br,".rds"))
 Z <-readRDS(str_c(path_out,"/Z_",br,".rds"))
 X <-readRDS(str_c(path_out,"/X_",br,".rds"))
 
+S <-readRDS(str_c(path_out,"/S_",br,".rds"))
+M <-readRDS(str_c(path_out,"/M_",br,".rds"))
+
 #Vérification de l'équation comptable:
 (sum(Y)+sum(Z)-sum(X))/sum(X)*100 #une petite erreur (0.22%)
 
@@ -46,12 +49,12 @@ rm(Y)
 ## calcul de S
 #x (production totale (pour CI + pour DF))
 x <- (L.alternative %*% y_tot) %>% as.numeric() #%>% as.matrix() %>% t()
-#X <- (L %*% as.matrix(Y)) revient au même
+X <- (L.alternative %*% as.matrix(Y)) 
 
-#####test pour la matrice X
+#####test pour la matrice X (comparaison avec x <- (L %*% y_tot) %>% as.numeric())
 (sum(X)-sum(x))/sum(X) * 100 #petite erreur (-0.48%)
 x_abs <- x %>% as.data.frame() %>% summarise(abs(.))
-(sum(x_abs)-sum(X_df$production))/sum(x_abs) * 100 #erreur moins grosse mais quand même trop grande (devrait provenir de A ou de L ?)
+(sum(x_abs)-sum(X$production))/sum(x_abs) * 100 
 #####
 
 #Checks sur les valeurs
@@ -60,7 +63,7 @@ I <- diag(rep(1, dim(A)[1]))
 invL=(I-A)
 checkY=as.matrix((I-A.alternative))%*%as.matrix(X)
 sum(checkY)==sum(Y)
-sum(checkY)-sum(Y)
+sum(checkY)-sum(Y) #plus cohérent (et Y n'est pas dans le calcul de de checkY)
 
 invL_test=(I-test)
 checkY=as.matrix((I-test))%*%as.matrix(X)
@@ -74,7 +77,8 @@ checkY=as.matrix((I-A))%*%as.matrix(X)
 
 checkX= as.matrix(L) %*% (y_tot)
 sum(x)==sum(checkX)
-sum(x)-sum(checkX)
+sum(x)-sum(checkX) #très différent
+(sum(x)-sum(checkX))/sum(x) *100 #grosse erreur
 #########
 
 #valeurs négatives?
@@ -88,10 +92,19 @@ x_1 <- as.numeric(x_1)
 x_1d <- diag(x_1)
 
 
-S <- as.matrix(Fe) %*% x_1d
-S[is.nan(S)]
+S.calc <- as.matrix(Fe) %*% x_1d
+S.calc[is.nan(S.calc)]
 
+sum(S.calc)
+sum(S)
 
+has.neg <- apply(S.calc, 1, function(row) any(row < 0))
+length(which(has.neg))
+#3 valeurs négatives dans S, 17 dans S calculé
+
+#vérifier correspondance des lignes
+rows.S = rownames(S)
+test = S.alternative[row.names(S.alternative) %in% rows.S, ]
 
 # Exportation des résultats sous forme de fichier Rds des différentes matrices calculées
 saveRDS( x, str_c("data_out/IOT_",year,"_",nom,"/x.rds"))
@@ -143,7 +156,9 @@ GES_list[["GES"]] <- GES_list[["CO2"]] +
 print("Computation of the environemental impact (S) : done")  
 
 
-M <- S %*% L
+M.calc <- as.matrix(S.calc) %*% L.alternative
+(sum(M.calc) - sum(M))/sum(M) * 100 #28%
+
 for (ges in c(glist,"GES")){
   M.mat <-  GES_list[[str_c(ges)]] %>% unlist %>% as.numeric %>% diag
   
