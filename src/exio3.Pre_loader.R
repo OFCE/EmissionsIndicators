@@ -155,7 +155,7 @@ saveRDS(Z.mat, str_c(path_out, "Z.rds"))
 ###VERIFIER: DIFFERENCE ENTRE "SATELLITE" ET "IMPACTS"
 
 #S: coefficients d'impact
-S <- fread(file = str_c(path_data.source,"IOT_",year,"_",nom,"/impacts/S.txt"),
+S <- fread(file = str_c(path_data.source,"IOT_",year,"_",nom,"/satellite/S.txt"),
                 sep = "\t",
                 header = FALSE) %>%
   as.data.frame()
@@ -169,7 +169,7 @@ saveRDS(S.mat, str_c(path_out, "S.rds"))
 saveRDS(S_noms_extensions, str_c(path_out, "S_noms_extensions.rds"))
 
 
-M <- fread(file = str_c(path_data.source,"IOT_",year,"_",nom,"/impacts/S_Y.txt"),
+M <- fread(file = str_c(path_data.source,"IOT_",year,"_",nom,"/satellite/S_Y.txt"),
            sep = "\t",
            header = FALSE) %>%
   as.data.frame()
@@ -179,7 +179,6 @@ M_types_DF <- Y_types_DF
 M_pays <- M[1,-1] %>% as.character()
 M_pays_types_DF <- str_c(M_pays,"_",M_types_DF) %>% as.character()
 
-M[-1:-3,-1] %>% unlist %>% as.numeric()
 M.mat <- M[-1:-3,-1]
 M.mat <- as.numeric(unlist(M.mat))
 M.mat <- matrix(M.mat ,length(M_noms_extensions),length(M_pays_types_DF),

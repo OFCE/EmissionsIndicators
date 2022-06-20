@@ -166,7 +166,7 @@ tF_dfff <- F_dfff %>% select(-countries.out,- products.out) %>%
   t() %>% as.data.frame()  %>% `colnames<-`(row.F_dfff)
 View(tF_dfff)
 
-#difference in value from the original database Y and the transformed Y_dff. Should be equal to 0 
+#difference in value from the original database F and the transformed tF_dfff Should be equal to 0 
 (sum(tF_dfff) - sum(Fe))  /sum(Fe) *100 #Erreur de 0.95% (1.52% avec les nouvelles données)
 
 ### Save and export
@@ -247,7 +247,7 @@ tS_dfff <- S_dfff %>% select(-countries.out,- products.out) %>%
             dimnames = list(col.S_dfff,S_noms_extensions)) %>%
   t() %>% as.data.frame()  %>% `colnames<-`(col.S_dfff)
 View(tS_dfff)
-(sum(tS_dfff) - sum(S)) /sum(S) *100 #petite erreur (4.755671e-06 %)
+(sum(tS_dfff) - sum(S)) /sum(S) *100 #petite erreur (1.314899e-05 %)
 saveRDS(tS_dfff, str_c(path_out, "S_ThreeMe.rds"))
 
 #M
