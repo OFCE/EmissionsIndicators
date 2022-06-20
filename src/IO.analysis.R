@@ -21,6 +21,9 @@ M <-readRDS(str_c(path_out,"/M_",br,".rds"))
 #Vérification de l'équation comptable:
 (sum(Y)+sum(Z)-sum(X))/sum(X)*100 #une petite erreur (0.22%)
 
+#Ne fonctione pas sur les impacts...
+(sum(M)-sum(S))/sum(M)*100
+
 #Calcul de A (marche aussi avec d'autres fonctions, résultats identiques)
 X_vect=X$production
 A.alternative <- sweep( Z , 
@@ -98,9 +101,12 @@ S.calc[is.nan(S.calc)]
 sum(S.calc)
 sum(S)
 
-has.neg <- apply(S.calc, 1, function(row) any(row < 0))
-length(which(has.neg))
-#3 valeurs négatives dans S, 17 dans S calculé
+valeurs.négatives<-function(dataframe){ #donne le nombre de valeurs négatives dans le df
+  has.neg <- apply(dataframe, 1, function(row) any(row < 0))
+  return(length(which(has.neg)))
+}
+valeurs.négatives(S.calc)
+#3 valeurs négatives dans S, 17 dans S calculé (car 17 dans Fe)
 
 #vérifier correspondance des lignes
 rows.S = rownames(S)
@@ -156,9 +162,35 @@ GES_list[["GES"]] <- GES_list[["CO2"]] +
 print("Computation of the environemental impact (S) : done")  
 
 
+#impact de la demande
 M.calc <- as.matrix(S.calc) %*% L.alternative
+View(M.calc)
 (sum(M.calc) - sum(M))/sum(M) * 100 #28%
+valeurs.négatives(M.calc)
+valeurs.négatives(L.alternative)
 
+dim(M.calc)
+#dimensions de M.calc: impacts.Fe * pays_secteurs
+dim(M)
+#dimensions de M: impacts.S * types_DF
+
+#pour avoir une matrice impacts * DF:
+M.calc <- as.matrix(S.calc) %*% as.matrix(Y)
+#A FAIRE: CALCULER M A PARTIR DE LA MATRICE F_Y (ET PAS F)
+
+#pour aggréger par pays
+M.calc <- t(M.calc) %>% as.data.frame() %>% mutate(pays_demande=rownames(.))
+M.calc$demande=sub(".*?_", "",M.calc$pays_demande)
+M.calc$regions=sub("_.*", "",M.calc$pays_demande)
+M.calc.agg<-M.calc %>% group_by(regions) %>% 
+  summarise_if(is.numeric, sum) 
+regions=M.calc.agg$regions
+M.calc.agg=M.calc.agg%>% `rownames<-`(regions) %>% t() %>% as.data.frame()
+M.calc.agg=M.calc.agg[-1,]
+M.calc=t(M.calc)%>%as.data.frame()
+
+
+#sélection de impacts et conversion
 for (ges in c(glist,"GES")){
   M.mat <-  GES_list[[str_c(ges)]] %>% unlist %>% as.numeric %>% diag
   
