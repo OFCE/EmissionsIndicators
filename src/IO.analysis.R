@@ -177,6 +177,7 @@ dim(M)
 #pour avoir une matrice impacts * DF:
 M.calc <- as.matrix(S.calc) %*% as.matrix(Y)
 #A FAIRE: CALCULER M A PARTIR DE LA MATRICE F_Y (ET PAS F)
+##colonne F_Y / demande totale du pays (vecteur de taille 84)
 
 #pour aggréger par pays
 M.calc <- t(M.calc) %>% as.data.frame() %>% mutate(pays_demande=rownames(.))

@@ -23,7 +23,7 @@ br_lg <-  loadBridge("Countries_1", "Countries_2.WD1", "Countries") %>%
   pivot_longer(cols = exio3.desc$countries, names_to = "countries.in", values_to = "value") %>%
   filter(value ==1) %>% select(-value)
 regions<-unique(br_lg[,1])
-saveRDS(regions, str_c(path_out, "aggragate_regions.rds"))
+saveRDS(regions, str_c(path_out, "aggregate_regions.rds"))
 
 ### Bridge in long format for products
 br.2_lg <-  loadBridge("exio3", "threeMeEurostat", "Products", transverse = T) %>% 
@@ -268,3 +268,22 @@ tM_dff <- M_dfff %>% select(-countries.out,- types.df) %>%
   t() %>% as.data.frame()  %>% `colnames<-`(col.M_dfff)
 (sum(tM_dff) - sum(M)) /sum(M) *100 #0% erreur
 saveRDS(tM_dff, str_c(path_out, "M_ThreeMe.rds"))
+
+#F_Y
+Fy <- readRDS(str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/Fy.rds"))
+
+Fy_df <- t(Fy) %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
+                                            demand = str_sub(rownames(.),4))
+
+Fy_dfff <- merge(Fy_df, br_lg, by = "countries.in" , all.x = TRUE) %>%
+  group_by(countries.out, demand) %>%
+  # Somme pondérée par weight pour les produits (0>p>1)
+  summarise(across(all_of(FY_noms_extensions), ~ sum(.)))  %>% ungroup()
+col.Fy_dfff = str_c(Fy_dfff$countries.out,"_",Fy_dfff$demand)
+
+tFy_dfff <- Fy_dfff %>% select(-countries.out,-demand) %>% 
+  as.matrix(length(nrow(Fy_dfff)),length(col.Fy_dfff),
+            dimnames = list(nrow(Fy_dfff),col.Fy_dfff)) %>%
+  t() %>% as.data.frame()  %>% `colnames<-`(col.Fy_dfff)
+(sum(tFy_dfff) - sum(Fy)) /sum(Fy) *100 #0% erreur
+saveRDS(tFy_dfff, str_c(path_out, "Fy_ThreeMe.rds"))
