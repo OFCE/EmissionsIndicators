@@ -26,7 +26,7 @@ regions<-unique(br_lg[,1])
 saveRDS(regions, str_c(path_out, "aggregate_regions.rds"))
 
 ### Bridge in long format for products
-br.2_lg <-  loadBridge("exio3", "threeMeEurostat", "Products", transverse = T) %>% 
+br.2_lg <-  loadBridge("exio3", "CPA2002_Niv1", "Products") %>% 
   as.data.frame() %>% mutate(products.out = rownames(.)) %>%
   pivot_longer(cols = exio3.desc$products, names_to = "products.in", values_to = "weight") %>% 
 filter(weight > 0)

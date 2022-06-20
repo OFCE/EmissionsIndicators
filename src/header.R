@@ -26,4 +26,5 @@ glist <- c("CO2", "CH4", "N2O", "SF6", "HFC", "PFC")
 
 # Descriptions of nomenclatures
 source("data_in/desc/exio3.desc.R")
+source("data_in/desc/CPA4.desc.R")
 source("src/functions/01_load.bridge.R")
