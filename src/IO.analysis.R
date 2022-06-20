@@ -16,13 +16,16 @@ Z <-readRDS(str_c(path_out,"/Z_",br,".rds"))
 X <-readRDS(str_c(path_out,"/X_",br,".rds"))
 
 S <-readRDS(str_c(path_out,"/S_",br,".rds"))
-M <-readRDS(str_c(path_out,"/M_",br,".rds"))
+M <-readRDS(str_c(path_out,"/M_",br,".rds")) #S_Y
+Fy <-readRDS(str_c(path_out,"/Fy_",br,".rds"))
 
 #Vérification de l'équation comptable:
 (sum(Y)+sum(Z)-sum(X))/sum(X)*100 #une petite erreur (0.22%)
 
-#Ne fonctione pas sur les impacts...
+#Ne fonctione pas sur les impacts... S n'est pas l'équivalent de S_Y?
 (sum(M)-sum(S))/sum(M)*100
+#ici non plus
+(sum(Fe)-sum(Fy))/sum(Fe)*100
 
 #Calcul de A (marche aussi avec d'autres fonctions, résultats identiques)
 X_vect=X$production
@@ -162,8 +165,10 @@ GES_list[["GES"]] <- GES_list[["CO2"]] +
 print("Computation of the environemental impact (S) : done")  
 
 
-#impact de la demande
-M.calc <- as.matrix(S.calc) %*% L.alternative
+#Impact de la demande
+M.calc <- as.matrix(S.calc) %*% L.alternative 
+#interprétation
+M.calc=M.calc[1:1113,]
 View(M.calc)
 (sum(M.calc) - sum(M))/sum(M) * 100 #28%
 valeurs.négatives(M.calc)
@@ -177,7 +182,21 @@ dim(M)
 #pour avoir une matrice impacts * DF:
 M.calc <- as.matrix(S.calc) %*% as.matrix(Y)
 #A FAIRE: CALCULER M A PARTIR DE LA MATRICE F_Y (ET PAS F)
-##colonne F_Y / demande totale du pays (vecteur de taille 84)
+Fy <-readRDS(str_c(path_out,"/Fy_",br,".rds"))
+##colonne F_Y / demandes totales du pays (vecteur de taille 84)
+y_tot_type = t(Y) %*% as.matrix(rep(1,nrow(Y)))
+y_1 <- 1/y_tot_type
+y_1[is.infinite(y_1)] <- 0 
+y_1 <- as.numeric(y_1)
+y_1d <- diag(y_1)
+M.calc2 <- as.matrix(Fy) %*% y_1d
+M.calc2[is.nan(M.calc2)]
+
+sum(M.calc2)
+sum(M.calc)
+sum(M)
+dim(M.calc2)
+dim(M)
 
 #pour aggréger par pays
 M.calc <- t(M.calc) %>% as.data.frame() %>% mutate(pays_demande=rownames(.))
@@ -191,7 +210,7 @@ M.calc.agg=M.calc.agg[-1,]
 M.calc=t(M.calc)%>%as.data.frame()
 
 
-#sélection de impacts et conversion
+#Sélection des impacts GES et conversion
 for (ges in c(glist,"GES")){
   M.mat <-  GES_list[[str_c(ges)]] %>% unlist %>% as.numeric %>% diag
   
