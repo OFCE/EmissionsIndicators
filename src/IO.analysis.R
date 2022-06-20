@@ -55,15 +55,17 @@ rm(Y)
 ## calcul de S
 #x (production totale (pour CI + pour DF))
 x <- (L.alternative %*% y_tot) %>% as.numeric() #%>% as.matrix() %>% t()
-X <- (L.alternative %*% as.matrix(Y)) 
+X.calc <- (L.alternative %*% as.matrix(Y)) 
+(sum(X)-sum(X.calc))/sum(X) * 100 #petite erreur (-0.48%)
 
+#identique au bloc précédent
 #####test pour la matrice X (comparaison avec x <- (L %*% y_tot) %>% as.numeric())
 (sum(X)-sum(x))/sum(X) * 100 #petite erreur (-0.48%)
 x_abs <- x %>% as.data.frame() %>% summarise(abs(.))
 (sum(x_abs)-sum(X$production))/sum(x_abs) * 100 
 #####
 
-#Checks sur les valeurs
+#Checks sur les valeurs (un peu répétitif)
 #########
 I <- diag(rep(1, dim(A)[1]))
 invL=(I-A)
@@ -85,9 +87,6 @@ sum(x)-sum(checkX) #très différent en utilisant L et pas L.alternative
 (sum(x)-sum(checkX))/sum(x) *100 #grosse erreur
 #########
 
-#valeurs négatives?
-#mean(apply(A,2,mean))
-
 #print("J'ai calcule le vecteur de la production totale x. Je vais pouvoir calculer S=Fxdiag(1/x)")
 
 x_1 <- 1/x
@@ -102,6 +101,7 @@ S.calc[is.nan(S.calc)]
 sum(S.calc)
 sum(S)
 
+#fonction
 valeurs.négatives<-function(dataframe){ #donne le nombre de valeurs négatives dans le df
   has.neg <- apply(dataframe, 1, function(row) any(row < 0))
   return(length(which(has.neg)))
