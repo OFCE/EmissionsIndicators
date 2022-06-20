@@ -3,7 +3,9 @@ loadBridge <- function(from, to, sht, transverse = NULL) {
   if(is.null(transverse)){transverse = FALSE}
   
   
-  path <- str_c("data_in/table.correspondences/", from, ".to.", to, ".xlsx")
+  path <- ifelse(Sys.info()['user']=="leasy",
+                 str_c(path_codedata,"data_in/table.correspondences/", from, ".to.", to, ".xlsx"),
+                 str_c("data_in/table.correspondences/", from, ".to.", to, ".xlsx"))
   
   # Industry names
   row.names <- openxlsx::read.xlsx(path, sheet = sht, cols = 1, colNames = F) %>% .[[1]] 
