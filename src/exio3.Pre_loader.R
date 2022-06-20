@@ -46,7 +46,6 @@ A_bis.mat <- as.numeric(unlist(A_bis.mat))# on transforme les valeur de A en val
 A_bis.mat <- matrix(A_bis.mat,length(A_pays_secteurs),length(A_pays_secteurs),
                 dimnames=list(A_pays_secteurs,A_pays_secteurs)) # on cree la matrice A (valeurs numeriques)
 
-
 ### Matrix construction
 Y_pays_secteurs <- A_pays_secteurs %>% as.character()
 Y_types_DF <- Y[2,-1:-2] %>% as.character()

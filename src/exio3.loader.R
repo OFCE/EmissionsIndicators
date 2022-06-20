@@ -89,6 +89,30 @@ tY_dfff <- tY_dff %>% select(-countries.out,- products.in) %>%
 View(tY_dfff)
 (sum(tY_dfff[,-1:-2]) - sum(Y)) /sum(Y) *100 #Erreur: 0.067%
 
+#Y sans pondération
+Y2_dfff <- merge(Y_df, br_lg, by = "countries.in" , all.x = TRUE) %>%
+  merge(., br.2_lg, by = "products.in") %>%
+  group_by(countries.out, products.out) %>%
+  # Somme pondérée par weight pour les produits (0>p>1)
+  summarise(across(all_of(Y_cd), ~ sum(. * weight)))  %>% ungroup()
+col.Y2_dfff <- str_c(Y2_dfff$countries.out,"_",Y2_dfff$products.out)
+tY2_dff <- Y2_dfff %>% select(-countries.out,- products.out) %>% as.matrix(length(col.Y2_dfff),length(Y_cd),
+                                                                         dimnames = list(col.Y2_dfff,Y_cd)) %>%
+  t() %>% as.data.frame()  %>% `colnames<-`(col.Y2_dfff) %>%
+  mutate(countries.in = str_sub(rownames(.),1,2),
+         products.in = str_sub(rownames(.),4)) %>%
+  merge(br_lg, by = "countries.in" , all = T) %>%
+  group_by(countries.out, products.in) %>%
+  # Somme pondérée par weight pour les produits (0>p>1)
+  summarise(across(all_of(col.Y2_dfff), ~ sum(.)))  %>% ungroup()
+row.Y2_dfff <- str_c(tY2_dff$countries.out,"_",tY2_dff$products.in)
+tY2_dfff <- tY2_dff %>% select(-countries.out,- products.in) %>% 
+  as.matrix(length(nrow(tY2_dff)),length(ncol(tY2_dff)),
+            dimnames = list(row.Y2_dff,col.Y2_dfff)) %>%
+  t() %>% as.data.frame()  %>% `colnames<-`(row.Y2_dfff)
+(sum(tY2_dfff[,-1:-2]) - sum(Y)) /sum(Y) *100 #en effet erreur plus petite mais à peine (-0.0071141%)
+
+
 ####Mêmes étapes pour A
 A_df <- A %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
                                          products.in = str_sub(rownames(.),4))
@@ -143,6 +167,9 @@ View(tA_dfff)
 
 (sum(tA_dfff[,-1:-2]) - sum(A)) /sum(A) *100 #Erreur trop importante: 8,67% (5.88% avec les nouvelles données)
 
+#A sans pondération: pas save
+#erreur: -0.02663822% !!!
+
 ####Mêmes étapes pour Fe (plus court)
 
 F_df <- Fe %>% as.data.frame() %>% t() %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
@@ -168,6 +195,7 @@ View(tF_dfff)
 
 #difference in value from the original database F and the transformed tF_dfff Should be equal to 0 
 (sum(tF_dfff) - sum(Fe))  /sum(Fe) *100 #Erreur de 0.95% (1.52% avec les nouvelles données)
+#sans pondération (nouveau bridge: erreur négligeable, de 1.268088e-14%)
 
 ### Save and export
 saveRDS(tA_dfff, str_c(path_out, "A_ThreeMe.rds"))
