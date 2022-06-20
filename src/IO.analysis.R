@@ -69,26 +69,24 @@ I <- diag(rep(1, dim(A)[1]))
 invL=(I-A)
 checkY=as.matrix((I-A.alternative))%*%as.matrix(X)
 sum(checkY)==sum(Y)
-sum(checkY)-sum(Y) #plus cohérent (et Y n'est pas dans le calcul de de checkY)
-
-invL_test=(I-test)
-checkY=as.matrix((I-test))%*%as.matrix(X)
-sum(checkY)==sum(Y)
-sum(checkY)-sum(Y)
+sum(checkY)-sum(Y) #mieux car plus cohérent (et Y n'est pas dans le calcul de de checkY)
 
 checkX= as.matrix(L) %*% (checkY)
 sum(x)==sum(checkX)
-sum(x)-sum(checkX)
+(sum(x)-sum(checkX))/sum(x)*100 #0.48% mais pourquoi?
 checkY=as.matrix((I-A))%*%as.matrix(X)
+
+#test pour x
+(sum(X)-sum(L.alternative %*% as.matrix(Y)))/sum(X)*100 #0.48%
 
 checkX= as.matrix(L) %*% (y_tot)
 sum(x)==sum(checkX)
-sum(x)-sum(checkX) #très différent
+sum(x)-sum(checkX) #très différent en utilisant L et pas L.alternative
 (sum(x)-sum(checkX))/sum(x) *100 #grosse erreur
 #########
 
 #valeurs négatives?
-mean(apply(A,2,mean))
+#mean(apply(A,2,mean))
 
 #print("J'ai calcule le vecteur de la production totale x. Je vais pouvoir calculer S=Fxdiag(1/x)")
 
@@ -167,21 +165,22 @@ print("Computation of the environemental impact (S) : done")
 
 #Impact de la demande
 M.calc <- as.matrix(S.calc) %*% L.alternative 
-#interprétation
+#interprétation : impacts des inputs d'un secteur-pays
 M.calc=M.calc[1:1113,]
 View(M.calc)
-(sum(M.calc) - sum(M))/sum(M) * 100 #28%
+(sum(M.calc) - sum(M))/sum(M) * 100 #28% quand M "impact", beaucoup plus dans M "satellite"
 valeurs.négatives(M.calc)
 valeurs.négatives(L.alternative)
 
 dim(M.calc)
-#dimensions de M.calc: impacts.Fe * pays_secteurs
+#dimensions de M.calc: impacts * pays_secteurs
 dim(M)
-#dimensions de M: impacts.S * types_DF
+#dimensions de M: impacts * types_DF
 
 #pour avoir une matrice impacts * DF:
 M.calc <- as.matrix(S.calc) %*% as.matrix(Y)
-#A FAIRE: CALCULER M A PARTIR DE LA MATRICE F_Y (ET PAS F)
+
+#Calcul de M (impact demande) à partir de Fy et pas S (donc Fe)
 Fy <-readRDS(str_c(path_out,"/Fy_",br,".rds"))
 ##colonne F_Y / demandes totales du pays (vecteur de taille 84)
 y_tot_type = t(Y) %*% as.matrix(rep(1,nrow(Y)))
@@ -189,16 +188,34 @@ y_1 <- 1/y_tot_type
 y_1[is.infinite(y_1)] <- 0 
 y_1 <- as.numeric(y_1)
 y_1d <- diag(y_1)
-M.calc2 <- as.matrix(Fy) %*% y_1d
+M.calc2 <- as.matrix(Fy) %*% y_1d #impact par unité d'output
 M.calc2[is.nan(M.calc2)]
 
 sum(M.calc2)
 sum(M.calc)
-sum(M)
+sum(M) #
+(sum(M.calc2) - sum(M))/sum(M) * 100 #presque la moitié des réels impacts
 dim(M.calc2)
 dim(M)
 
-#pour aggréger par pays
+sum(colSums(M==0))
+sum(colSums(M.calc==0))
+sum(colSums(M.calc2==0))
+#meme nombre de 0 dans M et M.calc2
+
+#contribution de chaque secteur à la DF: 
+#colonne Y divisée par somme colonne (total de chaque DF)
+Y_sectors.tot<-colSums(Y)
+y_2 <- 1/Y_sectors.tot
+y_2[is.infinite(y_2)] <- 0 
+y_2 <- as.numeric(y_2)
+y_2d <- diag(y_2)
+Y_sectors.share <- as.matrix(Y) %*% y_2d
+#contribution de chaque secteur à chaque impact: 
+#impact*case du secteur correspondant (pour un type de DF donné)
+#(remplacer les 0 par des 1 pour n'avoir que des 1 dans colSums(Y_sectors.share))
+
+#pour aggréger par pays ? inutile pour le moment
 M.calc <- t(M.calc) %>% as.data.frame() %>% mutate(pays_demande=rownames(.))
 M.calc$demande=sub(".*?_", "",M.calc$pays_demande)
 M.calc$regions=sub("_.*", "",M.calc$pays_demande)
