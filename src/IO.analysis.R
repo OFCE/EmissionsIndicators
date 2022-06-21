@@ -8,14 +8,14 @@
 br <- "ThreeMe"
 
 # Chargement des données I-O sauvegardées par le script exio3.loader.R
-A <-readRDS(str_c(path_out,"/A_",br,".rds"))
+#A <-readRDS(str_c(path_out,"/A_",br,".rds"))
 Y <-readRDS(str_c(path_out,"/Y_",br,".rds"))
 Fe <-readRDS(str_c(path_out,"/Fe_",br,".rds"))
 
 Z <-readRDS(str_c(path_out,"/Z_",br,".rds"))
 X <-readRDS(str_c(path_out,"/X_",br,".rds"))
 
-S <-readRDS(str_c(path_out,"/S_",br,".rds"))
+#S <-readRDS(str_c(path_out,"/S_",br,".rds"))
 M <-readRDS(str_c(path_out,"/M_",br,".rds")) #S_Y
 Fy <-readRDS(str_c(path_out,"/Fy_",br,".rds"))
 
@@ -38,8 +38,8 @@ A.alternative[is.na(as.data.frame(A.alternative))] <- 0
 sum(A.alternative)
 
 ## Calcul de L: matrice de Leontief
-L <- LeontiefInverse(A)
-L.alternative <- LeontiefInverse(A.alternative)
+#L <- LeontiefInverse(A)
+L <- LeontiefInverse(A.alternative)
 
 
 #fonction valeurs négatives
@@ -48,9 +48,9 @@ valeurs.negatives<-function(dataframe){ #donne le nombre de valeurs négatives d
   return(length(which(has.neg)))
 }
 
-(sum(L)-sum(L.alternative))/sum(L) * 100 #29%
+#(sum(L)-sum(L.alternative))/sum(L) * 100 #29%
 valeurs.negatives(L)
-valeurs.negatives(L.alternative)
+#valeurs.negatives(L.alternative)
 valeurs.negatives(Z)
 valeurs.negatives(X)
 #
@@ -67,38 +67,28 @@ rm(Y)
 
 ## calcul de S
 #x (production totale (pour CI + pour DF))
-x <- (L.alternative %*% y_tot) %>% as.numeric()
 x <- (L %*% y_tot) %>% as.numeric()#%>% as.matrix() %>% t()
-X.calc <- (L.alternative %*% as.matrix(Y)) 
-(sum(X)-sum(X.calc))/sum(X) * 100 #petite erreur (-0.48%)
+X.calc <- (L %*% as.matrix(Y)) 
+(sum(X)-sum(X.calc))/sum(X) * 100 #petite erreur (-8.318899e-12%)
 
-#identique au bloc précédent
-#####test pour la matrice X (comparaison avec x <- (L %*% y_tot) %>% as.numeric())
-(sum(X)-sum(x))/sum(X) * 100 #petite erreur (-0.48%)
-x_abs <- x %>% as.data.frame() %>% summarise(abs(.))
-(sum(x_abs)-sum(X$production))/sum(x_abs) * 100 
-#####
 
 #Checks sur les valeurs (un peu répétitif)
+#A SUPPRIMER PUISQUE OK
 #########
-I <- diag(rep(1, dim(A)[1]))
-invL=(I-A)
+#test pour y
+I <- diag(rep(1, dim(A.alternative)[1]))
 checkY=as.matrix((I-A.alternative))%*%as.matrix(X)
 sum(checkY)==sum(Y)
-sum(checkY)-sum(Y) #mieux car plus cohérent (et Y n'est pas dans le calcul de de checkY)
-
-checkX= as.matrix(L) %*% (checkY)
-sum(x)==sum(checkX)
-(sum(x)-sum(checkX))/sum(x)*100 #0.48% mais pourquoi?
-checkY=as.matrix((I-A))%*%as.matrix(X)
+(sum(Y)-sum(checkY))/sum(Y) *100 #mieux car plus cohérent (et Y n'est pas dans le calcul de de checkY)
 
 #test pour x
-(sum(X)-sum(L.alternative %*% as.matrix(Y)))/sum(X)*100 #0.48%
+checkX= as.matrix(L) %*% as.matrix(Y)
+(sum(X)-sum(L %*% as.matrix(Y)))/sum(X)*100 #0.48%
 
 checkX= as.matrix(L) %*% (y_tot)
 sum(x)==sum(checkX)
 sum(x)-sum(checkX) #très différent en utilisant L et pas L.alternative
-(sum(x)-sum(checkX))/sum(x) *100 #grosse erreur
+(sum(x)-sum(checkX))/sum(x) *100 #ok
 #########
 
 #print("J'ai calcule le vecteur de la production totale x. Je vais pouvoir calculer S=Fxdiag(1/x)")
@@ -109,25 +99,19 @@ x_1 <- as.numeric(x_1)
 x_1d <- diag(x_1)
 
 
-S.calc <- as.matrix(Fe) %*% x_1d
-S.calc[is.nan(S.calc)]
-
-sum(S.calc)
+S <- (as.matrix(Fe) %*% x_1d) %>% `colnames<-`(rownames(X))
+S[is.nan(S)]
 sum(S)
 
-
-valeurs.negatives(S.calc)
-#3 valeurs négatives dans S, 17 dans S calculé (car 17 dans Fe)
-
-#vérifier correspondance des lignes
-rows.S = rownames(S)
-test = S.alternative[row.names(S.alternative) %in% rows.S, ]
+valeurs.negatives(Fe)
+valeurs.negatives(S)
+#3 valeurs négatives dans S (car 3 dans Fe, et 0 dans X)
 
 # Exportation des résultats sous forme de fichier Rds des différentes matrices calculées
-saveRDS( x, str_c("data_out/IOT_",year,"_",nom,"/x.rds"))
-saveRDS( S, str_c("data_out/IOT_",year,"_",nom,"/S.rds"))
-
-saveRDS( L, str_c("data_out/IOT_",year,"_",nom,"/L.rds"))
+saveRDS( A.alternative, str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/A.aggrege.rds"))
+saveRDS( x, str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/x.aggrege.rds"))
+saveRDS( S, str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/S.aggrege.rds"))
+saveRDS( L, str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/L.aggrege.rds"))
 
 
 
@@ -174,7 +158,7 @@ print("Computation of the environemental impact (S) : done")
 
 
 #Impact de la demande
-M.calc <- as.matrix(S.calc) %*% L.alternative 
+M <- as.matrix(S) %*% L.alternative 
 #interprétation : impacts des inputs d'un secteur-pays
 M.calc=M.calc[1:1113,]
 View(M.calc)
