@@ -14,7 +14,7 @@ path_data.source <- str_c(path_user,"Documents/GitHub/EmissionsIndicators/data_i
 #path_data.source <- str_c("data_in/IOT/")
 path_codedata <- str_c(path_user,"Documents/GitHub/EmissionsIndicators/")
 
-path_out <- str_c(path_codedata,"data_out/IOT_",year,"_",nom)
+path_out <- str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/")
 
 # Intervalle des années pour extraction des données
 year.min <-2010

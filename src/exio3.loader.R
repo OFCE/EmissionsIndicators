@@ -60,7 +60,7 @@ col.Y_dfff <- str_c(Y_dfff$countries.out,"_",Y_dfff$products.out)
 # Step 2 avec la transpose (que pour countries, car produits ici composante demande)
 tY_dff <- Y_dfff %>% select(-countries.out,- products.out) %>% as.matrix(length(col.Y_dfff),length(Y_cd),
                     dimnames = list(col.Y_dfff,Y_cd)) %>%
-  t() %>% as.data.frame()  %>% `colnames<-`(col.Y_dfff) %>%
+  t() %>% as.data.frame() %>% `colnames<-`(col.Y_dfff) %>%
   mutate(countries.in = str_sub(rownames(.),1,2),
          products.in = str_sub(rownames(.),4)) %>%
   merge(br_lg, by = "countries.in" , all = T) %>%
@@ -77,8 +77,8 @@ tY_dff[is.na(tY_dff)]
 #difference in value from the original database Y and the transformed Y_dff. Should be equal to 0 
 sum(Y_dff[,-1]) - sum(Y)
 
-# Encore une petite erreur mais qui est négligable (0.032%) (0.074% avec les nouvelles données)
-(sum(tY_dff[,-1:-2]) - sum(Y)) #/sum(Y) *100
+# Encore une petite erreur mais qui est négligable (0.032%) (0.074% avec les nouvelles données) (et 0% sans pondération)
+(sum(tY_dff[,-1:-2]) - sum(Y)) /sum(Y) *100
 
 #Changer noms des lignes
 row.Y_dfff <- str_c(tY_dff$countries.out,"_",tY_dff$products.in)
@@ -90,27 +90,7 @@ View(tY_dfff)
 (sum(tY_dfff[,-1:-2]) - sum(Y)) /sum(Y) *100 #Erreur: 0.067%
 
 #Y sans pondération
-Y2_dfff <- merge(Y_df, br_lg, by = "countries.in" , all.x = TRUE) %>%
-  merge(., br.2_lg, by = "products.in") %>%
-  group_by(countries.out, products.out) %>%
-  # Somme pondérée par weight pour les produits (0>p>1)
-  summarise(across(all_of(Y_cd), ~ sum(. * weight)))  %>% ungroup()
-col.Y2_dfff <- str_c(Y2_dfff$countries.out,"_",Y2_dfff$products.out)
-tY2_dff <- Y2_dfff %>% select(-countries.out,- products.out) %>% as.matrix(length(col.Y2_dfff),length(Y_cd),
-                                                                         dimnames = list(col.Y2_dfff,Y_cd)) %>%
-  t() %>% as.data.frame()  %>% `colnames<-`(col.Y2_dfff) %>%
-  mutate(countries.in = str_sub(rownames(.),1,2),
-         products.in = str_sub(rownames(.),4)) %>%
-  merge(br_lg, by = "countries.in" , all = T) %>%
-  group_by(countries.out, products.in) %>%
-  # Somme pondérée par weight pour les produits (0>p>1)
-  summarise(across(all_of(col.Y2_dfff), ~ sum(.)))  %>% ungroup()
-row.Y2_dfff <- str_c(tY2_dff$countries.out,"_",tY2_dff$products.in)
-tY2_dfff <- tY2_dff %>% select(-countries.out,- products.in) %>% 
-  as.matrix(length(nrow(tY2_dff)),length(ncol(tY2_dff)),
-            dimnames = list(row.Y2_dff,col.Y2_dfff)) %>%
-  t() %>% as.data.frame()  %>% `colnames<-`(row.Y2_dfff)
-(sum(tY2_dfff[,-1:-2]) - sum(Y)) /sum(Y) *100 #en effet erreur plus petite mais à peine (-0.0071141%)
+#en effet erreur plus petite mais à peine (-0.0071141%)
 
 
 ####Mêmes étapes pour A
@@ -155,7 +135,7 @@ tA_dff[is.na(tA_dff)]
 
 #difference in value from the original database A and the transformed tA_dff. Should be equal to 0 
 (sum(A_dff[,-1]) - sum(A))#/sum(A) *100 #très petite erreur
-(sum(tA_dff[,-1:-2]) - sum(A)) /sum(A) *100
+(sum(tA_dff[,-1:-2]) - sum(A)) /sum(A) *100 #1.956342e-14%
 
 #Cleaning (noms des lignes et colonnes,...)
 tA_dfff <- tA_dff %>% select(-countries.out,- products.out) %>% 
@@ -215,7 +195,7 @@ X_df <- merge(X_df, br_lg, by = "countries.in" , all.x = TRUE) %>%
   # Somme pondérée par weight pour les produits (0>p>1)
   summarise(across(production, ~ sum(. * weight)))  %>% ungroup() %>%
   select(production) %>% as.data.frame %>% `rownames<-`(col.A_dfff)
-(sum(X_df) - sum(X)) /sum(X) *100 #petite erreur (0.79%)
+(sum(X_df) - sum(X)) /sum(X) *100 #petite erreur (0.79%) (0% sans pondération)
 saveRDS(X_df, str_c(path_out, "X_ThreeMe.rds"))
 
 #Z
@@ -251,7 +231,7 @@ tZ_dfff <- tZ_dff %>% select(-countries.out,- products.out) %>%
   t() %>% #remettre dans le bon sens
   as.data.frame()  %>% `colnames<-`(col.Z_dfff)
 View(tZ_dfff)
-(sum(tZ_dfff) - sum(Z)) /sum(Z) *100 #erreur 1.96% ...
+(sum(tZ_dfff) - sum(Z)) /sum(Z) *100 #erreur 1.96% ... (4.416829e-14% sans pondération)
 saveRDS(tZ_dfff, str_c(path_out, "Z_ThreeMe.rds"))
 
 ####Pour S et M
@@ -265,7 +245,7 @@ S_dfff <- merge(S_df, br_lg, by = "countries.in" , all.x = TRUE) %>%
   merge(., br.2_lg, by = "products.in") %>%
   group_by(countries.out, products.out) %>%
   # Somme pondérée par weight pour les produits (0>p>1)
-  summarise(across(all_of(S_noms_extensions), ~ sum(. * weight)))  %>% ungroup()
+  summarise(across(all_of(F_noms_extensions), ~ sum(. * weight)))  %>% ungroup()
 View(S_dfff)
 
 col.S_dfff <- str_c(S_dfff$countries.out,"_",S_dfff$products.out)
@@ -275,7 +255,7 @@ tS_dfff <- S_dfff %>% select(-countries.out,- products.out) %>%
             dimnames = list(col.S_dfff,S_noms_extensions)) %>%
   t() %>% as.data.frame()  %>% `colnames<-`(col.S_dfff)
 View(tS_dfff)
-(sum(tS_dfff) - sum(S)) /sum(S) *100 #petite erreur (1.314899e-05 %)
+(sum(tS_dfff) - sum(S)) /sum(S) *100 #petite erreur (1.314899e-05 %) (3.246356e-14% sans pondération)
 saveRDS(tS_dfff, str_c(path_out, "S_ThreeMe.rds"))
 
 #M
@@ -287,7 +267,7 @@ M_df <- t(M) %>% as.data.frame() %>%
 M_dfff <- M_df %>% 
   group_by(countries.out,types.df) %>%
   # Somme pondérée par weight pour les produits (0>p>1)
-  summarise(across(all_of(M_noms_extensions), ~ sum(.)))  %>% 
+  summarise(across(all_of(F_noms_extensions), ~ sum(.)))  %>% 
   ungroup() 
 col.M_dfff = str_c(M_dfff$countries.out,"_",M_dfff$types.df)
 tM_dff <- M_dfff %>% select(-countries.out,- types.df) %>% 
@@ -306,7 +286,7 @@ Fy_df <- t(Fy) %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.)
 Fy_dfff <- merge(Fy_df, br_lg, by = "countries.in" , all.x = TRUE) %>%
   group_by(countries.out, demand) %>%
   # Somme pondérée par weight pour les produits (0>p>1)
-  summarise(across(all_of(FY_noms_extensions), ~ sum(.)))  %>% ungroup()
+  summarise(across(all_of(F_noms_extensions), ~ sum(.)))  %>% ungroup()
 col.Fy_dfff = str_c(Fy_dfff$countries.out,"_",Fy_dfff$demand)
 
 tFy_dfff <- Fy_dfff %>% select(-countries.out,-demand) %>% 

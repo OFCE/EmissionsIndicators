@@ -20,7 +20,7 @@ M <-readRDS(str_c(path_out,"/M_",br,".rds")) #S_Y
 Fy <-readRDS(str_c(path_out,"/Fy_",br,".rds"))
 
 #Vérification de l'équation comptable:
-(sum(Y)+sum(Z)-sum(X))/sum(X)*100 #une petite erreur (0.22%)
+(sum(Y)+sum(Z)-sum(X))/sum(X)*100 #une toute petite erreur (1.654953e-12%)
 
 #Ne fonctione pas sur les impacts... S n'est pas l'équivalent de S_Y?
 (sum(M)-sum(S))/sum(M)*100
@@ -40,6 +40,19 @@ sum(A.alternative)
 ## Calcul de L: matrice de Leontief
 L <- LeontiefInverse(A)
 L.alternative <- LeontiefInverse(A.alternative)
+
+
+#fonction valeurs négatives
+valeurs.negatives<-function(dataframe){ #donne le nombre de valeurs négatives dans le df
+  has.neg <- apply(dataframe, 1, function(row) any(row < 0))
+  return(length(which(has.neg)))
+}
+
+(sum(L)-sum(L.alternative))/sum(L) * 100 #29%
+valeurs.negatives(L)
+valeurs.negatives(L.alternative)
+valeurs.negatives(Z)
+valeurs.negatives(X)
 #
 
 print("Computation of the Leontief matrix (L) : done")
@@ -101,12 +114,8 @@ S.calc[is.nan(S.calc)]
 sum(S.calc)
 sum(S)
 
-#fonction
-valeurs.négatives<-function(dataframe){ #donne le nombre de valeurs négatives dans le df
-  has.neg <- apply(dataframe, 1, function(row) any(row < 0))
-  return(length(which(has.neg)))
-}
-valeurs.négatives(S.calc)
+
+valeurs.negatives(S.calc)
 #3 valeurs négatives dans S, 17 dans S calculé (car 17 dans Fe)
 
 #vérifier correspondance des lignes
