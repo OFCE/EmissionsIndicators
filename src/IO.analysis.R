@@ -138,8 +138,8 @@ for (ges in glist){
 
 
 # Conversion en MtCO2e
-#Suggestion instead: 
-#for (ges in c("CH4","N2O","SF6")){GES_list[[ges]] <- GHGToCO2eq(GES_list[[ges]])}
+#Suggestion plus courte: 
+#for (ges in glist){GES_list[[ges]] <- GHGToCO2eq(GES_list[[ges]])}
 
 GES_list[["CH4"]] <- 28 * GES_list[["CH4"]]
 GES_list[["N2O"]] <- 265 * GES_list[["N2O"]]
@@ -158,45 +158,41 @@ print("Computation of the environemental impact (S) : done")
 
 
 #Impact de la demande
-M <- as.matrix(S) %*% L.alternative 
+M <- as.matrix(S) %*% L 
 #interprétation : impacts des inputs d'un secteur-pays
-M.calc=M.calc[1:1113,]
-View(M.calc)
-(sum(M.calc) - sum(M))/sum(M) * 100 #28% quand M "impact", beaucoup plus dans M "satellite"
-valeurs.négatives(M.calc)
-valeurs.négatives(L.alternative)
+#M=M[1:1113,]
+View(M)
+valeurs.negatives(M)
 
-dim(M.calc)
-#dimensions de M.calc: impacts * pays_secteurs
 dim(M)
-#dimensions de M: impacts * types_DF
+#dimensions de M.calc: impacts * pays_secteurs
+#interprétation: impacts de tous les inputs des produits donnés en colonnes
 
 #pour avoir une matrice impacts * DF:
-M.calc <- as.matrix(S.calc) %*% as.matrix(Y)
+M.alternative <- as.matrix(S) %*% as.matrix(Y)
+#pour avoir une matrice impacts * secteurs (impacts par unité demandée):
+M.alternative2 <- sweep( Fe , 
+                          MARGIN = 2 , 
+                          STATS=y_tot , 
+                          FUN='/' ,
+                          check.margin = TRUE)
+M.alternative2[is.na(as.data.frame(M.alternative2))] <- 0 
+sum(M.alternative2)
+sum(S)
 
 #Calcul de M (impact demande) à partir de Fy et pas S (donc Fe)
 Fy <-readRDS(str_c(path_out,"/Fy_",br,".rds"))
 ##colonne F_Y / demandes totales du pays (vecteur de taille 84)
-y_tot_type = t(Y) %*% as.matrix(rep(1,nrow(Y)))
-y_1 <- 1/y_tot_type
-y_1[is.infinite(y_1)] <- 0 
-y_1 <- as.numeric(y_1)
-y_1d <- diag(y_1)
-M.calc2 <- as.matrix(Fy) %*% y_1d #impact par unité d'output
-M.calc2[is.nan(M.calc2)]
 
-sum(M.calc2)
-sum(M.calc)
-sum(M) #
-(sum(M.calc2) - sum(M))/sum(M) * 100 #presque la moitié des réels impacts
-dim(M.calc2)
-dim(M)
 
 sum(colSums(M==0))
-sum(colSums(M.calc==0))
-sum(colSums(M.calc2==0))
+sum(colSums(M.alternative==0))
+sum(colSums(M.alternative2==0))
 #meme nombre de 0 dans M et M.calc2
 
+
+#IGNORER CE BLOC
+######################
 #contribution de chaque secteur à la DF: 
 #colonne Y divisée par somme colonne (total de chaque DF)
 Y_sectors.tot<-colSums(Y)
@@ -219,10 +215,12 @@ regions=M.calc.agg$regions
 M.calc.agg=M.calc.agg%>% `rownames<-`(regions) %>% t() %>% as.data.frame()
 M.calc.agg=M.calc.agg[-1,]
 M.calc=t(M.calc)%>%as.data.frame()
+##########################
 
 
 #Sélection des impacts GES et conversion
 for (ges in c(glist,"GES")){
+  M.mat=M
   M.mat <-  GES_list[[str_c(ges)]] %>% unlist %>% as.numeric %>% diag
   
   
@@ -232,7 +230,7 @@ for (ges in c(glist,"GES")){
 
   
   
-  saveRDS(GES_list[[str_c("M.",ges)]], str_c("EXIOBASE/data/IOT_",year,"_",nom,"/M.",ges,".rds"))
+  saveRDS(GES_list[[str_c("M.",ges)]], str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/M.",ges,".rds"))
 }
 print("Computation of the environmental impact multipliers (M) : done")
 
