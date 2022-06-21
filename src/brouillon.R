@@ -155,19 +155,22 @@ ggsave(str_c(name_plot,".pdf"), rep_plot[[str_c("plot.dNElas")]], device = cairo
 
 ##IO plots
 
+#####!!!!!LOG N'A AUCUN SENS, JUSTE POUR VERIFIER QUE TOUT S'AFFICHE CORRECTEMENT
+
 #exemple France
 View(IO_France)
 IO_France %>% 
+  select(-regions)%>%
   group_by(produits) %>%
-  mutate(GES_impact_producteur=sum(GES_impact_producteur),
-         GES_impact_demande=sum(GES_impact_demande)) %>%
+  summarise(GES_impact_producteur=sum(GES_impact_S),
+            GES_impact_demande=sum(GES_impact_M)) %>%
   pivot_longer(cols = c("GES_impact_producteur","GES_impact_demande"), 
-                                  names_to = "indicator",
-                                  values_to = "impact") %>%
-  as.data.frame() %>% 
-  ggplot(aes(x= produits,
-             y = impact,
-             fill=indicator)) +
+               names_to = "indicator",
+               values_to = "impact") %>%
+  as.data.frame()%>%
+  ggplot(aes(x= produits, 
+                  y = log(impact),
+                  fill=indicator)) +
   geom_bar(stat='identity', position = 'dodge')
 
 #monde
@@ -180,7 +183,7 @@ IO_agg.produits %>%
                values_to = "impact") %>%
   as.data.frame() %>% 
   ggplot(aes(x= produits,
-             y = impact,
+             y = log(impact),
              fill=indicator)) +
   geom_bar(stat='identity', position = 'dodge')
 
@@ -196,7 +199,7 @@ IO_agg.produits %>%
   geom_bar(stat='identity', position = 'dodge')
 
 #graph impact niveau mondial par secteurs
-##(essai facet non concluant)
+##(essai facet non concluant) ne peut plus marcher avec les nouveaux secteurs
 for(cat in c("C","H","P")){
   plot=IO_agg.secteur %>% pivot_longer(cols = c("agg.producteur_impact","agg.demande_impact"), 
                                   names_to = "indicator",
@@ -217,7 +220,7 @@ ggarrange(impact_by.sector_C,impact_by.sector_H,impact_by.sector_P,
 ##plot OK
 IO_all_agg.pays %>% 
   pivot_longer(
-    cols = c("agg.production","agg.production_2"),
+    cols = c("agg.production","agg.demande_finale"),
     names_to = "econ_multiplier",
     values_to = "variable") %>%
   as.data.frame() %>%
@@ -238,7 +241,7 @@ IO_all_agg.pays %>%
   as.data.frame() %>% 
   ggplot( 
     aes(x= nom_pays, 
-        y = impact,
+        y = log(impact),
         fill = indicator)) +
   geom_bar(stat='identity',position = "dodge") + 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
@@ -256,7 +259,7 @@ plot_produit=IO_agg.produits %>%
   as.data.frame() %>% 
   ggplot( 
     aes(x= produits, 
-        y = impact,
+        y = log(impact),
         fill = indicator)) +
   geom_bar(stat='identity',position = "dodge") + 
   scale_x_discrete(breaks=IO_agg.produits$produits,

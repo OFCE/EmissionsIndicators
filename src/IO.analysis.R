@@ -180,6 +180,7 @@ M.alternative2[is.na(as.data.frame(M.alternative2))] <- 0
 sum(M.alternative2)
 sum(S)
 
+
 #Calcul de M (impact demande) à partir de Fy et pas S (donc Fe)
 Fy <-readRDS(str_c(path_out,"/Fy_",br,".rds"))
 ##colonne F_Y / demandes totales du pays (vecteur de taille 84)
@@ -253,7 +254,7 @@ rm(GES_list)
 #path_IOpays_tables <- str_c(path_out, "/IO_pays")
 
 checklist_demande <- list()
-checklist_production <- list()
+
 #Attention, il faut mettre "Europe" et non "Europe (autres)", sinon la sélection ne marche pas
 
 #Boucle qui crée un tableau avec les indicateurs pour chaque pays
@@ -261,11 +262,11 @@ checklist_production <- list()
 for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afrique","Russie","Europe","Asie","Moyen-Orient","Oceanie")) {
   
   #Colonne nom pays (pas nécessaire si pas rbind par la suite)
-  nom_pays <- c(rep(pays,1056))
+  nom_pays <- c(rep(pays,204)) #length()=204
   
   #Colonne demande finale
   DF=Y
-  #mettre à 0 les entrées des autres pays (demande finale adressée au pays en question)
+  #mettre à 0 les entrées des autres pays (demande finale du pays en question adressée aux autres pays)
   DF[,-str_which(colnames(DF),as.character(pays))]<-0
   DF_tot <- as.matrix(DF) %*% Id(DF) #somme de toutes les composantes
   #interprétation : quantité consommée par ce pays et produite dans le monde
@@ -285,16 +286,21 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   production_2 <- (as.matrix(L_select) %*% y_tot) %>% as.numeric
   #interprétation : quantité de chaque input (produits en ligne) nécessaire pour produire dans ce pays une unité d'output consommée dans le monde
   
-  #check pour ce calcul
-  checklist_production[pays] <- sum(production)==sum(production_2)
+  production_3 <- X
+  production_3[-str_which(rownames(production_3),as.character(pays)),]<-0
+  production_3=as.numeric(unlist(production_3))
+  
+  Fe_select <- Fe
+  Fe_select[,-str_which(colnames(Fe_select),as.character(pays))]<-0
   
   #Matrice S ("impact producteur") : impact environnemental (uniquement demande pays)
   x_1_select <- 1/production_2
   x_1_select[is.infinite(x_1_select)] <- 0 
   x_1_select <- as.numeric(x_1_select)
   x_1d_select <- diag(x_1_select)
-  S_select <- as.matrix(Fe) %*% x_1d_select
+  S_select <- as.matrix(Fe_select) %*% x_1d_select
   #interprétation : impact de la production de ce pays (par input)
+  impact_prod <- t(S_select) %*% Id(t(S_select))
   
   #Convertir en CO2 équivalent (éliminer les autres impacts)
   GES_list_select <- list()
@@ -324,17 +330,55 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   GES_impact_prod <- GES_list_select[["GES"]]
   #interprétation : impact de la production de ce pays en CO2 équivalent
   
-  #Vecteur équivalent à M ("impact demande finale" adressée au pays)
+  #Vecteur équivalent à M ("impact demande finale" du pays)
   ##(donc déjà en CO2eq)
-  GES_impact_DF <- as.matrix(GES_impact_prod %>% t()) %*% L %>% t()
-  #interprétation : impact de la demande de ces produits
+  M_select <- sweep( Fe , 
+                     MARGIN = 2 , 
+                     STATS=DF_tot , 
+                     FUN='/' ,
+                     check.margin = TRUE)
+  M_select[is.na(as.data.frame(M_select))] <- 0 
+  #interprétation : impact de la demande de ces produits par le pays en question
+  impact_demande <- t(M_select) %*% Id(t(M_select))
+  
+  #Conversion
+  listdf=list(S=S_select,M=M_select)
+  index=1
+  for (matrix in listdf) {
+    GES_list <- list()
+    GES_list[["GES.raw"]] <- matrix %>% 
+      as.data.frame %>% 
+      filter(str_detect(row.names(.), "CO2") | 
+               str_detect(row.names(.), "CH4") | 
+               str_detect(row.names(.), "N2O") | 
+               str_detect(row.names(.), "SF6") | 
+               str_detect(row.names(.), "PFC") | 
+               str_detect(row.names(.), "HFC") )
+    for (ges in glist){
+      #Row number for each GES in the S matrix
+      id_row <- str_which(row.names(GES_list[["GES.raw"]]),str_c(ges))
+      GES_list[[str_c(ges)]] <- GES_list[["GES.raw"]][id_row,] %>% colSums() %>% as.data.frame()
+      GES_list[[ges]] <- GHGToCO2eq(GES_list[[ges]])
+    }
+    GES_list[["GES"]] <- GES_list[["CO2"]] +
+      GES_list[["CH4"]] +
+      GES_list[["N2O"]] +
+      GES_list[["SF6"]] +
+      GES_list[["HFC"]] +
+      GES_list[["PFC"]]
+    assign(str_c("GES_impact_",names(listdf)[index]), GES_list[["GES"]])
+    index=index+1
+  }
+  GES_impact_S=as.numeric(unlist(GES_impact_S))
+  GES_impact_M=as.numeric(unlist(GES_impact_M))
+
   
   #Créer le tableau en assemblant les colonnes
   GES_impact_producteur=as.numeric(unlist(GES_impact_prod))
-  GES_impact_demande=as.numeric(unlist(GES_impact_DF))
+  #GES_impact_demande=as.numeric(unlist(GES_impact_DF))
   assign("io_table",
          data.frame(nom_pays,
-                    DF_tot,production,production_2,GES_impact_producteur,GES_impact_demande
+                    DF_tot,production,production_2,production_3,impact_prod,impact_demande, GES_impact_S, GES_impact_M #GES_impact_producteur,GES_impact_demande
            )
          )
   
@@ -347,18 +391,20 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   io_table$produits=sub(".*?_", "",io_table$pays.produits)
   io_table$regions=sub("_.*", "",io_table$pays.produits)
   io_table = io_table %>% 
-    select(regions,nom_pays,produits,DF_tot,production,production_2,GES_impact_producteur,GES_impact_demande)
+    select(regions,nom_pays,produits,DF_tot,production,production_2,production_3,impact_prod,impact_demande,GES_impact_S, GES_impact_M)#production_2,GES_impact_producteur,GES_impact_demande)
   
   #Exporter le tableau
   saveRDS(io_table, str_c(path_IOpays_tables, "/IO_", pays, ".rds"))
   
   #Charger le tableau dans l'environnement
   IO <- readRDS(str_c(path_IOpays_tables, "/IO_", pays, ".rds"))
+  IO[sapply(IO, simplify = 'matrix', is.infinite)] <- 0
   assign(str_c("IO_",pays),IO)
   
   rm(IO,IO_all,io_table)
   #Aggréger les produits?
   #Créer un graphique
+  
   
 }
 
@@ -367,16 +413,12 @@ View(checklist_production)
 
 #Créer grand dataframe
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
-sum(IO_all$production)-sum(IO_all$DF_tot) #! 
-#problème ici car production n'est pas égale à demande
-sum(IO_all$production_2)-sum(IO_all$DF_tot)
-#pareil avec autre calcul production
+sum(IO_all$production_3)==sum(X)
+sum(IO_all$DF_tot)==sum(Y)
 
 sum(IO_all$production)-sum(IO_all$production_2)
 #les deux calculs production sont équivalents au niveau mondial (filtrer y ou filtrer L)
 
-#c'est normal que production et production_2 s'équilibrent, 
-#mais production et DF_tot devraient être équivalents (?). Donc problème
 
 
 
@@ -384,11 +426,10 @@ sum(IO_all$production)-sum(IO_all$production_2)
 ##Aggréger tous secteurs par pays pour graphique
 IO_all_agg.pays <- IO_all %>% select(-produits) %>%
   group_by(nom_pays) %>%
-  summarise(agg.demande_impact=sum(GES_impact_demande),
-            agg.producteur_impact=sum(GES_impact_producteur),
-            agg.production=sum(production),
-            agg.demande_finale=sum(DF_tot),
-            agg.production_2=sum(production_2))
+  summarise(agg.demande_impact=sum(GES_impact_M),
+            agg.producteur_impact=sum(GES_impact_S),
+            agg.production=sum(production_3),
+            agg.demande_finale=sum(DF_tot))
 View(IO_all_agg.pays)
 
 ##Aggréger par un pays secteur pour graphique
@@ -396,9 +437,9 @@ IO_agg.secteur = IO_France %>%
   mutate(categorie.produit=substr(produits, 1,3),
          categorie.facet=substr(produits, 1,1)) %>%
   group_by(categorie.produit,categorie.facet) %>%
-  summarise(agg.demande_impact=sum(GES_impact_demande),
-            agg.producteur_impact=sum(GES_impact_producteur),
-            agg.production=sum(production),
+  summarise(agg.demande_impact=sum(GES_impact_M),
+            agg.producteur_impact=sum(GES_impact_S),
+            agg.production=sum(production_3),
             agg.demande_finale=sum(DF_tot))
 View(IO_agg.secteur)
 
@@ -406,20 +447,21 @@ View(IO_agg.secteur)
 #(aucun intérêt si ce n'est vérifier l'égalité, à faire par pays)
 IO_agg.produits = IO_all %>% 
   group_by(produits) %>%
-  mutate(agg.demande_impact=sum(GES_impact_demande),
-         agg.producteur_impact=sum(GES_impact_producteur),
-         agg.production=sum(production_2),
-         agg.demande_finale=sum(production)) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M),
+         agg.producteur_impact=sum(GES_impact_S),
+         agg.production=sum(production_3),
+         agg.demande_finale=sum(DF_tot)) %>%
   ungroup() %>%
   mutate(categorie.produit=substr(produits, 1,5))
 View(IO_agg.produits)
 
+#
 IO_France %>% 
   group_by(produits) %>%
-  mutate(agg.demande_impact=sum(GES_impact_demande),
-         agg.producteur_impact=sum(GES_impact_producteur),
+  mutate(agg.demande_impact=sum(impact_demande),
+         agg.producteur_impact=sum(GES_impact_prod),
          agg.production=sum(production_2),
-         agg.demande_finale=sum(production)) %>%
+         agg.demande_finale=sum(DF_tot)) %>%
   ungroup() %>%
   mutate(categorie.produit=substr(produits, 1,5))
   
