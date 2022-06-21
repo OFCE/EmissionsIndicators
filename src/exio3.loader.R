@@ -90,7 +90,7 @@ View(tY_dfff)
 (sum(tY_dfff[,-1:-2]) - sum(Y)) /sum(Y) *100 #Erreur: 0.067%
 
 #Y sans pondération
-#en effet erreur plus petite mais à peine (-0.0071141%)
+#en effet erreur plus petite (-0.0071141%)
 
 
 ####Mêmes étapes pour A
