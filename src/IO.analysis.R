@@ -31,7 +31,7 @@ Fy <-readRDS(str_c(path_out,"/Fy_",br,".rds"))
 X_vect=X$production
 A.alternative <- sweep( Z , 
                         MARGIN = 2 , 
-                        STATS=X_vect , 
+                        STATS=X$production , 
                         FUN='/' ,
                         check.margin = TRUE)
 A.alternative[is.na(as.data.frame(A.alternative))] <- 0 
@@ -67,7 +67,8 @@ rm(Y)
 
 ## calcul de S
 #x (production totale (pour CI + pour DF))
-x <- (L.alternative %*% y_tot) %>% as.numeric() #%>% as.matrix() %>% t()
+x <- (L.alternative %*% y_tot) %>% as.numeric()
+x <- (L %*% y_tot) %>% as.numeric()#%>% as.matrix() %>% t()
 X.calc <- (L.alternative %*% as.matrix(Y)) 
 (sum(X)-sum(X.calc))/sum(X) * 100 #petite erreur (-0.48%)
 
