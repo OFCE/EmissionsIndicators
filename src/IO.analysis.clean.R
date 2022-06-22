@@ -1,5 +1,6 @@
 #Obtenir un dataframe avec les données pour un pays:
 ###Généralisation pour n'importe quel pays
+library(ggpubr)
 
 br <- "ThreeMe"
 # Chargement des données I-O sauvegardées par le script exio3.loader.R
@@ -158,7 +159,16 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
     geom_bar(stat='identity',position = "dodge") + 
     scale_x_discrete(breaks=IO$produits,
                      labels=IO$categorie.produit)+
-    theme(axis.text.x = element_text(angle = 60, vjust = 0.5, hjust=1, size=4))
+    theme(axis.text.x = element_text(angle = 0, size=4, vjust = 1, hjust=1),
+          plot.title =element_text(size=12, face='bold', hjust=0.5),
+          panel.background = element_blank(),
+          plot.margin = unit(c(5,5,5,5), "mm"))+
+    labs(title="Impacts prodcuteur et consommateur",
+         x ="Secteurs", y = "Impact GES (CO2eq)",
+         fill="Indicateur") +
+    scale_fill_manual(labels = c("Demande", "Production"), values = c("indianred1", "cornflowerblue")) +
+    theme_light()
+  
   
   #Exporter le plot (pdf) et le charger dans l'environnement
   ggsave(filename=str_c("plot.secteurs_", pays, ".pdf"), 
@@ -166,6 +176,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
          device="pdf",
          path=path_IOpays_tables,
          width = 280 , height = 200 , units = "mm", dpi = 600)
+  #quelques problèmes pour save
   assign(str_c("plot.secteur_",pays),plot)
   
   rm(IO,IO_all,io_table,plot)

@@ -172,7 +172,15 @@ IO_France %>%
                   y = log(impact),
                   fill=indicator)) +
   geom_bar(stat='identity', position = 'dodge') + 
-  theme(axis.text.x = element_text(angle = 60, vjust = 0.5, hjust=1))
+  theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        plot.margin = unit(c(10,5,5,5), "mm")) +
+  labs(title="Impacts prodcuteur et consommateur",
+        x ="Secteurs", y = "Impact GES (CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(labels = c("Demande", "Production"), values = c("indianred1", "cornflowerblue"))
+
 
 #monde
 ##plot OK si outlier retiré
