@@ -23,7 +23,7 @@ Fy <-readRDS(str_c(path_out,"/Fy_",br,".rds"))
 (sum(Y)+sum(Z)-sum(X))/sum(X)*100 #une toute petite erreur (1.654953e-12%)
 
 #Ne fonctione pas sur les impacts... S n'est pas l'équivalent de S_Y?
-(sum(M)-sum(S))/sum(M)*100
+(sum(M)-sum(Fe))/sum(M)*100
 #ici non plus
 (sum(Fe)-sum(Fy))/sum(Fe)*100
 
