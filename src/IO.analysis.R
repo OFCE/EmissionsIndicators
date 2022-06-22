@@ -396,6 +396,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   #Charger le tableau dans l'environnement
   IO <- readRDS(str_c(path_IOpays_tables, "/IO_", pays, ".rds"))
   IO[sapply(IO, simplify = 'matrix', is.infinite)] <- 0
+  IO[sapply(IO, simplify = 'matrix', is.nan)] <- 0
   assign(str_c("IO_",pays),IO)
   
   plot=IO %>% 
@@ -413,11 +414,11 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
     as.data.frame() %>% 
     ggplot( 
       aes(x= produits, 
-          y = log(impact),
+          y = log10(impact),
           fill = indicator)) +
     geom_bar(stat='identity',position = "dodge") + 
-    scale_x_discrete(breaks=IO_agg.produits$produits,
-                     labels=IO_agg.produits$categorie.produit)+
+    scale_x_discrete(breaks=IO$produits,
+                     labels=IO$categorie.produit)+
     theme(axis.text.x = element_text(angle = 60, vjust = 0.5, hjust=1, size=4))
   
   assign(str_c("plot.produit_",pays),plot)
@@ -428,6 +429,9 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   
   
 }
+
+
+#SERVICES EXTRA-TERRITORIAUX toujours = 0 (?)
 
 View(checklist_demande)
 
