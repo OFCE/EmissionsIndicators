@@ -143,7 +143,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
     filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
     mutate(agg.demande_impact=sum(GES_impact_M),
            agg.producteur_impact=sum(GES_impact_S),
-           agg.production=sum(production_3),
+           agg.production=sum(production_pays),
            agg.demande_finale=sum(DF_tot)) %>%
     ungroup() %>%
     mutate(categorie.produit=substr(produits, 1,5)) %>% 
@@ -156,18 +156,16 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
       aes(x= produits, 
           y = impact,
           fill = indicator)) +
-    geom_bar(stat='identity',position = "dodge") + 
-    scale_x_discrete(breaks=IO$produits,
-                     labels=IO$categorie.produit)+
-    theme(axis.text.x = element_text(angle = 0, size=4, vjust = 1, hjust=1),
+    geom_bar(stat='identity',position = "dodge") +
+    theme(axis.text.x = element_text(angle = 25, size=5, vjust = 1, hjust=1),
           plot.title =element_text(size=12, face='bold', hjust=0.5),
           panel.background = element_blank(),
-          plot.margin = unit(c(5,5,5,5), "mm"))+
+          panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+          plot.margin = unit(c(10,5,5,5), "mm"))+
     labs(title="Impacts prodcuteur et consommateur",
          x ="Secteurs", y = "Impact GES (CO2eq)",
          fill="Indicateur") +
-    scale_fill_manual(labels = c("Demande", "Production"), values = c("indianred1", "cornflowerblue")) +
-    theme_light()
+    scale_fill_manual(labels = c("Demande", "Production"), values = c("indianred1", "cornflowerblue"))
   
   
   #Exporter le plot (pdf) et le charger dans l'environnement
@@ -186,3 +184,73 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
 
 #Créer grand dataframe
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
+
+#Plot mondial par secteur
+monde_secteurs <- IO_all %>% 
+  group_by(produits) %>%
+  filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
+  mutate(agg.demande_impact=sum(GES_impact_M),
+         agg.producteur_impact=sum(GES_impact_S),
+         agg.production=sum(production_pays),
+         agg.demande_finale=sum(DF_tot)) %>%
+  ungroup() %>% 
+  pivot_longer(
+    cols = c("agg.producteur_impact","agg.demande_impact"),
+    names_to = "indicator",
+    values_to = "impact") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= produits, 
+        y = impact,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") +
+  theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts prodcuteur et consommateur",
+       x ="Secteurs", y = "Impact GES (CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(labels = c("Demande", "Production"), values = c("indianred1", "cornflowerblue"))
+monde_secteurs
+ggsave(filename=str_c("plot.monde.secteurs_", pays, ".pdf"), 
+       plot=monde_secteurs, 
+       device="pdf",
+       path=path_IOpays_tables,
+       width = 280 , height = 200 , units = "mm", dpi = 600)
+
+#Plot mondial par pays
+monde_pays <- IO_all %>% 
+  group_by(nom_pays) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M),
+         agg.producteur_impact=sum(GES_impact_S),
+         agg.production=sum(production_pays),
+         agg.demande_finale=sum(DF_tot)) %>%
+  ungroup() %>%
+  mutate(categorie.produit=substr(produits, 1,5)) %>% 
+  pivot_longer(
+    cols = c("agg.producteur_impact","agg.demande_impact"),
+    names_to = "indicator",
+    values_to = "impact") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= nom_pays, 
+        y = impact,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") +
+  theme(axis.text.x = element_text(angle = 25, size=6, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts prodcuteur et consommateur",
+       x ="Région ou pays", y = "Impact GES (CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(labels = c("Demande", "Production"), values = c("indianred1", "cornflowerblue"))
+monde_pays
+ggsave(filename=str_c("plot.monde.pays_", pays, ".pdf"), 
+       plot=monde_pays, 
+       device="pdf",
+       path=path_IOpays_tables,
+       width = 280 , height = 200 , units = "mm", dpi = 600)
