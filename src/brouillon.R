@@ -171,22 +171,33 @@ IO_France %>%
   ggplot(aes(x= produits, 
                   y = log(impact),
                   fill=indicator)) +
-  geom_bar(stat='identity', position = 'dodge') #+ 
-  theme(axis.text.x = element_text(angle = 60, vjust = 0.5, hjust=1))
+  geom_bar(stat='identity', position = 'dodge') + 
+  theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        plot.margin = unit(c(10,5,5,5), "mm")) +
+  labs(title="Impacts prodcuteur et consommateur",
+        x ="Secteurs", y = "Impact GES (CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(labels = c("Demande", "Production"), values = c("indianred1", "cornflowerblue"))
+
 
 #monde
 ##plot OK si outlier retiré
-IO_agg.produits %>% 
-  #filter(agg.producteur_impact!=min(agg.producteur_impact),
-  #       agg.demande_impact!=min(agg.demande_impact))%>%
-  pivot_longer(cols = c("agg.producteur_impact","agg.demande_impact"), 
+IO_all %>% 
+  select(-regions)%>%
+  group_by(produits) %>%
+  summarise(GES_impact_producteur=sum(GES_impact_S),
+            GES_impact_demande=sum(GES_impact_M)) %>%
+  pivot_longer(cols = c("GES_impact_producteur","GES_impact_demande"), 
                names_to = "indicator",
                values_to = "impact") %>%
   as.data.frame() %>% 
   ggplot(aes(x= produits,
-             y = log(impact),
+             y = impact, #ou log impact pour mieux voir
              fill=indicator)) +
-  geom_bar(stat='identity', position = 'dodge')
+  geom_bar(stat='identity', position = 'dodge') #+ 
+  facet_grid(secteur ~ .,scales='free_y')
 
 #monde multiplicateur éco
 IO_agg.produits %>% 
