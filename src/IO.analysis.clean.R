@@ -1,6 +1,5 @@
 #Obtenir un dataframe avec les données pour un pays:
 ###Généralisation pour n'importe quel pays
-library(ggpubr)
 
 br <- "ThreeMe"
 # Chargement des données I-O sauvegardées par le script exio3.loader.R
