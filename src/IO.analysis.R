@@ -67,7 +67,7 @@ rm(Y)
 ## calcul de S
 #x (production totale (pour CI + pour DF))
 x <- (L %*% y_tot) %>% as.numeric()#%>% as.matrix() %>% t()
-X.calc <- (L %*% as.matrix(Y)) 
+X.calc <- ((L %*% as.matrix(Y)) %*% Id(Y)) %>% as.numeric 
 (sum(X)-sum(X.calc))/sum(X) * 100 #petite erreur (-8.318899e-12%)
 
 
@@ -157,7 +157,7 @@ print("Computation of the environemental impact (S) : done")
 
 
 #Impact de la demande
-M <- as.matrix(S) %*% L 
+M <- S %*% L 
 #interprétation : impacts des inputs d'un secteur-pays
 View(M)
 valeurs.negatives(M)
@@ -271,72 +271,29 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   #...TRUE (Russie presque True)
   checklist_demande[pays] <- sum(Y[,str_which(colnames(Y),as.character(pays))])==sum(DF_tot)
   
-  #Vecteur production (identique au vecteur monde)
-  ##x (production totale (pour CI + pour DF))
-  production <- (L %*% DF_tot) %>% as.numeric
-  #interprétation : quantité de chaque input (produits en ligne) nécessaire pour produire (dans le monde) une unité d'output demandée dans ce pays
+  #Vecteur production du pays
+  production_pays <- X
+  production_pays[-str_which(rownames(production_pays),as.character(pays)),]<-0
+  production_pays=as.numeric(unlist(production_pays))
   
-  #test autre façon de calculer la production
-  #(au lieu de prendre L* DF pays, prendre les outputs du pays dans L et multiplier par la demande mondiale: L_select*y_tot)
-  L_select=L
-  L_select[,-str_which(colnames(L_select),as.character(pays))]<-0
-  production_2 <- (as.matrix(L_select) %*% y_tot) %>% as.numeric
-  #interprétation : quantité de chaque input (produits en ligne) nécessaire pour produire dans ce pays une unité d'output consommée dans le monde
-  
-  production_3 <- X
-  production_3[-str_which(rownames(production_3),as.character(pays)),]<-0
-  production_3=as.numeric(unlist(production_3))
-  
+  #Impacts du pays
   Fe_select <- Fe
+  #Sélectionner les impacts de la production du pays en question
   Fe_select[,-str_which(colnames(Fe_select),as.character(pays))]<-0
   
   #Matrice S ("impact producteur") : impact environnemental (uniquement demande pays)
-  x_1_select <- 1/production_2
+  x_1_select <- 1/production_pays
   x_1_select[is.infinite(x_1_select)] <- 0 
   x_1_select <- as.numeric(x_1_select)
   x_1d_select <- diag(x_1_select)
   S_select <- as.matrix(Fe_select) %*% x_1d_select
   #interprétation : impact de la production de ce pays (par input)
-  impact_prod <- t(S_select) %*% Id(t(S_select))
+  impact_prod = t(S_select) %*% Id(t(S_select))
   
-  #Convertir en CO2 équivalent (éliminer les autres impacts)
-  GES_list_select <- list()
-  ##Sélectionner les impacts
-  GES_list_select[["GES.raw"]] <- S_select %>% as.data.frame %>% 
-    filter(str_detect(row.names(.), "CO2") |
-          str_detect(row.names(.), "CH4") | 
-          str_detect(row.names(.), "N2O") | 
-          str_detect(row.names(.), "SF6") | 
-          str_detect(row.names(.), "PFC") | 
-          str_detect(row.names(.), "HFC") )
-  ##Faire la conversion
-  for (ges in glist){
-    #Row number for each GES in the S matrix
-    id_row <- str_which(row.names(GES_list_select[["GES.raw"]]),str_c(ges))
-    GES_list_select[[str_c(ges)]] <- GES_list_select[["GES.raw"]][id_row,] %>% colSums() %>% as.data.frame()
-    GES_list_select[[ges]] <- GHGToCO2eq(GES_list_select[[ges]]) #dossier functions
-  }
-  ##Total par type de gaz (toute source confondue)
-  GES_list_select[["GES"]] <- GES_list_select[["CO2"]] +
-    GES_list_select[["CH4"]] +
-    GES_list_select[["N2O"]] +
-    GES_list_select[["SF6"]] +
-    GES_list_select[["HFC"]] +
-    GES_list_select[["PFC"]]
-  #Colonne impact GES
-  GES_impact_prod <- GES_list_select[["GES"]]
-  #interprétation : impact de la production de ce pays en CO2 équivalent
-  
-  #Vecteur équivalent à M ("impact demande finale" du pays)
-  ##(donc déjà en CO2eq)
-  M_select <- sweep( Fe , 
-                     MARGIN = 2 , 
-                     STATS=DF_tot , 
-                     FUN='/' ,
-                     check.margin = TRUE)
-  M_select[is.na(as.data.frame(M_select))] <- 0 
-  #interprétation : impact de la demande de ces produits par le pays en question
-  impact_demande <- t(M_select) %*% Id(t(M_select))
+  M_select <- S %*% L
+  M_select[,-str_which(colnames(M_select),as.character(pays))]<-0
+  #ou sinon filtrer les colonnes de L
+  impact_dem = t(M_select) %*% Id(t(M_select))
   
   #Conversion
   listdf=list(S=S_select,M=M_select)
@@ -366,6 +323,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
     assign(str_c("GES_impact_",names(listdf)[index]), GES_list[["GES"]])
     index=index+1
   }
+  #interprétation : impact de la production et de la demande de ce pays en CO2 équivalent
   GES_impact_S=as.numeric(unlist(GES_impact_S))
   GES_impact_M=as.numeric(unlist(GES_impact_M))
 
@@ -375,7 +333,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   #GES_impact_demande=as.numeric(unlist(GES_impact_DF))
   assign("io_table",
          data.frame(nom_pays,
-                    DF_tot,production,production_2,production_3,impact_prod,impact_demande, GES_impact_S, GES_impact_M #GES_impact_producteur,GES_impact_demande
+                    DF_tot,production_pays,impact_prod,impact_dem,GES_impact_S,GES_impact_M
            )
          )
   
@@ -388,7 +346,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   io_table$produits=sub(".*?_", "",io_table$pays.produits)
   io_table$regions=sub("_.*", "",io_table$pays.produits)
   io_table = io_table %>% 
-    select(regions,nom_pays,produits,DF_tot,production,production_2,production_3,impact_prod,impact_demande,GES_impact_S, GES_impact_M)#production_2,GES_impact_producteur,GES_impact_demande)
+    select(regions,nom_pays,produits,DF_tot,production_pays,impact_prod,impact_dem,GES_impact_S,GES_impact_M)
   
   #Exporter le tableau
   saveRDS(io_table, str_c(path_IOpays_tables, "/IO_", pays, ".rds"))
@@ -401,6 +359,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   
   plot=IO %>% 
     group_by(produits) %>%
+    filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
     mutate(agg.demande_impact=sum(GES_impact_M),
            agg.producteur_impact=sum(GES_impact_S),
            agg.production=sum(production_3),
@@ -437,13 +396,14 @@ View(checklist_demande)
 
 #Créer grand dataframe
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
-sum(IO_all$production_3)==sum(X)
+sum(IO_all$production_pays)==sum(X)
 sum(IO_all$DF_tot)==sum(Y)
 
-sum(IO_all$production)-sum(IO_all$production_2)
+#sum(IO_all$production)-sum(IO_all$production_2)
 #les deux calculs production sont équivalents au niveau mondial (filtrer y ou filtrer L)
 
-sum(IO_all$GES_impact_S)==sum(IO_all$GES_impact_M)
+sum(IO_all$impact_prod)-sum(IO_all$impact_dem)
+sum(IO_all$GES_impact_S)-sum(IO_all$GES_impact_M)
 #Pas additivité car inputs pas pris en compte
 
 
@@ -483,6 +443,30 @@ IO_agg.produits = IO_all %>%
   ungroup() %>%
   mutate(categorie.produit=substr(produits, 1,5))
 View(IO_agg.produits)
+
+IO_all_secteurs <- IO_all %>% mutate(
+  secteur = ifelse(
+                   produits=="PRODUITS AGRICOLES ET FORESTIERS" |
+                     produits=="PRODUITS D'EXTRACTION" |
+                     produits=="PRODUITS DE LA PECHE ET DE L'AQUACULTURE", 
+                   "secteur_primaire",
+                   ifelse(
+                          produits=="SERVICES COLLECTIFS, SOCIAUX ET PERSONNELS" |
+                            produits=="SERVICES D'ADMINISTRATION PUBLIQUE" |
+                            produits=="SERVICES D'HOTELLERIE ET DE RESTAURATION" |
+                            produits=="SERVICES DE SANTE ET D'ACTION SOCIALE" |
+                            produits=="SERVICES EXTRA-TERRITORIAUX" |
+                            produits=="SERVICES FINANCIERS" |
+                            produits=="SERVICES IMMOBILIERS, DE LOCATION ET AUX ENTREPRISES",
+                          "services",
+                          ifelse(
+                                 produits=="ELECTRICITE, GAZ ET EAU" |
+                                   produits=="TRANSPORTS ET COMMUNICATIONS" |
+                                   produits=="TRAVAUX DE CONSTRUCTION",
+                                 "industrie", 
+                                 "ménages")))
+)
+View(IO_all_secteurs)
 
 #
 IO_France %>% 
