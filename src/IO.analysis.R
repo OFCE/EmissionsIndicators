@@ -16,7 +16,7 @@ Z <-readRDS(str_c(path_out,"/Z_",br,".rds"))
 X <-readRDS(str_c(path_out,"/X_",br,".rds"))
 
 #S <-readRDS(str_c(path_out,"/S_",br,".rds"))
-M <-readRDS(str_c(path_out,"/M_",br,".rds")) #S_Y
+#M <-readRDS(str_c(path_out,"/M_",br,".rds")) #S_Y
 Fy <-readRDS(str_c(path_out,"/Fy_",br,".rds"))
 
 #Vérification de l'équation comptable:
@@ -28,7 +28,6 @@ Fy <-readRDS(str_c(path_out,"/Fy_",br,".rds"))
 (sum(Fe)-sum(Fy))/sum(Fe)*100
 
 #Calcul de A (marche aussi avec d'autres fonctions, résultats identiques)
-X_vect=X$production
 A.alternative <- sweep( Z , 
                         MARGIN = 2 , 
                         STATS=X$production , 
@@ -79,15 +78,15 @@ X.calc <- (L %*% as.matrix(Y))
 I <- diag(rep(1, dim(A.alternative)[1]))
 checkY=as.matrix((I-A.alternative))%*%as.matrix(X)
 sum(checkY)==sum(Y)
-(sum(Y)-sum(checkY))/sum(Y) *100 #mieux car plus cohérent (et Y n'est pas dans le calcul de de checkY)
+(sum(Y)-sum(checkY))/sum(Y) *100 #ok (et Y n'est pas dans le calcul de de checkY)
 
 #test pour x
 checkX= as.matrix(L) %*% as.matrix(Y)
-(sum(X)-sum(L %*% as.matrix(Y)))/sum(X)*100 #0.48%
+(sum(X)-sum(L %*% as.matrix(Y)))/sum(X)*100 #ok
 
 checkX= as.matrix(L) %*% (y_tot)
 sum(x)==sum(checkX)
-sum(x)-sum(checkX) #très différent en utilisant L et pas L.alternative
+sum(x)-sum(checkX) 
 (sum(x)-sum(checkX))/sum(x) *100 #ok
 #########
 
@@ -139,7 +138,7 @@ for (ges in glist){
 
 # Conversion en MtCO2e
 #Suggestion plus courte: 
-#for (ges in glist){GES_list[[ges]] <- GHGToCO2eq(GES_list[[ges]])}
+for (ges in glist){GES_list[[ges]] <- GHGToCO2eq(GES_list[[ges]])}
 
 GES_list[["CH4"]] <- 28 * GES_list[["CH4"]]
 GES_list[["N2O"]] <- 265 * GES_list[["N2O"]]
@@ -160,7 +159,6 @@ print("Computation of the environemental impact (S) : done")
 #Impact de la demande
 M <- as.matrix(S) %*% L 
 #interprétation : impacts des inputs d'un secteur-pays
-#M=M[1:1113,]
 View(M)
 valeurs.negatives(M)
 
@@ -182,7 +180,6 @@ sum(S)
 
 
 #Calcul de M (impact demande) à partir de Fy et pas S (donc Fe)
-Fy <-readRDS(str_c(path_out,"/Fy_",br,".rds"))
 ##colonne F_Y / demandes totales du pays (vecteur de taille 84)
 
 
@@ -251,7 +248,7 @@ rm(GES_list)
 
 #Chemin pour exporter
 #dir.create(str_c(path_out, "/IO_pays"), recursive = TRUE)
-#path_IOpays_tables <- str_c(path_out, "/IO_pays")
+path_IOpays_tables <- str_c(path_out, "/IO_pays")
 
 checklist_demande <- list()
 
@@ -271,7 +268,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   DF_tot <- as.matrix(DF) %*% Id(DF) #somme de toutes les composantes
   #interprétation : quantité consommée par ce pays et produite dans le monde
   #check: sum(Y[,str_which(colnames(Y),as.character(pays))])==sum(DF_tot)
-  #...TRUE
+  #...TRUE (Russie presque True)
   checklist_demande[pays] <- sum(Y[,str_which(colnames(Y),as.character(pays))])==sum(DF_tot)
   
   #Vecteur production (identique au vecteur monde)
@@ -401,7 +398,31 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   IO[sapply(IO, simplify = 'matrix', is.infinite)] <- 0
   assign(str_c("IO_",pays),IO)
   
-  rm(IO,IO_all,io_table)
+  plot=IO %>% 
+    group_by(produits) %>%
+    mutate(agg.demande_impact=sum(GES_impact_M),
+           agg.producteur_impact=sum(GES_impact_S),
+           agg.production=sum(production_3),
+           agg.demande_finale=sum(DF_tot)) %>%
+    ungroup() %>%
+    mutate(categorie.produit=substr(produits, 1,5)) %>% 
+    pivot_longer(
+      cols = c("agg.producteur_impact","agg.demande_impact"),
+      names_to = "indicator",
+      values_to = "impact") %>%
+    as.data.frame() %>% 
+    ggplot( 
+      aes(x= produits, 
+          y = log(impact),
+          fill = indicator)) +
+    geom_bar(stat='identity',position = "dodge") + 
+    scale_x_discrete(breaks=IO_agg.produits$produits,
+                     labels=IO_agg.produits$categorie.produit)+
+    theme(axis.text.x = element_text(angle = 60, vjust = 0.5, hjust=1, size=4))
+  
+  assign(str_c("plot.produit_",pays),plot)
+  
+  rm(IO,IO_all,io_table,plot)
   #Aggréger les produits?
   #Créer un graphique
   
@@ -409,7 +430,6 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
 }
 
 View(checklist_demande)
-View(checklist_production)
 
 #Créer grand dataframe
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
@@ -419,7 +439,12 @@ sum(IO_all$DF_tot)==sum(Y)
 sum(IO_all$production)-sum(IO_all$production_2)
 #les deux calculs production sont équivalents au niveau mondial (filtrer y ou filtrer L)
 
+sum(IO_all$GES_impact_S)==sum(IO_all$GES_impact_M)
+#Pas additivité car inputs pas pris en compte
 
+
+sum(Fe_impacts.mat$`GHG emissions AR5 (GWP100) | GWP100 (IPCC, 2010)`)
+sum(Fe_impacts.mat[,103])
 
 
 
