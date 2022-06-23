@@ -23,13 +23,23 @@ L <- LeontiefInverse(A)
 x <- ((L %*% as.matrix(Y)) %*% Id(Y)) %>% as.numeric
 x_1 <- 1/x
 x_1[is.infinite(x_1)] <- 0 
-x_1 <- as.numeric(x_1)
-x_1d <- diag(x_1)
+x_1d <- as.numeric(x_1) %>% diag()
 S <- (as.matrix(Fe) %*% x_1d) %>% `colnames<-`(rownames(X))
 S[is.nan(S)]
+S_volume <- S %*% as.matrix(X)
 
 #Matrice M (impact demande et CI)
 M <- S %*% L 
+M_volume <- M %*% as.matrix(Y)
+
+#contribution de chaque secteur à la DF: 
+#colonne Y divisée par somme colonne (total de chaque DF)
+Y_sectors.tot<-colSums(Y)
+y_2 <- 1/Y_sectors.tot
+y_2[is.infinite(y_2)] <- 0 
+y_2d <- as.numeric(y_2) %>% diag
+Y_sectors.share <- as.matrix(Y) %*% y_2d
+M_vol.dim <- M_volume %*% t(Y_sectors.share)
 
 
 #Chemin pour exporter
@@ -58,26 +68,20 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   production_pays=as.numeric(unlist(production_pays))
   
   #Impacts du pays
-  Fe_select <- Fe
+  S_vol.select <- Fe #Fe est l'équivalent de S %*% X mais par produit au lieu d'avoir l'impact de la production mondiale
   #Sélectionner les impacts de la production du pays en question
-  Fe_select[,-str_which(colnames(Fe_select),as.character(pays))]<-0
+  S_vol.select[,-str_which(colnames(S_vol.select),as.character(pays))]<-0
   
-  #Matrice S ("impact producteur") : impact environnemental (uniquement demande pays)
-  x_1_select <- 1/production_pays
-  x_1_select[is.infinite(x_1_select)] <- 0 
-  x_1_select <- as.numeric(x_1_select)
-  x_1d_select <- diag(x_1_select)
-  S_select <- as.matrix(Fe_select) %*% x_1d_select
-  #interprétation : impact de la production de ce pays (par input)
-  impact_prod = t(S_select) %*% Id(t(S_select))
+  #interprétation : impact de la production de ce pays (par output)
+  impact_prod = t(S_vol.select) %*% Id(t(S_vol.select))
   
-  M_select <- M
-  M_select[,-str_which(colnames(M_select),as.character(pays))]<-0
-  #ou sinon filtrer les colonnes de L
-  impact_dem = t(M_select) %*% Id(t(M_select))
+  M_vol.select <- M_vol.dim
+  M_vol.select[,-str_which(colnames(M_vol.select),as.character(pays))]<-0
+  #(ou sinon filtrer les colonnes de L)
+  impact_dem = t(M_vol.select) %*% Id(t(M_vol.select))
   
   #Sélection des impacts GES et Conversion en CO2eq
-  listdf=list(S=S_select,M=M_select)
+  listdf=list(S=S_vol.select,M=M_vol.select)
   index=1
   for (matrix in listdf) {
     GES_list <- list()
@@ -183,6 +187,8 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
 
 #Créer grand dataframe
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
+(sum(IO_all$impact_dem)-sum(IO_all$impact_prod))/sum(IO_all$impact_dem)*100
+(sum(IO_all$GES_impact_M)-sum(IO_all$GES_impact_S))/sum(IO_all$GES_impact_M)*100
 
 #Plot mondial par secteur
 monde_secteurs <- IO_all %>% 
@@ -213,7 +219,7 @@ monde_secteurs <- IO_all %>%
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production"), values = c("indianred1", "cornflowerblue"))
 monde_secteurs
-ggsave(filename=str_c("plot.monde.secteurs_", pays, ".pdf"), 
+ggsave(filename=str_c("plot.monde_secteurs.pdf"), 
        plot=monde_secteurs, 
        device="pdf",
        path=path_IOpays_tables,
@@ -238,7 +244,7 @@ monde_pays <- IO_all %>%
         y = impact,
         fill = indicator)) +
   geom_bar(stat='identity',position = "dodge") +
-  theme(axis.text.x = element_text(angle = 25, size=6, vjust = 1, hjust=1),
+  theme(axis.text.x = element_text(angle = 25, size=10, vjust = 1, hjust=1),
         plot.title =element_text(size=12, face='bold', hjust=0.5),
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
@@ -248,7 +254,7 @@ monde_pays <- IO_all %>%
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production"), values = c("indianred1", "cornflowerblue"))
 monde_pays
-ggsave(filename=str_c("plot.monde.pays_", pays, ".pdf"), 
+ggsave(filename=str_c("plot.monde_pays.pdf"), 
        plot=monde_pays, 
        device="pdf",
        path=path_IOpays_tables,
