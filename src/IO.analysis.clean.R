@@ -2,11 +2,12 @@
 ###Généralisation pour n'importe quel pays
 
 br <- "CPA2002_Niv1"
+br_pays <- "monde.12"
 # Chargement des données I-O sauvegardées par le script exio3.loader.R
-Y <-readRDS(str_c(path_loader,"Y_",br,".rds"))
-Fe <-readRDS(str_c(path_loader,"Fe_",br,".rds"))
-Z <-readRDS(str_c(path_loader,"Z_",br,".rds"))
-X <-readRDS(str_c(path_loader,"X_",br,".rds"))
+Y <-readRDS(str_c(path_loader,"Y_",br_pays,"_",br,".rds"))
+Fe <-readRDS(str_c(path_loader,"Fe_",br_pays,"_",br,".rds"))
+Z <-readRDS(str_c(path_loader,"Z_",br_pays,"_",br,".rds"))
+X <-readRDS(str_c(path_loader,"X_",br_pays,"_",br,".rds"))
 
 #Calcul des coefficients techniques
 ##Matrice de Leontief
@@ -16,10 +17,10 @@ A <- sweep(Z,
            FUN='/',
            check.margin = TRUE)
 A[is.na(as.data.frame(A))] <- 0
-saveRDS(A, str_c(path_loader, "A_",br,".rds"))
+saveRDS(A, str_c(path_loader, "A_",br_pays,"_",br,".rds"))
 ##Inverse de Leontief
 L <- LeontiefInverse(A)
-saveRDS(L, str_c(path_loader, "L_",br,".rds"))
+saveRDS(L, str_c(path_loader, "L_",br_pays,"_",br,".rds"))
 
 #Matrice S (impact producteur)
 x <- ((L %*% as.matrix(Y)) %*% Id(Y)) %>% as.numeric
@@ -45,12 +46,12 @@ M_vol.dim <- M_volume %*% t(Y_sectors.share)
 
 
 #Chemin pour exporter les données
-dir.create(str_c(path_codedata, "results/IO_pays/", year,"/", br,"/"), recursive = TRUE)
-path_results_tables <- str_c(path_codedata, "results/IO_pays/", year,"/", br,"/")
+dir.create(str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/"), recursive = TRUE)
+path_results_tables <- str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/")
 #Chemin pour exporter les plots
 format = "pdf"
-dir.create(str_c(path_codedata, "results/plots/", year,"/", br,"/", format), recursive = TRUE)
-path_results_plots <- str_c(path_codedata, "results/plots/", year,"/", br,"/", format, "/")
+dir.create(str_c(path_codedata, "results/plots/", year,"/",br_pays,"_",br,"/", format), recursive = TRUE)
+path_results_plots <- str_c(path_codedata, "results/plots/", year,"/",br_pays,"_",br,"/", format, "/")
 
 #Attention, il faut mettre "Europe" et non "Europe (autres)", sinon la sélection ne marche pas
 
