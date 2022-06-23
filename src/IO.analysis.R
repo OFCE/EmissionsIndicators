@@ -9,11 +9,11 @@ br <- "ThreeMe"
 
 # Chargement des données I-O sauvegardées par le script exio3.loader.R
 #A <-readRDS(str_c(path_out,"/A_",br,".rds"))
-Y <-readRDS(str_c(path_out,"/Y_",br,".rds"))
-Fe <-readRDS(str_c(path_out,"/Fe_",br,".rds"))
+Y <-readRDS(str_c(path_loader,"Y_",br,".rds"))
+Fe <-readRDS(str_c(path_loader,"Fe_",br,".rds"))
 
-Z <-readRDS(str_c(path_out,"/Z_",br,".rds"))
-X <-readRDS(str_c(path_out,"/X_",br,".rds"))
+Z <-readRDS(str_c(path_loader,"Z_",br,".rds"))
+X <-readRDS(str_c(path_loader,"X_",br,".rds"))
 
 #S <-readRDS(str_c(path_out,"/S_",br,".rds"))
 #M <-readRDS(str_c(path_out,"/M_",br,".rds")) #S_Y
