@@ -18,15 +18,17 @@ Y_df <- Y %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2)
                                          products.in = str_sub(rownames(.),4))
 
 ### Bridge in long format for countries
+br_pays <- "monde.12"
 br_lg <-  loadBridge("Countries_1", "Countries_2.WD1", "Countries") %>%
   data.frame() %>% mutate(countries.out = rownames(.)) %>%
   pivot_longer(cols = exio3.desc$countries, names_to = "countries.in", values_to = "value") %>%
   filter(value ==1) %>% select(-value)
 regions<-unique(br_lg[,1])
-saveRDS(regions, str_c(path_out, "aggregate_regions.rds"))
+saveRDS(regions, str_c(path_loader,br_pays, "_aggregate_regions.rds"))
 
 ### Bridge in long format for products
-br.2_lg <-  loadBridge("exio3", "CPA2002_Niv1", "Products") %>% 
+br <- "CPA2002_Niv1"
+br.2_lg <-  loadBridge("exio3", br, "Products") %>% 
   as.data.frame() %>% mutate(products.out = rownames(.)) %>%
   pivot_longer(cols = exio3.desc$products, names_to = "products.in", values_to = "weight") %>% 
 filter(weight > 0)
@@ -93,7 +95,7 @@ View(tY_dfff)
 #en effet erreur plus petite (-0.0071141%)
 
 
-####Mêmes étapes pour A
+####Mêmes étapes pour A (mais inutile car on ne peut pas aggréger A, pas de sens)
 A_df <- A %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
                                          products.in = str_sub(rownames(.),4))
 
@@ -178,11 +180,14 @@ View(tF_dfff)
 #sans pondération (nouveau bridge: erreur négligeable, de 1.268088e-14%)
 
 ### Save and export
-saveRDS(tA_dfff, str_c(path_out, "A_ThreeMe.rds"))
+dir.create(str_c(path_out,br_pays, "/", br, "/"), recursive = TRUE)
+path_loader <- str_c(path_out, br, "/")
 
-saveRDS(tY_dfff, str_c(path_out, "Y_ThreeMe.rds"))
+saveRDS(tA_dfff, str_c(path_loader, "A_",br_pays,"_",br,".rds"))
 
-saveRDS(tF_dfff, str_c(path_out, "Fe_ThreeMe.rds"))
+saveRDS(tY_dfff, str_c(path_loader, "Y_",br_pays,"_",br,".rds"))
+
+saveRDS(tF_dfff, str_c(path_loader, "Fe_",br_pays,"_",br,".rds"))
 
 ####Pour X et Z
 #X
@@ -196,7 +201,7 @@ X_df <- merge(X_df, br_lg, by = "countries.in" , all.x = TRUE) %>%
   summarise(across(production, ~ sum(. * weight)))  %>% ungroup() %>%
   select(production) %>% as.data.frame %>% `rownames<-`(col.A_dfff)
 (sum(X_df) - sum(X)) /sum(X) *100 #petite erreur (0.79%) (0% sans pondération)
-saveRDS(X_df, str_c(path_out, "X_ThreeMe.rds"))
+saveRDS(X_df, str_c(path_loader, "X_",br_pays,"_",br,".rds"))
 
 #Z
 Z <- readRDS(str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/Z.rds"))
@@ -209,7 +214,7 @@ Z_dfff <- merge(Z_df, br_lg, by = "countries.in" , all.x = TRUE) %>%
   summarise(across(all_of(A_cd), ~ sum(. * weight)))  %>% ungroup()
 col.Z_dfff <- str_c(Z_dfff$countries.out,"_",Z_dfff$products.out)
 #autre sens
-tZ_dff <- Z_dfff %>% select(-countries.out,- products.out) %>% 
+tZ_dff <- Z_dfff %>% select(-countries.out,-products.out) %>% 
   as.matrix(length(col.Z_dfff),length(A_cd),
             dimnames = list(col.Z_dfff,A_cd)) %>%
   t() %>% as.data.frame()  %>% `colnames<-`(col.Z_dfff) %>%
@@ -232,7 +237,7 @@ tZ_dfff <- tZ_dff %>% select(-countries.out,- products.out) %>%
   as.data.frame()  %>% `colnames<-`(col.Z_dfff)
 View(tZ_dfff)
 (sum(tZ_dfff) - sum(Z)) /sum(Z) *100 #erreur 1.96% ... (4.416829e-14% sans pondération)
-saveRDS(tZ_dfff, str_c(path_out, "Z_ThreeMe.rds"))
+saveRDS(tZ_dfff, str_c(path_loader, "Z_",br_pays,"_",br,".rds"))
 
 ####Pour S et M
 #S
@@ -256,7 +261,7 @@ tS_dfff <- S_dfff %>% select(-countries.out,- products.out) %>%
   t() %>% as.data.frame()  %>% `colnames<-`(col.S_dfff)
 View(tS_dfff)
 (sum(tS_dfff) - sum(S)) /sum(S) *100 #petite erreur (1.314899e-05 %) (3.246356e-14% sans pondération)
-saveRDS(tS_dfff, str_c(path_out, "S_ThreeMe.rds"))
+saveRDS(tS_dfff, str_c(path_loader, "S_",br_pays,"_",br,".rds"))
 
 #M
 M <- readRDS(str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/M.rds"))
@@ -275,7 +280,7 @@ tM_dff <- M_dfff %>% select(-countries.out,- types.df) %>%
             dimnames = list(col.Y_dfff,M_noms_extensions)) %>% 
   t() %>% as.data.frame()  %>% `colnames<-`(col.M_dfff)
 (sum(tM_dff) - sum(M)) /sum(M) *100 #0% erreur
-saveRDS(tM_dff, str_c(path_out, "M_ThreeMe.rds"))
+saveRDS(tM_dff, str_c(path_loader, "M_",br_pays,"_",br,".rds"))
 
 #F_Y
 Fy <- readRDS(str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/Fy.rds"))
@@ -294,4 +299,5 @@ tFy_dfff <- Fy_dfff %>% select(-countries.out,-demand) %>%
             dimnames = list(nrow(Fy_dfff),col.Fy_dfff)) %>%
   t() %>% as.data.frame()  %>% `colnames<-`(col.Fy_dfff)
 (sum(tFy_dfff) - sum(Fy)) /sum(Fy) *100 #0% erreur
-saveRDS(tFy_dfff, str_c(path_out, "Fy_ThreeMe.rds"))
+saveRDS(tFy_dfff, str_c(path_loader, "Fy_",br_pays,"_",br,".rds"))
+

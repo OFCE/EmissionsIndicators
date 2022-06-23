@@ -9,11 +9,11 @@ br <- "ThreeMe"
 
 # Chargement des données I-O sauvegardées par le script exio3.loader.R
 #A <-readRDS(str_c(path_out,"/A_",br,".rds"))
-Y <-readRDS(str_c(path_out,"/Y_",br,".rds"))
-Fe <-readRDS(str_c(path_out,"/Fe_",br,".rds"))
+Y <-readRDS(str_c(path_loader,"Y_",br,".rds"))
+Fe <-readRDS(str_c(path_loader,"Fe_",br,".rds"))
 
-Z <-readRDS(str_c(path_out,"/Z_",br,".rds"))
-X <-readRDS(str_c(path_out,"/X_",br,".rds"))
+Z <-readRDS(str_c(path_loader,"Z_",br,".rds"))
+X <-readRDS(str_c(path_loader,"X_",br,".rds"))
 
 #S <-readRDS(str_c(path_out,"/S_",br,".rds"))
 #M <-readRDS(str_c(path_out,"/M_",br,".rds")) #S_Y
@@ -101,6 +101,8 @@ x_1d <- diag(x_1)
 S <- (as.matrix(Fe) %*% x_1d) %>% `colnames<-`(rownames(X))
 S[is.nan(S)]
 sum(S)
+indic_prod= S %*% as.matrix(X)
+(sum(Fe)-sum(indic_prod))/sum(Fe)*100
 
 valeurs.negatives(Fe)
 valeurs.negatives(S)
@@ -161,6 +163,16 @@ M <- S %*% L
 #interprétation : impacts des inputs d'un secteur-pays
 View(M)
 valeurs.negatives(M)
+indic_dem= M %*% as.matrix(Y)
+#impact par composante de la demande
+(sum(Fe)-sum(indic_dem))/sum(Fe)*100
+(sum(indic_prod)-sum(indic_dem))/sum(indic_prod)*100
+View(indic_dem)
+View(indic_prod)
+View(Fe)
+
+#impact demande par secteur
+
 
 dim(M)
 #dimensions de M.calc: impacts * pays_secteurs
@@ -189,20 +201,26 @@ sum(colSums(M.alternative2==0))
 #meme nombre de 0 dans M et M.calc2
 
 
-#IGNORER CE BLOC
-######################
 #contribution de chaque secteur à la DF: 
 #colonne Y divisée par somme colonne (total de chaque DF)
 Y_sectors.tot<-colSums(Y)
 y_2 <- 1/Y_sectors.tot
 y_2[is.infinite(y_2)] <- 0 
-y_2 <- as.numeric(y_2)
-y_2d <- diag(y_2)
+y_2 <- as.numeric(y_2) %>% diag
 Y_sectors.share <- as.matrix(Y) %*% y_2d
+View(Y_sectors.share)
+dim(Y_sectors.share)==dim(Y)
+colSums(Y_sectors.share)
 #contribution de chaque secteur à chaque impact: 
 #impact*case du secteur correspondant (pour un type de DF donné)
 #(remplacer les 0 par des 1 pour n'avoir que des 1 dans colSums(Y_sectors.share))
 
+sum(indic_dem %*% t(Y_sectors.share))==sum(Fe)
+indic_dem2 = indic_dem %*% t(Y_sectors.share)
+View(indic_dem2)
+
+#IGNORER CE BLOC
+######################
 #pour aggréger par pays ? inutile pour le moment
 M.calc <- t(M.calc) %>% as.data.frame() %>% mutate(pays_demande=rownames(.))
 M.calc$demande=sub(".*?_", "",M.calc$pays_demande)
