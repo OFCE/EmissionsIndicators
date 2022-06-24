@@ -45,13 +45,13 @@ perform.bridge <- function(data,
   df.2 <- df.1 %>% select(-countries.out,- products.out) %>%
     as.matrix(nrow(df.1),ncol(data),
               dimnames = list(id_out,data)) %>%
-    t() %>% as.data.frame() %>% `colnames<-`(id) %>%
+    t() %>% as.data.frame() %>% `colnames<-`(id_out) %>%
     mutate(countries.in = str_sub(rownames(.),1,2),
            products.in = str_sub(rownames(.),4)) %>%
     merge(br_lg, by = "countries.in" , all = T) %>%
     group_by(countries.out, products.in) %>%
     # Somme pondérée par weight pour les produits (0>p>1)
-    summarise(across(all_of(id.out), ~ sum(.)))  %>% ungroup() 
+    summarise(across(all_of(id_out), ~ sum(.)))  %>% ungroup() 
   
   
   
@@ -90,7 +90,7 @@ perform.bridge <- function(data,
   } else{ 
     # Transpose and datawrangling
     df.2 <- df.2 %>% select(all_of(id_out)) %>% 
-      t() %>% as.data.frame() %>% `colnames<-`(id_out.row) %>% 
+      t() %>% as.data.frame() %>% `colnames<-`(id_out.col) %>% 
       mutate(countries = str_extract(rownames(.),"^.+?(?=_)"),
              products = str_extract(rownames(.),"(?<=_)(.*)")) %>% 
       select(countries, products, all_of(id_out.col))
