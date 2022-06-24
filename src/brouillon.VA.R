@@ -237,7 +237,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
          fill="Indicateur") +
     scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
   
-  plot2=IO_Oceanie %>% 
+  plot2=IO %>% 
     #par produits
     group_by(produits) %>%
     filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>% #toujours=0
@@ -266,7 +266,12 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
          fill="Indicateur") +
     scale_fill_manual(labels = c("E", "L","K","CP"), values = c("gray95", "gray85","gray75","gray65"))
   
-
+    plot +
+      geom_bar(data=test,
+               aes(x=produits, y=impact, fill=composante), 
+               position="dodge", stat="identity", alpha=0.2) +
+      scale_fill_manual(labels = c("E", "L","K","CP"), values = c("gray95", "gray85","gray75","gray65"))
+    
   
   #Exporter le plot et le charger dans l'environnement
   ggsave(filename=str_c("plot.secteurs_", pays, ".",format), 
@@ -288,11 +293,55 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   
 }
 
+plot=IO_Oceanie %>% 
+  #par produits
+  group_by(produits) %>%
+  filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>% #toujours=0
+  mutate(agg.demande_impact=sum(GES_impact_M_select),
+         agg.producteur_impact=sum(GES_impact_S_select),
+         agg.VA_impact=sum(impact_VA_select),
+         agg.production=sum(production_pays),
+         agg.demande_finale=sum(DF_tot),
+         agg.Etat=sum(Etat),
+         agg.Travail=sum(Travail),
+         agg.Capital=sum(Capital),
+         agg.Cout=sum(Cout_production)) %>%
+  ungroup() %>%
+  #format long pour afficher les deux indicateurs
+  pivot_longer(
+    cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact",
+             "agg.Etat","agg.Travail","agg.Capital","agg.Cout"),
+    names_to = "indicator",
+    values_to = "impact") %>%
+  mutate(ind=ifelse(indicator=="agg.Etat"|indicator=="agg.Travail"|indicator=="agg.Capital"|indicator=="agg.Cout",
+                    "VA_comp",indicator)) %>%
+  group_by(ind) %>%
+  ggplot( 
+    aes(x= produits, 
+        y = impact,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "stack") +
+  theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts",
+       x ="Secteurs", y = "Impact GES (CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual( 
+                    values = c("indianred1", "cornflowerblue","orange1",
+                               "gray95", "gray85","gray75","gray65"))
+
+
 #Créer grand dataframe
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
 (sum(IO_all$impact_dem)-sum(IO_all$impact_prod))/sum(IO_all$impact_dem)*100
 (sum(IO_all$GES_impact_M)-sum(IO_all$GES_impact_S))/sum(IO_all$GES_impact_M)*100
 (sum(IO_all$GES_impact_M)-sum(IO_all$impact_VA_select))/sum(IO_all$GES_impact_M)*100
+
+#vérification VA
+IO_all$impact_VA_select==rowSums(IO_all[,9:12])
 
 #Plot mondial par secteur
 monde_secteurs <- IO_all %>% 
