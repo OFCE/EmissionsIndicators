@@ -10,7 +10,7 @@ nom <- "pxp"
 year <- 2015
 
 # Choix de la nomenclature finale
-br <- "ThreeMe"
+br <- "CPA1"
 
 # Choix du pays considéré pour calcul empreinte carbone 
 iso <-  str_c("FR")
@@ -45,3 +45,6 @@ dir.create(str_c("results/tables"), recursive = TRUE)
 source("data_in/desc/exio3.desc.R")
 source("data_in/desc/CPA4.desc.R")
 source("src/functions/01_load.bridge.R")
+source("src/functions/01_load.matrix.R")
+source("src/functions/01_Leontief.inverse.R")
+source("src/functions/02_perform.bridge.R")
