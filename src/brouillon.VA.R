@@ -35,14 +35,6 @@ S_volume <- S %*% as.matrix(X)
 M <- S %*% L 
 M_volume <- M %*% as.matrix(Y)
 
-#contribution de chaque secteur à la DF: 
-#colonne Y divisée par somme colonne (total de chaque DF)
-Y_sectors.tot<-colSums(Y)
-y_2 <- 1/Y_sectors.tot
-y_2[is.infinite(y_2)] <- 0 
-y_2d <- as.numeric(y_2) %>% diag
-Y_sectors.share <- as.matrix(Y) %*% y_2d
-M_vol.dim <- M_volume %*% t(Y_sectors.share)
 
 #Valeur ajoutée
 Fe_VA = t(Fe) %>% as.data.frame()
@@ -75,25 +67,9 @@ VA=ValeurAjoutee.calcul(X,Z)
 VA.share=VA/sum(VA)
 sum(VA.share)
 
-#Valeur ajoutée par composante
-Fe_VA$rows =  rownames(Fe_VA)
-Fe_VA_compo = Fe_VA %>% pivot_longer(
-  cols = c("Etat","Travail","Capital","Operating surplus: Consumption of fixed capital"),
-  names_to = "beneficiary",
-  values_to = "value") %>% 
-  mutate(share = value / sum(VA)) %>%
-  select(beneficiary,share,rows) %>%
-  as.data.frame() %>%
-  pivot_wider(names_from = beneficiary,
-              values_from = share) %>%
-  select(-rows) %>% as.data.frame()
-row.names(Fe_VA_compo) <- Fe_VA$rows
-GES_VA_compo = Fe_VA_compo * sum(GES_impact_S)
-GES_VA_compo=rename(GES_VA_compo, "Cout_production"="Operating surplus: Consumption of fixed capital")
-
 
 #Conversion
-listdf=list(S=Fe,M=M_vol.dim)
+listdf=list(S=Fe,M=M_volume)
 index=1
 for (matrix in listdf) {
   GES_list <- list()
@@ -121,10 +97,28 @@ for (matrix in listdf) {
   index=index+1
 }
 GES_impact_S=as.numeric(unlist(GES_impact_S)) %>% as.data.frame(row.names=rownames(Z), col.names=GES_impact_S)
-GES_impact_M=as.numeric(unlist(GES_impact_M)) %>% as.data.frame(row.names=rownames(Z), col.names=GES_impact_M)
+GES_impact_M=as.numeric(unlist(GES_impact_M)) %>% as.data.frame(row.names=colnames(Y), col.names=GES_impact_M)
 impact_VA = (VA.share * sum(GES_impact_S)) %>% as.data.frame(row.names=rownames(Z), col.names=impact_VA)
 sum(GES_impact_S)==sum(GES_impact_M)
 sum(GES_impact_M)==sum(impact_VA)
+
+#Valeur ajoutée par composante
+Fe_VA$rows =  rownames(Fe_VA)
+Fe_VA_compo = Fe_VA %>% pivot_longer(
+  cols = c("Etat","Travail","Capital","Operating surplus: Consumption of fixed capital"),
+  names_to = "beneficiary",
+  values_to = "value") %>% 
+  mutate(share = value / sum(VA)) %>%
+  select(beneficiary,share,rows) %>%
+  as.data.frame() %>%
+  pivot_wider(names_from = beneficiary,
+              values_from = share) %>%
+  select(-rows) %>% as.data.frame()
+row.names(Fe_VA_compo) <- Fe_VA$rows
+GES_VA_compo = Fe_VA_compo * sum(GES_impact_S)
+GES_VA_compo=rename(GES_VA_compo, "Cout_production"="Operating surplus: Consumption of fixed capital")
+(sum(GES_VA_compo)-sum(GES_impact_S))/sum(GES_VA_compo)*100
+
 
 #Chemin pour exporter les données
 dir.create(str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/test"), recursive = TRUE)
@@ -162,11 +156,24 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   GES_impact_S_select = GES_impact_S_select%>%unlist()%>%as.numeric()
   
   #Impacts demande du pays
-  GES_impact_M_select <- GES_impact_M
-  #Sélectionner les impacts de la production du pays en question
-  GES_impact_M_select[-str_which(rownames(GES_impact_M_select),as.character(pays)),]<-0
-  GES_impact_M_select = GES_impact_M_select%>%unlist()%>%as.numeric()
+  #GES_impact_M_select <- GES_impact_M
+  #####GES_impact_M_select[-str_which(rownames(GES_impact_M_select),as.character(pays)),]<-0
   
+  #contribution de chaque secteur à la DF de ce pays: 
+  #colonne Y divisée par somme colonne (total de chaque DF)
+  Y_select=Y
+  Y_select[,-str_which(colnames(Y_select),as.character(pays))]<-0
+  Y_sectors.tot<-colSums(Y_select)
+  y_2 <- 1/Y_sectors.tot
+  y_2[is.infinite(y_2)] <- 0 
+  y_2d <- as.numeric(y_2) %>% diag
+  Y_sectors.share <- as.matrix(Y) %*% y_2d
+  
+  GES_impact_M_select = GES_impact_M
+  GES_impact_M_select[,-str_which(colnames(GES_impact_M_select),as.character(pays))]<-0
+  GES_impact_M_select = t(GES_impact_M_select) %*% t(Y_sectors.share)
+  GES_impact_M_select=GES_impact_M_select%>%unlist()%>%as.numeric()
+
   #Impacts VA du pays
   impact_VA_select <- impact_VA
   #Sélectionner les impacts de la production du pays en question
@@ -266,12 +273,51 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
          fill="Indicateur") +
     scale_fill_manual(labels = c("E", "L","K","CP"), values = c("gray95", "gray85","gray75","gray65"))
   
-    plot +
-      geom_bar(data=test,
-               aes(x=produits, y=impact, fill=composante), 
-               position="dodge", stat="identity", alpha=0.2) +
-      scale_fill_manual(labels = c("E", "L","K","CP"), values = c("gray95", "gray85","gray75","gray65"))
-    
+  plotdata=IO %>% 
+    #filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>% #toujours=0
+    pivot_longer(
+      cols = c("GES_impact_S_select","GES_impact_M_select","impact_VA_select",
+               "Etat","Travail","Capital","Cout_production"),
+      names_to = "indicator",
+      values_to = "impact") %>%
+    #par produits
+    group_by(produits,indicator) %>%
+    summarise(agg.impact=sum(impact)) %>%
+    ungroup() %>%
+    mutate(ind=ifelse(indicator=="Etat"|
+                        indicator=="Travail"|
+                        indicator=="Capital"|
+                        indicator=="Cout_production",
+                      "VA_comp",indicator))
+    #format long pour afficher les deux indicateurs
+
+
+  #plotdata <- plotdata[order(plotdata$indicator),]
+  
+  plot3 = plotdata %>%
+    ggplot( 
+    ) +
+    geom_bar(aes(x= produits, 
+                 y = agg.impact,
+                 fill = factor(indicator),
+                 group=factor(ind) 
+    ),
+    stat='identity',
+    position=position_dodge(width=NULL)
+    ) +
+    theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
+          plot.title =element_text(size=12, face='bold', hjust=0.5),
+          panel.background = element_blank(),
+          panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+          plot.margin = unit(c(10,5,5,5), "mm"))+
+    labs(title="Impacts",
+         x ="Secteurs", y = "Impact GES (CO2eq)",
+         fill="Indicateur") +
+    scale_fill_manual( 
+      values = c("gray75", "gray65","indianred1",
+                 "red", "cornflowerblue","gray85","orange1"))
+  #LES DONNEES REPRESENTEES NE CORRESPONDENT PAS AUX DONNEES DU TABLEAU
+  
   
   #Exporter le plot et le charger dans l'environnement
   ggsave(filename=str_c("plot.secteurs_", pays, ".",format), 
@@ -284,14 +330,25 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
          device="pdf",
          path=path_results_plots,
          width = 280 , height = 200 , units = "mm", dpi = 600)
+  ggsave(filename=str_c("plot.secteurs.all_", pays, ".",format), 
+         plot=plot3, 
+         device="pdf",
+         path=path_results_plots,
+         width = 280 , height = 200 , units = "mm", dpi = 600)
 
-  assign(str_c("plot.secteur_",pays),plot)
+  assign(str_c("plot.secteurs_",pays),plot)
   assign(str_c("plot.va_",pays),plot2)
+  assign(str_c("plot.secteurs.all_",pays),plot3)
   
   rm(IO,IO_all,io_table,plot)
   
   
 }
+
+testing=plotdata[!duplicated(plotdata[c(3,15,16)]),]
+
+testing=plotdata %>%
+  distinct(produits, indicator, impact, .keep_all = TRUE)
 
 plotdata=IO_Oceanie %>% 
   #par produits
@@ -302,15 +359,15 @@ plotdata=IO_Oceanie %>%
          agg.VA_impact=sum(impact_VA_select),
          agg.production=sum(production_pays),
          agg.demande_finale=sum(DF_tot),
-         agg.Etat=sum(Etat),
          agg.Travail=sum(Travail),
          agg.Capital=sum(Capital),
+         agg.Etat=sum(Etat),
          agg.Cout=sum(Cout_production)) %>%
   ungroup() %>%
   #format long pour afficher les deux indicateurs
   pivot_longer(
     cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact",
-             "agg.Etat","agg.Travail","agg.Capital","agg.Cout"),
+             "agg.Travail","agg.Capital","agg.Etat","agg.Cout"),
     names_to = "indicator",
     values_to = "impact") %>%
   mutate(ind=ifelse(indicator=="agg.Etat"|indicator=="agg.Travail"|indicator=="agg.Capital"|indicator=="agg.Cout",
@@ -335,12 +392,18 @@ plot= plotdata %>%
        fill="Indicateur") +
   scale_fill_manual( 
                     values = c("gray75", "gray65","indianred1",
-                               "gray95", "cornflowerblue","gray85","orange1"))
+                               "pink", "cornflowerblue","gray85","orange1"))
 plot
+#MARCHE MAIS MAL
+
+(sum(IO_Oceanie$impact_VA_select)-(sum(IO_Oceanie$Etat)+
+                                     sum(IO_Oceanie$Travail)+
+                                     sum(IO_Oceanie$Capital)+
+                                     sum(IO_Oceanie$Cout_production)))/sum(IO_Oceanie$impact_VA_select)*100
 
 #Créer grand dataframe
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
-(sum(IO_all$impact_dem)-sum(IO_all$impact_prod))/sum(IO_all$impact_dem)*100
+#(sum(IO_all$impact_dem)-sum(IO_all$impact_prod))/sum(IO_all$impact_dem)*100
 (sum(IO_all$GES_impact_M)-sum(IO_all$GES_impact_S))/sum(IO_all$GES_impact_M)*100
 (sum(IO_all$GES_impact_M)-sum(IO_all$impact_VA_select))/sum(IO_all$GES_impact_M)*100
 
