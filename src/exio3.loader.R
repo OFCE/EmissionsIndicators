@@ -180,8 +180,9 @@ View(tF_dfff)
 #sans pondération (nouveau bridge: erreur négligeable, de 1.268088e-14%)
 
 ### Save and export
-dir.create(str_c(path_out,br_pays, "/", br, "/"), recursive = TRUE)
-path_loader <- str_c(path_out, br, "/")
+br_pays <- "monde.12"
+dir.create(str_c(path_out,br_pays, "_", br, "/"), recursive = TRUE)
+path_loader <- str_c(path_out, br_pays,"_", br, "/")
 
 saveRDS(tA_dfff, str_c(path_loader, "A_",br_pays,"_",br,".rds"))
 

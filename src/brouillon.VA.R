@@ -45,14 +45,13 @@ Y_sectors.share <- as.matrix(Y) %*% y_2d
 M_vol.dim <- M_volume %*% t(Y_sectors.share)
 
 #Valeur ajoutée
-Fe_VA=t(Fe) %>% as.data.frame()
+Fe_VA = t(Fe) %>% as.data.frame()
 Fe_VA$gross.VA <- apply(Fe_VA[,c(1:9)], 1, sum)
 Fe_VA$net.VA <- apply(Fe_VA[,c(1:5)], 1, sum)+apply(Fe_VA[,c(7:9)], 1, sum)
 Fe_VA$Etat <- apply(Fe_VA[,c(1:2)], 1, sum)
 Fe_VA$Travail <- apply(Fe_VA[,c(3:5)], 1, sum)
 Fe_VA$Capital <- apply(Fe_VA[,c(7:9)], 1, sum)
-Fe_VA=t(Fe_VA) %>% as.data.frame()
-Fe_VA=Fe_VA[,c(1:9,1114:1118)]
+Fe_VA = Fe_VA[,c(1:9,1114:1118)] %>% as.data.frame()
 VA=Fe_VA$gross.VA %>% as.data.frame
 
 #Vérification VA = PIB = Somme des demandes
@@ -71,15 +70,50 @@ ValeurAjoutee.calcul <- function(prod,IO){
   VA= prod-CI
   return(VA)
 }
-VA.alt2=ValeurAjoutee.calcul(X,Z)
+VA=ValeurAjoutee.calcul(X,Z)
+VA.share=VA/sum(VA)
+sum(VA.share)
+
+listdf=list(S=Fe,M=M_vol.dim)
+index=1
+for (matrix in listdf) {
+  GES_list <- list()
+  GES_list[["GES.raw"]] <- matrix %>% 
+    as.data.frame %>% 
+    filter(str_detect(row.names(.), "CO2") | 
+             str_detect(row.names(.), "CH4") | 
+             str_detect(row.names(.), "N2O") | 
+             str_detect(row.names(.), "SF6") | 
+             str_detect(row.names(.), "PFC") | 
+             str_detect(row.names(.), "HFC") )
+  for (ges in glist){
+    #Row number for each GES in the S matrix
+    id_row <- str_which(row.names(GES_list[["GES.raw"]]),str_c(ges))
+    GES_list[[str_c(ges)]] <- GES_list[["GES.raw"]][id_row,] %>%  colSums() %>% as.data.frame()
+    GES_list[[ges]] <- GHGToCO2eq(GES_list[[ges]])
+  }
+  GES_list[["GES"]] <- GES_list[["CO2"]] +
+    GES_list[["CH4"]] +
+    GES_list[["N2O"]] +
+    GES_list[["SF6"]] +
+    GES_list[["HFC"]] +
+    GES_list[["PFC"]]
+  assign(str_c("GES_impact_",names(listdf)[index]), GES_list[["GES"]])
+  index=index+1
+}
+GES_impact_S=as.numeric(unlist(GES_impact_S)) %>% as.data.frame(row.names=rownames(Z), col.names=GES_impact_S)
+GES_impact_M=as.numeric(unlist(GES_impact_M)) %>% as.data.frame(row.names=rownames(Z), col.names=GES_impact_M)
+impact_VA = (VA.share * sum(GES_impact_S)) %>% as.data.frame(row.names=rownames(Z), col.names=impact_VA)
+sum(GES_impact_S)==sum(GES_impact_M)
+sum(GES_impact_M)==sum(impact_VA)
 
 #Chemin pour exporter les données
-dir.create(str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/"), recursive = TRUE)
-path_results_tables <- str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/")
+dir.create(str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/test"), recursive = TRUE)
+path_results_tables <- str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/test/")
 #Chemin pour exporter les plots
 format = "pdf"
-dir.create(str_c(path_codedata, "results/plots/", year,"/",br_pays,"_",br,"/", format), recursive = TRUE)
-path_results_plots <- str_c(path_codedata, "results/plots/", year,"/",br_pays,"_",br,"/", format, "/")
+dir.create(str_c(path_codedata, "results/plots/", year,"/",br_pays,"_",br,"/", format, "/test"), recursive = TRUE)
+path_results_plots <- str_c(path_codedata, "results/plots/", year,"/",br_pays,"_",br,"/", format, "/test/")
 
 #Attention, il faut mettre "Europe" et non "Europe (autres)", sinon la sélection ne marche pas
 
@@ -102,56 +136,29 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   production_pays[-str_which(rownames(production_pays),as.character(pays)),]<-0
   production_pays=as.numeric(unlist(production_pays))
   
-  #Impacts du pays
-  S_vol.select <- Fe #Fe est l'équivalent de S %*% X mais par produit au lieu d'avoir l'impact de la production mondiale
+  #Impacts producteur du pays
+  GES_impact_S_select <- GES_impact_S
   #Sélectionner les impacts de la production du pays en question
-  S_vol.select[,-str_which(colnames(S_vol.select),as.character(pays))]<-0
+  GES_impact_S_select[-str_which(rownames(GES_impact_S_select),as.character(pays)),]<-0
+  GES_impact_S_select = GES_impact_S_select%>%unlist()%>%as.numeric()
   
-  #interprétation : impact de la production de ce pays (par output)
-  impact_prod = t(S_vol.select) %*% Id(t(S_vol.select))
+  #Impacts demande du pays
+  GES_impact_M_select <- GES_impact_M
+  #Sélectionner les impacts de la production du pays en question
+  GES_impact_M_select[-str_which(rownames(GES_impact_M_select),as.character(pays)),]<-0
+  GES_impact_M_select = GES_impact_M_select%>%unlist()%>%as.numeric()
   
-  M_vol.select <- M_vol.dim
-  M_vol.select[,-str_which(colnames(M_vol.select),as.character(pays))]<-0
-  #(ou sinon filtrer les colonnes de L)
-  impact_dem = t(M_vol.select) %*% Id(t(M_vol.select))
-  
-  #Sélection des impacts GES et Conversion en CO2eq
-  listdf=list(S=S_vol.select,M=M_vol.select)
-  index=1
-  for (matrix in listdf) {
-    GES_list <- list()
-    GES_list[["GES.raw"]] <- matrix %>% 
-      as.data.frame %>% 
-      filter(str_detect(row.names(.), "CO2") | 
-               str_detect(row.names(.), "CH4") | 
-               str_detect(row.names(.), "N2O") | 
-               str_detect(row.names(.), "SF6") | 
-               str_detect(row.names(.), "PFC") | 
-               str_detect(row.names(.), "HFC") )
-    for (ges in glist){
-      #Row number for each GES in the S matrix
-      id_row <- str_which(row.names(GES_list[["GES.raw"]]),str_c(ges))
-      GES_list[[str_c(ges)]] <- GES_list[["GES.raw"]][id_row,] %>% colSums() %>% as.data.frame()
-      GES_list[[ges]] <- GHGToCO2eq(GES_list[[ges]])
-    }
-    GES_list[["GES"]] <- GES_list[["CO2"]] +
-      GES_list[["CH4"]] +
-      GES_list[["N2O"]] +
-      GES_list[["SF6"]] +
-      GES_list[["HFC"]] +
-      GES_list[["PFC"]]
-    assign(str_c("GES_impact_",names(listdf)[index]), GES_list[["GES"]])
-    index=index+1
-  }
-  #interprétation : impact de la production et de la demande de ce pays en CO2 équivalent
-  GES_impact_S=as.numeric(unlist(GES_impact_S))
-  GES_impact_M=as.numeric(unlist(GES_impact_M))
+  #Impacts VA du pays
+  impact_VA_select <- impact_VA
+  #Sélectionner les impacts de la production du pays en question
+  impact_VA_select[-str_which(rownames(impact_VA_select),as.character(pays)),]<-0
+  impact_VA_select = impact_VA_select%>%unlist()%>%as.numeric()
   
   
   #Créer le tableau en assemblant les colonnes
   assign("io_table",
          data.frame(nom_pays,
-                    DF_tot,production_pays,impact_prod,impact_dem,GES_impact_S,GES_impact_M
+                    DF_tot,production_pays,GES_impact_S_select,GES_impact_M_select,impact_VA_select
          )
   )
   
@@ -164,7 +171,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   io_table$produits=sub(".*?_", "",io_table$pays.produits)
   io_table$regions=sub("_.*", "",io_table$pays.produits)
   io_table = io_table %>% 
-    select(regions,nom_pays,produits,DF_tot,production_pays,impact_prod,impact_dem,GES_impact_S,GES_impact_M)
+    select(regions,nom_pays,produits,DF_tot,production_pays,GES_impact_S_select,GES_impact_M_select,impact_VA_select)
   io_table[sapply(io_table, simplify = 'matrix', is.infinite)] <- 0
   io_table[sapply(io_table, simplify = 'matrix', is.nan)] <- 0
   
@@ -180,14 +187,15 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
     #par produits
     group_by(produits) %>%
     filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>% #toujours=0
-    mutate(agg.demande_impact=sum(GES_impact_M),
-           agg.producteur_impact=sum(GES_impact_S),
+    mutate(agg.demande_impact=sum(GES_impact_M_select),
+           agg.producteur_impact=sum(GES_impact_S_select),
+           agg.VA_impact=sum(impact_VA_select),
            agg.production=sum(production_pays),
            agg.demande_finale=sum(DF_tot)) %>%
     ungroup() %>%
     #format long pour afficher les deux indicateurs
     pivot_longer(
-      cols = c("agg.producteur_impact","agg.demande_impact"),
+      cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
       names_to = "indicator",
       values_to = "impact") %>%
     as.data.frame() %>% 
@@ -202,10 +210,10 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
           panel.background = element_blank(),
           panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
           plot.margin = unit(c(10,5,5,5), "mm"))+
-    labs(title="Impacts prodcuteur et consommateur",
+    labs(title="Impacts",
          x ="Secteurs", y = "Impact GES (CO2eq)",
          fill="Indicateur") +
-    scale_fill_manual(labels = c("Demande", "Production"), values = c("indianred1", "cornflowerblue"))
+    scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
   
   
   #Exporter le plot et le charger dans l'environnement
@@ -226,18 +234,20 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
 (sum(IO_all$impact_dem)-sum(IO_all$impact_prod))/sum(IO_all$impact_dem)*100
 (sum(IO_all$GES_impact_M)-sum(IO_all$GES_impact_S))/sum(IO_all$GES_impact_M)*100
+(sum(IO_all$GES_impact_M)-sum(IO_all$impact_VA_select))/sum(IO_all$GES_impact_M)*100
 
 #Plot mondial par secteur
 monde_secteurs <- IO_all %>% 
   group_by(produits) %>%
   filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
-  mutate(agg.demande_impact=sum(GES_impact_M),
-         agg.producteur_impact=sum(GES_impact_S),
+  mutate(agg.demande_impact=sum(GES_impact_M_select),
+         agg.producteur_impact=sum(GES_impact_S_select),
+         agg.VA_impact=sum(impact_VA_select),
          agg.production=sum(production_pays),
          agg.demande_finale=sum(DF_tot)) %>%
   ungroup() %>% 
   pivot_longer(
-    cols = c("agg.producteur_impact","agg.demande_impact"),
+    cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
     names_to = "indicator",
     values_to = "impact") %>%
   as.data.frame() %>% 
@@ -251,10 +261,10 @@ monde_secteurs <- IO_all %>%
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Impacts prodcuteur et consommateur",
+  labs(title="Impacts",
        x ="Secteurs", y = "Impact GES (CO2eq)",
        fill="Indicateur") +
-  scale_fill_manual(labels = c("Demande", "Production"), values = c("indianred1", "cornflowerblue"))
+  scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 monde_secteurs
 ggsave(filename=str_c("plot.monde_secteurs.",format), 
        plot=monde_secteurs, 
@@ -265,14 +275,15 @@ ggsave(filename=str_c("plot.monde_secteurs.",format),
 #Plot mondial par pays
 monde_pays <- IO_all %>% 
   group_by(nom_pays) %>%
-  mutate(agg.demande_impact=sum(GES_impact_M),
-         agg.producteur_impact=sum(GES_impact_S),
+  mutate(agg.demande_impact=sum(GES_impact_M_select),
+         agg.producteur_impact=sum(GES_impact_S_select),
+         agg.VA_impact=sum(impact_VA_select),
          agg.production=sum(production_pays),
          agg.demande_finale=sum(DF_tot)) %>%
   ungroup() %>%
   mutate(categorie.produit=substr(produits, 1,5)) %>% 
   pivot_longer(
-    cols = c("agg.producteur_impact","agg.demande_impact"),
+    cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
     names_to = "indicator",
     values_to = "impact") %>%
   as.data.frame() %>% 
@@ -286,10 +297,10 @@ monde_pays <- IO_all %>%
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Impacts prodcuteur et consommateur",
+  labs(title="Impacts",
        x ="Région ou pays", y = "Impact GES (CO2eq)",
        fill="Indicateur") +
-  scale_fill_manual(labels = c("Demande", "Production"), values = c("indianred1", "cornflowerblue"))
+  scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 monde_pays
 ggsave(filename=str_c("plot.monde_pays.",format), 
        plot=monde_pays, 
