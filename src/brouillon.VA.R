@@ -237,7 +237,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
          fill="Indicateur") +
     scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
   
-  plot2=IO %>% 
+  plot2=IO_Oceanie %>% 
     #par produits
     group_by(produits) %>%
     filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>% #toujours=0
@@ -255,7 +255,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
       aes(x= produits, 
           y = impact,
           fill = composante)) +
-    geom_bar(stat='identity',position = "stack") +
+    geom_bar(stat='identity',position = position_stack(vjust = 1, reverse = FALSE)) +
     theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
           plot.title =element_text(size=12, face='bold', hjust=0.5),
           panel.background = element_blank(),
@@ -264,13 +264,18 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
     labs(title="Impacts",
          x ="Secteurs", y = "Impact GES (CO2eq)",
          fill="Indicateur") +
-    scale_fill_manual(labels = c("E", "L","K","CP"), values = c("blue", "green","pink","red"))
+    scale_fill_manual(labels = c("E", "L","K","CP"), values = c("gray95", "gray85","gray75","gray65"))
   
 
   
   #Exporter le plot et le charger dans l'environnement
   ggsave(filename=str_c("plot.secteurs_", pays, ".",format), 
          plot=plot, 
+         device="pdf",
+         path=path_results_plots,
+         width = 280 , height = 200 , units = "mm", dpi = 600)
+  ggsave(filename=str_c("plot.secteurs.va_", pays, ".",format), 
+         plot=plot2, 
          device="pdf",
          path=path_results_plots,
          width = 280 , height = 200 , units = "mm", dpi = 600)
