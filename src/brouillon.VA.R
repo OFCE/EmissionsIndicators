@@ -293,7 +293,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   
 }
 
-plot=IO_Oceanie %>% 
+plotdata=IO_Oceanie %>% 
   #par produits
   group_by(produits) %>%
   filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>% #toujours=0
@@ -314,13 +314,17 @@ plot=IO_Oceanie %>%
     names_to = "indicator",
     values_to = "impact") %>%
   mutate(ind=ifelse(indicator=="agg.Etat"|indicator=="agg.Travail"|indicator=="agg.Capital"|indicator=="agg.Cout",
-                    "VA_comp",indicator)) %>%
-  group_by(ind) %>%
+                    "VA_comp",indicator)) 
+plot= plotdata %>%
   ggplot( 
-    aes(x= produits, 
-        y = impact,
-        fill = indicator)) +
-  geom_bar(stat='identity',position = "stack") +
+    ) +
+  geom_bar(aes(x= produits, 
+               y = impact,
+               fill = factor(indicator),
+               group=factor(ind) 
+               ),
+           position=position_dodge(width=NULL),
+           stat='identity') +
   theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
         plot.title =element_text(size=12, face='bold', hjust=0.5),
         panel.background = element_blank(),
@@ -330,9 +334,9 @@ plot=IO_Oceanie %>%
        x ="Secteurs", y = "Impact GES (CO2eq)",
        fill="Indicateur") +
   scale_fill_manual( 
-                    values = c("indianred1", "cornflowerblue","orange1",
-                               "gray95", "gray85","gray75","gray65"))
-
+                    values = c("gray75", "gray65","indianred1",
+                               "gray95", "cornflowerblue","gray85","orange1"))
+plot
 
 #Créer grand dataframe
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
