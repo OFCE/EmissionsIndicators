@@ -13,11 +13,11 @@ sec_out = "CPA2002_Niv1"
 
 
 Y.df <- perform.bridge(Y,country_in = "Countries_1", country_out = "Countries_2.WD1", country_sht = "Countries", 
-                       sec_in , sec_out, sec_sht =  "Products",
+                       sec_in="exio3", sec_out="CPA2002_Niv1", sec_sht =  "Products",
                        format_data = "data.frame")
 
 Z.df <- perform.bridge(Z,country_in = "Countries_1", country_out = "Countries_2.WD1", country_sht = "Countries", 
-                       sec_in,sec_out ,sec_sht =  "Products",
+                       sec_in="exio3", sec_out="CPA2002_Niv1",sec_sht =  "Products",
                        sq_mat = T, format_data = "data.frame")
 
 Fe.df <- perform.bridge(Fe,country_in = "Countries_1", country_out = "Countries_2.WD1", country_sht = "Countries", 
