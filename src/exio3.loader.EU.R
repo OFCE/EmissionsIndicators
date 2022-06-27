@@ -8,6 +8,7 @@ br_pays <- "EU1"
 dir.create(str_c(path_out,br_pays, "_", br, "/"), recursive = TRUE)
 path_loader <- str_c(path_out, br_pays,"_", br, "/")
 
+#Y et Z ne marchent pas
 Y_EU = perform.bridge(Y,
                       country_in = "Countries_1", country_out = "Countries_2.EU1", country_sht = "Countries", 
                       sec_in="exio3", sec_out="CPA2002_Niv1", sec_sht =  "Products",
@@ -26,6 +27,7 @@ Fe_EU <- perform.bridge(Fe,country_in = "Countries_1", country_out = "Countries_
 Fe.row <- str_c(Fe_EU$countries,"_",Fe_EU$products)
 Fe_EU <- Fe_EU %>% select(-countries,-products) %>% `rownames<-`(Fe.row) %>% t() %>% as.data.frame()
 
+#ne marche pas non plus
 X_EU <- perform.bridge(X,country_in = "Countries_1", country_out = "Countries_2.EU1", country_sht = "Countries", 
                        sec_in = "exio3",sec_out =  "CPA2002_Niv1",sec_sht =  "Products", transpose =F,
                        sq_mat = F, satellite = F, format_data = "data.frame")
