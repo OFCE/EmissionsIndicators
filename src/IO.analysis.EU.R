@@ -129,7 +129,11 @@ path_results_plots <- str_c(path_codedata, "results/plots/", year,"/",br_pays,"_
 
 #Boucle qui crée un tableau avec les indicateurs pour chaque pays
 #(il faut avoir Y, Fe et L au préalable)
-for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afrique","Russie","Europe","Asie","Moyen-Orient","Oceanie")) {
+for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque","Allemagne",
+               "Danemark","Estonie","Espagne","Finlande","France","Grèce","Croatie","Hongrie",
+               "Irlande","Italie","Lituanie","Luxembourg","Lettonnie","Malte","Pays-bas",
+               "Pologne","Portugal","Roumanie","Suède","Slovénie","Slovaquie","Royaume-Uni",
+               "Reste du monde")) {
   
   #Colonne nom pays (pas nécessaire si pas rbind par la suite)
   nom_pays <- c(rep(pays,ncol(Z))) #length()=204
