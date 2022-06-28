@@ -4,7 +4,8 @@ perform.bridge <- function(data,
                            sq_mat = NULL, 
                            format_data = NULL, 
                            transpose = NULL, 
-                           satellite = NULL)
+                           satellite = NULL,
+                           vector = NULL)
 {
   
   
@@ -15,6 +16,8 @@ perform.bridge <- function(data,
   if(is.null(transpose)){transpose = FALSE}
   
   if(is.null(satellite)){satellite = FALSE}
+  
+  if(is.null(vector)){vector = FALSE}
   
   
   df <- data %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1,2),
@@ -69,16 +72,18 @@ perform.bridge <- function(data,
     id_out = str_c(df.1$countries.out,"_",df.1$products.out)
     
   # Step 2 avec la transpose (que pour countries, car produits ici composante demande)
-  df.1 <- df.1 %>% select(-countries.out,- products.out) %>%
-    as.matrix(nrow(df.1),ncol(data),
-              dimnames = list(id_out,data)) %>%
-    t() %>% as.data.frame() %>% `colnames<-`(id_out) %>%
-    mutate(countries.in = str_sub(rownames(.),1,2),
-           products.in = str_sub(rownames(.),4)) %>%
-    merge(br_lg, by = "countries.in" , all = T) %>%
-    group_by(countries.out, products.in) %>%
-    # Somme pondérée par weight pour les produits (0>p>1)
-    summarise(across(all_of(id_out), ~ sum(.)))  %>% ungroup() 
+  if (vector == FALSE){
+    df.1 <- df.1 %>% select(-countries.out,- products.out) %>%
+      as.matrix(nrow(df.1),ncol(data),
+                dimnames = list(id_out,data)) %>%
+      t() %>% as.data.frame() %>% `colnames<-`(id_out) %>%
+      mutate(countries.in = str_sub(rownames(.),1,2),
+             products.in = str_sub(rownames(.),4)) %>%
+      merge(br_lg, by = "countries.in" , all = T) %>%
+      group_by(countries.out, products.in) %>%
+      # Somme pondérée par weight pour les produits (0>p>1)
+      summarise(across(all_of(id_out), ~ sum(.)))  %>% ungroup()
+  } 
   
  
   

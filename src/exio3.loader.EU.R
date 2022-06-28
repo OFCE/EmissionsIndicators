@@ -20,6 +20,8 @@ Z_EU = perform.bridge(Z,
                       country_in = "Countries_1", country_out = "Countries_2.EU1", country_sht = "Countries", 
                       sec_in="exio3", sec_out="CPA2002_Niv1", sec_sht =  "Products",
                       sq_mat = TRUE, satellite = FALSE, format_data = "data.frame")
+Z.row <- str_c(Z_EU$countries,"_",Z_EU$products)
+Z_EU <- Z_EU %>% select(-countries,-products) %>% `rownames<-`(Z.row) %>% t()
 
 Fe_EU <- perform.bridge(Fe,country_in = "Countries_1", country_out = "Countries_2.EU1", country_sht = "Countries", 
                         sec_in = "exio3",sec_out =  "CPA2002_Niv1",sec_sht =  "Products", transpose = T,
@@ -27,10 +29,9 @@ Fe_EU <- perform.bridge(Fe,country_in = "Countries_1", country_out = "Countries_
 Fe.row <- str_c(Fe_EU$countries,"_",Fe_EU$products)
 Fe_EU <- Fe_EU %>% select(-countries,-products) %>% `rownames<-`(Fe.row) %>% t() %>% as.data.frame()
 
-#ne marche pas non plus
 X_EU <- perform.bridge(X,country_in = "Countries_1", country_out = "Countries_2.EU1", country_sht = "Countries", 
-                       sec_in = "exio3",sec_out =  "CPA2002_Niv1",sec_sht =  "Products", transpose =F,
-                       sq_mat = F, satellite = F, format_data = "data.frame")
+                       sec_in = "exio3",sec_out =  "CPA2002_Niv1",sec_sht =  "Products",
+                       transpose = FALSE,vector=TRUE, format_data = "data.frame")
 X.row <- str_c(X_EU$countries,"_",X_EU$products)
 X_EU <- X_EU %>% select(-countries,-products) %>% `rownames<-`(X.row)
 
