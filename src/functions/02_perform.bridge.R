@@ -38,17 +38,17 @@ perform.bridge <- function(data,
   
   br_lg <-  loadBridge(country_in, country_out, country_sht) %>%
     data.frame() %>% mutate(countries.out = rownames(.)) %>%
-    pivot_longer(cols = exio3.desc$countries, names_to = "countries.in", values_to = "value") %>%
+    pivot_longer(cols = colnames(.)[-ncol(.)], names_to = "countries.in", values_to = "value") %>%
     filter(value ==1) %>% select(-value)
   
   
   ### Bridge in long format for products
   br.2_lg <-  loadBridge(sec_in, sec_out, sec_sht) %>% 
     as.data.frame() %>% mutate(products.out = rownames(.)) %>%
-    pivot_longer(cols = exio3.desc$products, names_to = "products.in", values_to = "weight") %>% 
+    pivot_longer(cols = colnames(.)[-ncol(.)], names_to = "products.in", values_to = "weight") %>% 
     filter(weight > 0)
   
-  
+
   ## Merge and aggregation
   if (satellite == TRUE){
   df.1 <- merge(df, br_lg, by = "countries.in" , all.x = TRUE) %>%
@@ -59,7 +59,7 @@ perform.bridge <- function(data,
     rename_with(~ sub("^countries.*", "countries", .x), starts_with("countries")) %>%
     rename_with(~ sub("^products.*", "products", .x), starts_with("products"))
   
-  id_out = str_c(df.1$countries,"_",df.1$products)
+  id_out <-  str_c(df.1$countries,"_",df.1$products)
   
   } else {
 
@@ -119,20 +119,12 @@ perform.bridge <- function(data,
   
   #Choice of the format of export of the datatable (either data.frame or matrix)
   if (format_data == "matrix"){
+
     
-    df.1 <- df.1 %>% select(-countries, - products) %>% 
-      as.matrix(nrow(.),ncol(.),
-                dimnames = list(id_out.row,id_out.col))
-    
-    
-    
-  } #else{ 
-    # Transpose and datawrangling
-    # df.1 <- df.1 %>% select(all_of(id_out)) %>% 
-    #   t() %>% as.data.frame() %>% `colnames<-`(id_out.col) %>% 
-    #   mutate(countries = str_extract(rownames(.),"^.+?(?=_)"),
-    #          products = str_extract(rownames(.),"(?<=_)(.*)")) %>% 
-    #   select(countries, products, all_of(id_out.col))
-  #}
-  df.1
+  df.1 <- df.1 %>% select(-countries, - products) %>% 
+      as.matrix(nrow(.),ncol(.)) %>% `rownames<-`(id_out) 
+  
+  }
+  
+  return(df.1)
 }
