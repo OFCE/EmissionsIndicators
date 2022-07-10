@@ -1,223 +1,85 @@
 #Obtenir un dataframe avec les données pour un pays:
 ###Généralisation pour n'importe quel pays
 
-br <- "CPA2002_Niv1"
-br.pays <- "monde.12"
-ghg <- "CO2"
+
+br ="ThreeME"
+br.pays ="OG"
+# 
+ghg <- "GES"
 # Choix du pays considéré pour calcul empreinte carbone 
-iso <-  str_c("FR")
+iso <- "FR"
+
+
+
 
 path_loader <- str_c(path_out,br,"/",br.pays,"/")
 
 # Chargement des données I-O sauvegardées par le script exio3.loader.R
-Y <-readRDS(str_c(path_out,"Y_",br.pays,"_",br,".rds"))
-Fe <-readRDS(str_c(path_out,"Fe_",br.pays,"_",br,".rds"))
-Z <-readRDS(str_c(path_out,"Z_",br.pays,"_",br,".rds"))
-X <-readRDS(str_c(path_out,"X_",br.pays,"_",br,".rds"))
+Y <-readRDS(str_c(path_loader,"/Y_",br.pays,"_",br,".rds"))
+Fe <-readRDS(str_c(path_loader,"/Fe_",br.pays,"_",br,".rds")) %>% t
+Z <-readRDS(str_c(path_loader,"/Z_",br.pays,"_",br,".rds"))
+X <-readRDS(str_c(path_loader,"/X_",br.pays,"_",br,".rds"))
 
 ## Mutate with string 
-names_y <- rownames(Y) %>% as.data.frame() %>%  mutate(id = seq(1:length(.)), 
-                                                       countries = str_extract(.,"^.+?(?=_)"),
-                                                       products = str_extract(.,"(?<=_)(.*)")) %>% 
+names_y <- rownames(Y) %>% as.data.frame() %>%
+  mutate(id = seq(1:length(.)), 
+         countries = str_extract(.,"^.+?(?=_)"),
+         products = str_extract(.,"(?<=_)(.*)")) %>% 
   select(id, countries, products)
 
-names_io <-rownames(Z) %>% as.data.frame() %>%  mutate(id = seq(1:length(.)), 
-                                                       countries = str_extract(.,"^.+?(?=_)"),
-                                                       products = str_extract(.,"(?<=_)(.*)")) %>% 
+names_io <-rownames(Z) %>% as.data.frame() %>%
+  mutate(id = seq(1:length(.)), 
+         countries = str_extract(.,"^.+?(?=_)"),
+         products = str_extract(.,"(?<=_)(.*)")) %>% 
   select(id, countries, products)
 
-
-#Calcul des coefficients techniques
-##Matrice de Leontief
-# Fe <- select(Fe, -products,-countries) %>% t
-# 
-# Z <- select(Z, -products,-countries)
-# Y <- select(Y, -products,-countries) %>% t
-
+# Extraction of the emissions from production activities
+Fe.ghg <- GHG.extraction(Fe ,ghg) %>% as.matrix()
 
 ##Inverse de Leontief
-L <- LeontiefInverse((Z), coef = FALSE)
+L <- LeontiefInverse(t(Z), coef = FALSE)
+
+##Vecteur de demande pour un pays iso
+Y.vec <- shock.demand(Y, iso, aggregate = TRUE) 
+
+##Vecteur de demande pour un pays iso
+Y.vec <- shock.demand(Y, aggregate = TRUE) 
+
+#Matrice S (impact producteur/ million €)
+S <- Env.multiplier(Y.vec, Fe.ghg, L)
+
+#Matrice M (impact demande et CI kg emissions/ million €)
+M <- diag(as.numeric(S)) %*% L 
+
+# Volume d'émissions producteur
+EMS_S <- S %*% diag(as.numeric(x)) %>% `colnames<-`(rownames(X))
+# Volume d'émissions consommateur pays iso
+EMS_M <- M %*% diag(as.numeric(Y.vec)) %>%
+  `colnames<-`(rownames(X)) %>% `colnames<-`(rownames(Y))
+
+#  Verif comptabilité carbone source et output
+sum(Fe.ghg) / 10^12
+sum(EMS_M) / 10^12
+sum(EMS_S) / 10^12
+
+# PIB monde ou pays si iso TRUE 
+sum(Y.vec)/10^3
+
+# Mise en forme des résultats pour export
+Y_export <-  (Y.vec) %>% as.data.frame() %>%mutate(id = seq(1:nrow(.)))  %>% 
+  merge(names_y, ., by = "id") %>% select(-id) %>% 
+  pivot_wider(names_from = countries, values_from = "V1") 
+
+# GES_M_export <-  t(EMS_M) %>% as.data.frame() %>%mutate(id = seq(1:nrow(.))) %>% 
+#   merge(names_y, by = "id") %>% select(-id) %>%
+#   pivot_wider(names_from = countries, values_from = "value") 
+
+GES_S_export <-  t(EMS_S) %>% as.data.frame() %>%mutate(id = seq(1:nrow(.))) %>% 
+  merge(names_io, by = "id") %>% select(-id) %>%
+  pivot_wider(names_from = countries, values_from = "value")
 
 
-#Matrice S (impact producteur)
-x <- (((L) %*% as.matrix(Y)) %*% Id(Y)) %>% as.numeric
-x_1 <- 1/x
-
-(as.numeric(X) - x) %>% sum 
-
-x_1[is.infinite(x_1)] <- 0 
-x_1d <- as.numeric(x_1) %>% diag()
-S <- (t(Fe) %*% x_1d) %>% `colnames<-`(rownames(X))
-S[is.nan(S)]
-S_volume <- S %*% diag(as.numeric(X)) %>% `colnames<-`(rownames(X))
-
-#Matrice M (impact demande et CI)
-M <- S %*% L 
-M_volume <- M %*% as.matrix(Y)
-
-sum(S_volume) - sum(M_volume)
-
-#Conversion des impacts production et demande
-GES_impact_M <- GHG.extraction(M_volume,ghg)
-GES_impact_S <- GHG.extraction(S_volume,ghg)
-
-sum(GES_impact_S) - sum(GES_impact_M)
-#impact GES producteur
-GES_impact_S  <-  as.numeric(unlist(GES_impact_S)) %>%
-  as.data.frame( col.names=GES_impact_S)  %>% mutate(id = seq(1:length(.)))
-#impact GES demande
-GES_impact_M <-  as.numeric(unlist(GES_impact_M)) %>% 
-  as.data.frame(row.names=colnames(Y), col.names=GES_impact_M)  %>% mutate(id = seq(1:length(.)))
-
-GES_M_export <- merge(names_y, GES_impact_M, by = "id") %>% select(-id) %>%
-  pivot_wider(names_from = countries, values_from = ".")
-
-GES_S_export <- merge(names_io, GES_impact_S, by = "id") %>% select(-id) %>%
-  pivot_wider(names_from = countries, values_from = ".")
-
-
-saveRDS(L,str_c(path_loader,"L.rds"))
-saveRDS(GES_M_export, str_c(path_loader,"M_",ghg,".rds"))
-saveRDS(GES_S_export, str_c(path_loader,"S_",ghg,".rds"))
-
-
-GES_S_export[-1] / rowSums(GES_S_export[-1]) 
-
-#Chemin pour exporter les données
-dir.create(str_c("results/IO_pays/", year,"/",br.pays,"_",br,"/test"), recursive = TRUE)
-path_results_tables <- str_c("results/IO_pays/", year,"/",br.pays,"_",br,"/test/")
-
-
-iso <- "France"
-#Colonne nom pays (pas nécessaire si pas rbind par la suite)
-name.iso <- c(rep(iso,ncol(Z))) #length()=204
-
-#Colonne demande finale
-DF <- Y
-#mettre à 0 les entrées des autres pays (demande finale du pays en question adressée aux autres pays)
-DF[,-str_which(colnames(DF),as.character(iso))] <- 0
-DF_tot <- as.matrix(DF) %*% Id(DF) #somme de toutes les composantes
-#interprétation : quantité consommée par ce pays et produite dans le monde
-
-#Vecteur production du pays
-production_pays <- X
-production_pays[-str_which(rownames(production_pays),as.character(pays)),]<-0
-production_pays=as.numeric(unlist(production_pays))
-
-#Impacts du pays
-S_vol.select <- t(Fe) #Fe est l'équivalent de S %*% X mais par produit au lieu d'avoir l'impact de la production mondiale
-#Sélectionner les impacts de la production du pays en question
-S_vol.select[,-str_which(colnames(S_vol.select),as.character(pays))]<-0
-
-#interprétation : impact de la production de ce pays (par output)
-impact_prod = t(S_vol.select) %*% Id(t(S_vol.select))
-
-M_vol.select <- M_vol.dim
-M_vol.select[,-str_which(colnames(M_vol.select),as.character(pays))]<-0
-#(ou sinon filtrer les colonnes de L)
-impact_dem = t(M_vol.select) %*% Id(t(M_vol.select))
-
-#Sélection des impacts GES et Conversion en CO2eq
-listdf=list(S=S_vol.select,M=M_vol.select)
-index=1
-for (matrix in listdf) {
-  GES_list <- list()
-  GES_list[["GES.raw"]] <- matrix %>% 
-    as.data.frame %>% 
-    filter(str_detect(row.names(.), ghg) | 
-             str_detect(row.names(.), "CH4") | 
-             str_detect(row.names(.), "N2O") | 
-             str_detect(row.names(.), "SF6") | 
-             str_detect(row.names(.), "PFC") | 
-             str_detect(row.names(.), "HFC") )
-  for (ges in glist){
-    #Row number for each GES in the S matrix
-    id_row <- str_which(row.names(GES_list[["GES.raw"]]),str_c(ges))
-    GES_list[[str_c(ges)]] <- GES_list[["GES.raw"]][id_row,] %>% colSums() %>% as.data.frame()
-    GES_list[[ges]] <- GHGToCO2eq(GES_list[[ges]])
-  }
-  GES_list[["GES"]] <- GES_list[[ghg]] +
-    GES_list[["CH4"]] +
-    GES_list[["N2O"]] +
-    GES_list[["SF6"]] +
-    GES_list[["HFC"]] +
-    GES_list[["PFC"]]
-  assign(str_c("GES_impact_",names(listdf)[index]), GES_list[["GES"]])
-  index=index+1
-}
-#interprétation : impact de la production et de la demande de ce pays en CO2 équivalent
-GES_impact_S=as.numeric(unlist(GES_impact_S))
-GES_impact_M=as.numeric(unlist(GES_impact_M))
-
-
-#Créer le tableau en assemblant les colonnes
-assign("io_table",
-       data.frame(nom_pays,
-                  DF_tot,production_pays,impact_prod,impact_dem,GES_impact_S,GES_impact_M
-       )
-)
-
-#Mettre à 0 la production pour les autres pays (tableau spécifique à un seul pays)
-#io_table$production[-str_which(rownames(io_table),as.character(pays)),]<-0
-#-> fait automatiquement avec production_2
-
-#Créer une colonne produits, ordonner les colonnes, nettoyer le dataframe
-io_table$pays.produits=rownames(io_table)
-io_table$produits=sub(".*?_", "",io_table$pays.produits)
-io_table$regions=sub("_.*", "",io_table$pays.produits)
-io_table = io_table %>% 
-  select(regions,nom_pays,produits,DF_tot,production_pays,impact_prod,impact_dem,GES_impact_S,GES_impact_M)
-io_table[sapply(io_table, simplify = 'matrix', is.infinite)] <- 0
-io_table[sapply(io_table, simplify = 'matrix', is.nan)] <- 0
-
-#Exporter le tableau
-saveRDS(io_table, str_c(path_results_tables, "/IO_", pays, ".rds"))
-
-#Charger le tableau dans l'environnement
-IO <- readRDS(str_c(path_results_tables, "/IO_", pays, ".rds"))
-assign(str_c("IO_",pays),IO)
-
-#Créer un graphique
-plot=IO %>% 
-  #par produits
-  group_by(produits) %>%
-  filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>% #toujours=0
-  mutate(agg.demande_impact=sum(GES_impact_M),
-         agg.producteur_impact=sum(GES_impact_S),
-         agg.production=sum(production_pays),
-         agg.demande_finale=sum(DF_tot)) %>%
-  ungroup() %>%
-  #format long pour afficher les deux indicateurs
-  pivot_longer(
-    cols = c("agg.producteur_impact","agg.demande_impact"),
-    names_to = "indicator",
-    values_to = "impact") %>%
-  as.data.frame() %>% 
-  #plot
-  ggplot( 
-    aes(x= produits, 
-        y = impact,
-        fill = indicator)) +
-  geom_bar(stat='identity',position = "dodge") +
-  theme(axis.text.x = element_text(angle = 25, size=5, vjust = 1, hjust=1),
-        plot.title =element_text(size=12, face='bold', hjust=0.5),
-        panel.background = element_blank(),
-        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
-        plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Impacts producteur et consommateur",
-       x ="Secteurs", y = "Impact GES (CO2eq)",
-       fill="Indicateur") +
-  scale_fill_manual(labels = c("Demande", "Production"), values = c("indianred1", "cornflowerblue"))
-
-
-#Exporter le plot et le charger dans l'environnement
-ggsave(filename=str_c("plot.secteurs_", pays, ".",format), 
-       plot=plot, 
-       device="pdf",
-       path=path_results_plots,
-       width = 280 , height = 200 , units = "mm", dpi = 600)
-#quelques problèmes pour save
-assign(str_c("plot.secteur_",pays),plot)
-
-rm(IO,IO_all,io_table,plot)
-
+# Export results
+saveRDS(Y_export, str_c(path_loader,"Imports.Y_",iso,".rds"))
+saveRDS(GES_M_export, str_c(path_loader,"M_",iso,"_",ghg,".rds"))
+saveRDS(GES_S_export, str_c(path_loader,"S_",iso,"_",ghg,".rds"))
