@@ -87,7 +87,7 @@ GHG.extraction <- function(data,
     }
   }
   
-  colnames(GES_list[[GES]]) <-  GES
+  colnames(GES_list[[GES]]) <-  "value"
   
  
   return( GES_list[[GES]] )
