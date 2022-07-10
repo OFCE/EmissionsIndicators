@@ -1,6 +1,6 @@
 # Number of sectors and products in Exiobase 3
 ThreeME.desc <- list("nProducts" = 28,
-                     "Products" =
+                     "products" =
                        c("Products of agriculture, Hunting, and Fishing",
                          "Products of Forestry",
                          "Food products and beverages",
