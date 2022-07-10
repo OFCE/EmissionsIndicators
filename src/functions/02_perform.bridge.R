@@ -121,8 +121,8 @@ perform.bridge <- function(data,
   }
   
   
-  if ((sum(data) - sum(df.1)) != round(0,6)){
-    cat(" Houston, we have a balance problem") 
+  if (round(sum(data) - sum(df.1), 6) != 0){
+    cat(str_c(" Houston, we have a balance problem (",round(100*(sum(data) - sum(df.1))/sum(data),3)," %)")) 
   }
   
   return(df.1)
