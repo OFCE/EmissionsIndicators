@@ -44,7 +44,12 @@ dir.create(str_c("results/tables"), recursive = TRUE)
 # Descriptions of nomenclatures
 source("data_in/desc/exio3.desc.R")
 source("data_in/desc/CPA4.desc.R")
+source("data_in/desc/ThreeME.desc.R")
 source("src/functions/01_load.bridge.R")
 source("src/functions/01_load.matrix.R")
 source("src/functions/01_Leontief.inverse.R")
+source("src/functions/01_GHG.extraction.R")
 source("src/functions/02_perform.bridge.R")
+
+sec.desc <- list("exio3.desc" = exio3.desc,
+                 "ThreeME.desc" = ThreeME.desc)

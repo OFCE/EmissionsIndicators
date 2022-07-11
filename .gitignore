@@ -6,3 +6,6 @@
 data_in/**.txt
 data_in/**.json
 data_out/**.rds
+*.rds
+*.txt
+*.json
