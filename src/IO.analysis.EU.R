@@ -118,12 +118,12 @@ GES_VA_compo=rename(GES_VA_compo, "Cout_production"="Operating surplus: Consumpt
 
 
 #Chemin pour exporter les données
-dir.create(str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/test"), recursive = TRUE)
-path_results_tables <- str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/test/")
+dir.create(str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br), recursive = TRUE)
+path_results_tables <- str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/")
 #Chemin pour exporter les plots
 format = "pdf"
-dir.create(str_c(path_codedata, "results/plots/", year,"/",br_pays,"_",br,"/", format, "/test"), recursive = TRUE)
-path_results_plots <- str_c(path_codedata, "results/plots/", year,"/",br_pays,"_",br,"/", format, "/test/")
+dir.create(str_c(path_codedata, "results/plots/", year,"/",br_pays,"_",br,"/", format), recursive = TRUE)
+path_results_plots <- str_c(path_codedata, "results/plots/", year,"/",br_pays,"_",br,"/", format, "/")
 
 #Attention, il faut mettre "Europe" et non "Europe (autres)", sinon la sélection ne marche pas
 
@@ -244,6 +244,11 @@ for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque",
          x ="Secteurs", y = "Impact GES (CO2eq)",
          fill="Indicateur") +
     scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
+  ggsave(filename=str_c("plot.secteurs_", pays, ".",format), 
+         plot=plot, 
+         device="pdf",
+         path=path_results_plots,
+         width = 280 , height = 200 , units = "mm", dpi = 600)
   
   #Créer un graphique décomposition de la VA
   plot2=IO %>% 
@@ -274,9 +279,15 @@ for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque",
          x ="Secteurs", y = "Impact GES (CO2eq)",
          fill="Indicateur") +
     scale_fill_manual(labels = c("E", "L","K","CP"), values = c("gray95", "gray85","gray75","gray65"))
-  
+  ggsave(filename=str_c("plot.secteurs.va_", pays, ".",format), 
+         plot=plot2, 
+         device="pdf",
+         path=path_results_plots,
+         width = 280 , height = 200 , units = "mm", dpi = 600)
   
 }
+
+#rm(list = ls(pattern = "^IO_*"))
 
 #Créer grand dataframe (monde)
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
@@ -317,8 +328,9 @@ ggsave(filename=str_c("plot.monde_secteurs.",format),
        path=path_results_plots,
        width = 280 , height = 200 , units = "mm", dpi = 600)
 
-#Plot mondial par pays
+#Plot européen par pays
 monde_pays <- IO_all %>% 
+  filter(nom_pays != "Reste du monde") %>%
   group_by(nom_pays) %>%
   mutate(agg.demande_impact=sum(GES_impact_M_select),
          agg.producteur_impact=sum(GES_impact_S_select),
