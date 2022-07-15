@@ -1,100 +1,16 @@
----
-title: "Résumé des résultats : indicateurs de comptabilité carbone"
-author: "Léa Settepani"
-date: '2022-06-27'
-output: pdf_document
----
+#Obtenir un dataframe avec les données pour un pays:
+###Généralisation pour n'importe quel pays
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-library(tidyverse)
-library(data.table)
-library(readxl)
-library(openxlsx)
-library(stringr)
-```
-
-## Description des données utilisées
-
-
-```{r nomenclatures et header, echo=FALSE}
 br <- "CPA2002_Niv1"
-br_pays <- "monde.12"
-
-# Choix de la nomenclature: Soit par produit par produit (pxp), soit industrie par industrie (ixi)
-nom <- "pxp"
-
-# Intervalle des années pour extraction des données
-year.min <-2010
-year.max <- 2010
-year <- 2015
-# Choix du pays considéré pour calcul empreinte carbone 
-iso <-  str_c("FR")
-
-# Liste des GES considérés
-glist <- c("CO2", "CH4", "N2O", "SF6", "HFC", "PFC")
-
-# Chemin d'accès du dossier où sont stockées les données sources issues d'EXIOBASE 3.8 (fichier txt)
-path_user <- str_c("C:/Users/leasy/")
-path_github <- str_c(path_user,"Documents/GitHub/")
-path_data.source <-str_c(path_user,"Documents/GitHub/EmissionsIndicators/data_in/")
-
-path_codedata <- str_c(path_user,"Documents/GitHub/EmissionsIndicators/")
-path_out <- str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/")
-path_loader <- str_c(path_out, br_pays,"_", br, "/")
-path_results_tables <- str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/")
-
-
-# Descriptions of nomenclatures
-source(str_c(path_codedata,"data_in/desc/exio3.desc.R"),local = FALSE)
-source(str_c(path_codedata,"data_in/desc/CPA4.desc.R"),local = FALSE)
-source(str_c(path_codedata,"src/functions/01_load.bridge.R"),local = FALSE)
-```
-
-
-```{r donnees_IO}
+br_pays <- "EU1"
+#path_loader <- str_c(path_out, br_pays,"_", br, "/")
+# Chargement des données I-O sauvegardées par le script exio3.loader.R
 Y <-readRDS(str_c(path_loader,"Y_",br_pays,"_",br,".rds"))
 Fe <-readRDS(str_c(path_loader,"Fe_",br_pays,"_",br,".rds"))
 Z <-readRDS(str_c(path_loader,"Z_",br_pays,"_",br,".rds"))
 X <-readRDS(str_c(path_loader,"X_",br_pays,"_",br,".rds"))
 
-dim(Y)
-dim(Fe)
-dim(Z)
-dim(X)
-```
-
-## Calcul des indicateurs pour le monde
-
-```{r fonctions, include=FALSE}
-LeontiefInverse <- function(A){
-  
-  I <- diag(rep(1, dim(A)[1]))
-  L <- solve(I - A)
-  
-  return(L)
-}
-
-Id<-function(Matrice){
-  Id<-rep(1,dim(Matrice)[2])
-  return(Id)
-}
-
-GHGToCO2eq<-function(GES){
-  CO2<-str_which(row.names(GES),"CO2")
-  CH4<-str_which(row.names(GES),"CH4")
-  N2O<-str_which(row.names(GES),"N2O")
-  SF6<-str_which(row.names(GES),"SF6")
-  
-  
-  GES[CH4,]<-28*GES[CH4,]
-  GES[N2O,]<-265*GES[N2O,]
-  GES[SF6,]<-23500*GES[SF6,]
-  return(GES)
-}
-```
-
-```{r Leontief}
+#Calcul des coefficients techniques
 ##Matrice de Leontief
 A <- sweep(Z, 
            MARGIN = 2,
@@ -106,9 +22,8 @@ saveRDS(A, str_c(path_loader, "A_",br_pays,"_",br,".rds"))
 ##Inverse de Leontief
 L <- LeontiefInverse(A)
 saveRDS(L, str_c(path_loader, "L_",br_pays,"_",br,".rds"))
-```
 
-```{r impact producteur}
+#Matrice S (impact producteur)
 x <- ((L %*% as.matrix(Y)) %*% Id(Y)) %>% as.numeric
 x_1 <- 1/x
 x_1[is.infinite(x_1)] <- 0 
@@ -116,15 +31,12 @@ x_1d <- as.numeric(x_1) %>% diag()
 S <- (as.matrix(Fe) %*% x_1d) %>% `colnames<-`(rownames(X))
 S[is.nan(S)]
 S_volume <- S %*% as.matrix(X)
-```
 
-```{r impact demande}
 #Matrice M (impact demande et CI)
 M <- S %*% L 
 M_volume <- M %*% as.matrix(Y)
-```
 
-```{r valeur ajoutée}
+#Valeur ajoutée
 #Sélection des variables correspondant à la VA, et somme des composantes
 Fe_VA = t(Fe) %>% as.data.frame()
 #VA brutes
@@ -139,12 +51,19 @@ Fe_VA = Fe_VA[,c(1:9,1114:1118)] %>% as.data.frame()
 #Vecteur VA
 VA=Fe_VA$gross.VA %>% as.data.frame
 
+#Fonction qui donne la VA à partir des matrices production et consommations intermédiares
+ValeurAjoutee.calcul <- function(prod,IO){
+  CI= (t(IO) %*% Id(IO)) %>% as.data.frame()
+  VA= prod-CI
+  return(VA)
+}
+VA=ValeurAjoutee.calcul(X,Z)
 #Parts de VA
 VA.share=VA/sum(VA)
 sum(VA.share)
-```
 
-```{r conversion impacts}
+
+#Conversion des impacts production et demande
 listdf=list(S=Fe,M=M_volume)
 index=1
 for (matrix in listdf) {
@@ -173,23 +92,17 @@ for (matrix in listdf) {
   index=index+1
 }
 #impact GES producteur
-GES_impact_S=as.numeric(unlist(GES_impact_S)) %>% as.data.frame(
-  row.names=rownames(Z), 
-  col.names=GES_impact_S)
+GES_impact_S=as.numeric(unlist(GES_impact_S)) %>% as.data.frame(row.names=rownames(Z), col.names=GES_impact_S)
 #impact GES demande
-GES_impact_M=as.numeric(unlist(GES_impact_M)) %>% as.data.frame(
-  row.names=colnames(Y), 
-  col.names=GES_impact_M)
+GES_impact_M=as.numeric(unlist(GES_impact_M)) %>% as.data.frame(row.names=colnames(Y), col.names=GES_impact_M)
 #passage de l'impact GES producteur à l'impact VA (reventilation via les parts de VA)
-impact_VA = (VA.share * sum(GES_impact_S)) %>% as.data.frame(
-  row.names=rownames(Z), 
-  col.names=impact_VA)
+impact_VA = (VA.share * sum(GES_impact_S)) %>% as.data.frame(row.names=rownames(Z), col.names=impact_VA)
+
 
 #Valeur ajoutée par composante: impact GES par composante
 Fe_VA$rows =  rownames(Fe_VA)
 Fe_VA_compo = Fe_VA %>% pivot_longer(
-  cols = c("Etat","Travail","Capital",
-           "Operating surplus: Consumption of fixed capital"),
+  cols = c("Etat","Travail","Capital","Operating surplus: Consumption of fixed capital"),
   names_to = "beneficiary",
   values_to = "value") %>% 
   mutate(share = value / sum(VA)) %>%
@@ -200,18 +113,27 @@ Fe_VA_compo = Fe_VA %>% pivot_longer(
   select(-rows) %>% as.data.frame()
 row.names(Fe_VA_compo) <- Fe_VA$rows
 GES_VA_compo = Fe_VA_compo * sum(GES_impact_S)
-GES_VA_compo=rename(GES_VA_compo, 
-                    "Cout_production"="Operating surplus: Consumption of fixed capital")
+GES_VA_compo=rename(GES_VA_compo, "Cout_production"="Operating surplus: Consumption of fixed capital")
 (sum(GES_VA_compo)-sum(GES_impact_S))/sum(GES_VA_compo)*100
-```
 
 
-## Visualisation et analyse des résultats
+#Chemin pour exporter les données
+dir.create(str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br), recursive = TRUE)
+path_results_tables <- str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/")
+#Chemin pour exporter les plots
+format = "pdf"
+dir.create(str_c(path_codedata, "results/plots/", year,"/",br_pays,"_",br,"/", format), recursive = TRUE)
+path_results_plots <- str_c(path_codedata, "results/plots/", year,"/",br_pays,"_",br,"/", format, "/")
 
-```{r results}
-for (pays in c("France","EU","US","Chine","Amerique du N.",
-               "Amerique du S.","Afrique","Russie","Europe","Asie",
-               "Moyen-Orient","Oceanie")) {
+#Attention, il faut mettre "Europe" et non "Europe (autres)", sinon la sélection ne marche pas
+
+#Boucle qui crée un tableau avec les indicateurs pour chaque pays
+#(il faut avoir Y, Fe et L au préalable)
+for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque","Allemagne",
+               "Danemark","Estonie","Espagne","Finlande","France","Grèce","Croatie","Hongrie",
+               "Irlande","Italie","Lituanie","Luxembourg","Lettonnie","Malte","Pays-bas",
+               "Pologne","Portugal","Roumanie","Suède","Slovénie","Slovaquie","Royaume-Uni",
+               "Reste du monde")) {
   
   #Colonne nom pays (pas nécessaire si pas rbind par la suite)
   nom_pays <- c(rep(pays,ncol(Z))) #length()=204
@@ -268,8 +190,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.",
   #Créer le tableau en assemblant les colonnes
   assign("io_table",
          data.frame(nom_pays,
-                    DF_tot,production_pays,GES_impact_S_select,
-                    GES_impact_M_select,impact_VA_select,GES_VA_compo_select
+                    DF_tot,production_pays,GES_impact_S_select,GES_impact_M_select,impact_VA_select,GES_VA_compo_select
          )
   )
   
@@ -282,9 +203,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.",
   io_table$produits=sub(".*?_", "",io_table$pays.produits)
   io_table$regions=sub("_.*", "",io_table$pays.produits)
   io_table = io_table %>% 
-    select(regions,nom_pays,produits,DF_tot,production_pays,
-           GES_impact_S_select,GES_impact_M_select,impact_VA_select,
-           Etat,Travail,Capital,Cout_production)
+    select(regions,nom_pays,produits,DF_tot,production_pays,GES_impact_S_select,GES_impact_M_select,impact_VA_select,Etat,Travail,Capital,Cout_production)
   io_table[sapply(io_table, simplify = 'matrix', is.infinite)] <- 0
   io_table[sapply(io_table, simplify = 'matrix', is.nan)] <- 0
   
@@ -324,9 +243,12 @@ for (pays in c("France","EU","US","Chine","Amerique du N.",
     labs(title="Impacts",
          x ="Secteurs", y = "Impact GES (CO2eq)",
          fill="Indicateur") +
-    scale_fill_manual(
-      labels = c("Demande", "Production","VA"), 
-      values = c("indianred1", "cornflowerblue","orange1"))
+    scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
+  ggsave(filename=str_c("plot.secteurs_", pays, ".",format), 
+         plot=plot, 
+         device="pdf",
+         path=path_results_plots,
+         width = 280 , height = 200 , units = "mm", dpi = 600)
   
   #Créer un graphique décomposition de la VA
   plot2=IO %>% 
@@ -356,17 +278,22 @@ for (pays in c("France","EU","US","Chine","Amerique du N.",
     labs(title="Impacts",
          x ="Secteurs", y = "Impact GES (CO2eq)",
          fill="Indicateur") +
-    scale_fill_manual(
-      labels = c("E", "L","K","CP"), 
-      values = c("gray95", "gray85","gray75","gray65"))
-  
+    scale_fill_manual(labels = c("E", "L","K","CP"), values = c("gray95", "gray85","gray75","gray65"))
+  ggsave(filename=str_c("plot.secteurs.va_", pays, ".",format), 
+         plot=plot2, 
+         device="pdf",
+         path=path_results_plots,
+         width = 280 , height = 200 , units = "mm", dpi = 600)
   
 }
+
+#rm(list = ls(pattern = "^IO_*"))
 
 #Créer grand dataframe (monde)
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
 
 #Plot mondial par secteur
+#inutile, identique au graphinque monde
 monde_secteurs <- IO_all %>% 
   group_by(produits) %>%
   filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
@@ -394,12 +321,17 @@ monde_secteurs <- IO_all %>%
   labs(title="Impacts",
        x ="Secteurs", y = "Impact GES (CO2eq)",
        fill="Indicateur") +
-  scale_fill_manual(
-    labels = c("Demande", "Production","VA"), 
-    values = c("indianred1", "cornflowerblue","orange1"))
+  scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
+monde_secteurs
+ggsave(filename=str_c("plot.monde_secteurs.",format), 
+       plot=monde_secteurs, 
+       device="pdf",
+       path=path_results_plots,
+       width = 280 , height = 200 , units = "mm", dpi = 600)
 
-#Plot mondial par pays
+#Plot européen par pays
 monde_pays <- IO_all %>% 
+  filter(nom_pays != "Reste du monde") %>%
   group_by(nom_pays) %>%
   mutate(agg.demande_impact=sum(GES_impact_M_select),
          agg.producteur_impact=sum(GES_impact_S_select),
@@ -426,11 +358,16 @@ monde_pays <- IO_all %>%
   labs(title="Impacts",
        x ="Région ou pays", y = "Impact GES (CO2eq)",
        fill="Indicateur") +
-  scale_fill_manual(
-    labels = c("Demande", "Production","VA"), 
-    values = c("indianred1", "cornflowerblue","orange1"))
+  scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
+monde_pays
+ggsave(filename=str_c("plot.monde_pays.",format), 
+       plot=EU_pays, 
+       device="pdf",
+       path=path_results_plots,
+       width = 280 , height = 200 , units = "mm", dpi = 600)
 
 monde_secteurs_VA=IO_all %>% 
+  filter(nom_pays != "Reste du monde") %>%
   #par produits
   group_by(produits) %>%
   filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>% #toujours=0
@@ -458,30 +395,12 @@ monde_secteurs_VA=IO_all %>%
   labs(title="Impacts",
        x ="Secteurs", y = "Impact GES (CO2eq)",
        fill="Indicateur") +
-  scale_fill_manual(
-    labels = c("E", "L","K","CP"), 
-    values = c("gray95", "gray85","gray75","gray65"))
-```
-
-
-
-
-### Faits stylisés au niveau mondial
-
-Les trois graphiques au niveau mondial sont inclus pour avoir une vision plus globale.
-
-```{r monde pays, echo=FALSE}
-monde_pays
-```
-
-Les impacts producteur et demande sont les plus élevés en Chine (suivie par les autres pays d'Asie et les Etats-Unis) tandis que l'impact de la valeur ajoutée et le plus fort pour les Etats-Unis. C'est l'approche producteur qui présente les plus fortes inégalités d'impacts entre pays.
-
-```{r monde secteurs VA, echo=FALSE}
-monde_secteurs
-```
-Le secteur "Electricité, gaz et eau" a de loin le plus fort impact en termes de production. C'est l'indicateur qui a la plus fortes dispersion entre secteurs. L'impact de la demande est le plus fort pour les "Produits manufacurés". Enfin, l'impact de la valeur ajoutée est relativement plus homogène entre secteurs et il est le plus fort pour les "Services immobiliers de location et aux entreprises".
-
-```{r monde secteurs, echo=FALSE, dev = "png", dpi=400}
+  scale_fill_manual(labels = c("E", "L","K","CP"), values = c("gray95", "gray85","gray75","gray65"))
 monde_secteurs_VA
-```
-Les services immobiliers de location aux entreprises génèrent le plus de valeur ajoutée. Dans ces deux secteurs, la part des taxes est relativement élevée. De manière générale, l'impact de la valeur ajoutée revenant au capital est plus faible que l'impact des autres composantes.
+ggsave(filename=str_c("plot.monde_secteurs_va.", pays, ".",format), 
+       plot=EU_secteurs_VA, 
+       device="pdf",
+       path=path_results_plots,
+       width = 280 , height = 200 , units = "mm", dpi = 600)
+
+
