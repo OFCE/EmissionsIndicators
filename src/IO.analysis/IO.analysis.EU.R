@@ -125,6 +125,8 @@ format = "pdf"
 dir.create(str_c(path_codedata, "results/plots/", year,"/",br_pays,"_",br,"/", format), recursive = TRUE)
 path_results_plots <- str_c(path_codedata, "results/plots/", year,"/",br_pays,"_",br,"/", format, "/")
 
+rm(list = ls()[grep("^IO", ls())])
+
 #Attention, il faut mettre "Europe" et non "Europe (autres)", sinon la sélection ne marche pas
 
 #Boucle qui crée un tableau avec les indicateurs pour chaque pays
@@ -284,16 +286,18 @@ for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque",
          device="pdf",
          path=path_results_plots,
          width = 280 , height = 200 , units = "mm", dpi = 600)
-  
+rm(IO, io_table)  
 }
 
 #rm(list = ls(pattern = "^IO_*"))
+#or rm(list = ls()[grep("^IO", ls())])
 
 #Créer grand dataframe (monde)
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
+saveRDS(IO_all, str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
 
 #Plot mondial par secteur
-#inutile, identique au graphinque monde
+#inutile, identique au graphinque monde12
 monde_secteurs <- IO_all %>% 
   group_by(produits) %>%
   filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
@@ -330,7 +334,7 @@ ggsave(filename=str_c("plot.monde_secteurs.",format),
        width = 280 , height = 200 , units = "mm", dpi = 600)
 
 #Plot européen par pays
-monde_pays <- IO_all %>% 
+EU_pays <- IO_all %>% 
   filter(nom_pays != "Reste du monde") %>%
   group_by(nom_pays) %>%
   mutate(agg.demande_impact=sum(GES_impact_M_select),
@@ -366,7 +370,8 @@ ggsave(filename=str_c("plot.monde_pays.",format),
        path=path_results_plots,
        width = 280 , height = 200 , units = "mm", dpi = 600)
 
-monde_secteurs_VA=IO_all %>% 
+#plot VA pour EU
+EU_secteurs_VA=IO_all %>% 
   filter(nom_pays != "Reste du monde") %>%
   #par produits
   group_by(produits) %>%
@@ -404,3 +409,51 @@ ggsave(filename=str_c("plot.monde_secteurs_va.", pays, ".",format),
        width = 280 , height = 200 , units = "mm", dpi = 600)
 
 
+##groupes de pays (EuroVoc)
+eastern <- c("Bulgarie","République Tchèque","Hongrie",
+             "Roumanie","Pologne","Slovaquie","Slovénie","Croatie")
+western <- c("Autriche","Belgique","Allemagne","France","Pays-bas",
+             "Luxembourg","Royaume-Uni")
+southern <- c("Chypre","Espagne","Grèce","Italie",
+              "Portugal","Malte")
+northern <- c("Danemark","Estonie","Lituanie","Lettonnie","Finlande","Irlande",
+              "Suède")
+
+IO_all2 <- IO_all %>%
+  mutate(EU_region = ifelse(nom_pays %in% eastern, "eastern",
+                            ifelse(nom_pays %in% western, "western",
+                                   ifelse(nom_pays %in% southern, "southern",
+                                          "northern"))))
+facet_EU <- IO_all2 %>% 
+  filter(nom_pays != "Reste du monde") %>%
+  group_by(nom_pays) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_select),
+         agg.producteur_impact=sum(GES_impact_S_select),
+         agg.VA_impact=sum(impact_VA_select),
+         agg.production=sum(production_pays),
+         agg.demande_finale=sum(DF_tot)) %>%
+  ungroup() %>%
+  mutate(categorie.produit=substr(produits, 1,5)) %>% 
+  pivot_longer(
+    cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
+    names_to = "indicator",
+    values_to = "impact") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= nom_pays, 
+        y = impact,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") +
+  theme(axis.text.x = element_text(angle = 25, size=10, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts",
+       x ="Région ou pays", y = "Impact GES (CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(
+    labels = c("Demande", "Production","VA"), 
+    values = c("indianred1", "cornflowerblue","orange1")) +
+  facet_grid(~EU_region, scales="free_x")
+facet_EU

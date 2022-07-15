@@ -3,7 +3,7 @@
 
 br <- "CPA2002_Niv1"
 br_pays <- "EU1"
-#path_loader <- str_c(path_out, br_pays,"_", br, "/")
+path_loader <- str_c(path_out, br_pays,"_", br, "/")
 # Chargement des données I-O sauvegardées par le script exio3.loader.R
 Y <-readRDS(str_c(path_loader,"Y_",br_pays,"_",br,".rds"))
 Fe <-readRDS(str_c(path_loader,"Fe_",br_pays,"_",br,".rds"))

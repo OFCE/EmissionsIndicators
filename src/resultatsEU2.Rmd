@@ -1,0 +1,165 @@
+---
+title: "Résumé des résultats : indicateurs de comptabilité carbone"
+author: "Léa Settepani"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(data.table)
+library(readxl)
+library(openxlsx)
+library(stringr)
+```
+
+## Description des données utilisées
+
+
+```{r nomenclatures et header, echo=FALSE}
+year <- 2015
+br <- "CPA2002_Niv1"
+br_pays <- "EU1"
+
+#Chemin user, du projet, et données résultats
+path_user <- str_c("C:/Users/leasy/")
+path_codedata <- str_c(path_user,"Documents/GitHub/EmissionsIndicators/")
+
+path_results_tables <- str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/")
+
+table_EU <- readRDS(str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
+```
+
+## Visualisation et analyse des résultats
+
+```{r results, include=FALSE}
+for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque","Allemagne",
+               "Danemark","Estonie","Espagne","Finlande","France","Grèce","Croatie","Hongrie",
+               "Irlande","Italie","Lituanie","Luxembourg","Lettonnie","Malte","Pays-bas",
+               "Pologne","Portugal","Roumanie","Suède","Slovénie","Slovaquie","Royaume-Uni",
+               "Reste du monde")) {
+
+  IO <- readRDS(str_c(path_results_tables,"IO_",pays,".rds"))
+  assign(str_c("IO_",pays),IO)
+  rm(IO)
+}
+
+#Créer grand dataframe (monde)
+IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
+
+#Plot monde secteurs
+EU_secteurs <- IO_all %>% 
+  group_by(produits) %>%
+  filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_select),
+         agg.producteur_impact=sum(GES_impact_S_select),
+         agg.VA_impact=sum(impact_VA_select),
+         agg.production=sum(production_pays),
+         agg.demande_finale=sum(DF_tot)) %>%
+  ungroup() %>% 
+  pivot_longer(
+    cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
+    names_to = "indicator",
+    values_to = "impact") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= produits, 
+        y = impact,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") +
+  theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts",
+       x ="Secteurs", y = "Impact GES (CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
+
+#Plot européen par pays
+EU_pays <- IO_all %>% 
+  filter(nom_pays != "Reste du monde") %>%
+  group_by(nom_pays) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_select),
+         agg.producteur_impact=sum(GES_impact_S_select),
+         agg.VA_impact=sum(impact_VA_select),
+         agg.production=sum(production_pays),
+         agg.demande_finale=sum(DF_tot)) %>%
+  ungroup() %>%
+  mutate(categorie.produit=substr(produits, 1,5)) %>% 
+  pivot_longer(
+    cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
+    names_to = "indicator",
+    values_to = "impact") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= nom_pays, 
+        y = impact,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") +
+  theme(axis.text.x = element_text(angle = 25, size=6, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts",
+       x ="Région ou pays", y = "Impact GES (CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
+
+#Plot européen par secteur pour VA
+EU_secteurs_VA=IO_all %>% 
+  filter(nom_pays != "Reste du monde") %>%
+  #par produits
+  group_by(produits) %>%
+  filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>% #toujours=0
+  mutate(agg.Etat=sum(Etat),
+         agg.Travail=sum(Travail),
+         agg.Capital=sum(Capital),
+         agg.Cout=sum(Cout_production)) %>%
+  ungroup() %>%
+  #format long pour afficher les deux indicateurs
+  pivot_longer(
+    cols = c("agg.Etat","agg.Travail","agg.Capital","agg.Cout"),
+    names_to = "composante",
+    values_to = "impact") %>%
+  ggplot( 
+    aes(x= produits, 
+        y = impact,
+        fill = composante)) +
+  geom_bar(stat='identity',
+           position = position_stack(reverse = FALSE)) +
+  theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts",
+       x ="Secteurs", y = "Impact GES (CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(labels = c("E", "L","K","CP"), values = c("gray95", "gray85","gray75","gray65"))
+```
+
+
+
+
+### Faits stylisés au niveau mondial
+
+Les trois graphiques au niveau mondial sont inclus pour avoir une vision plus globale.
+
+```{r monde pays, echo=FALSE}
+EU_pays
+```
+
+
+
+```{r monde secteurs, echo=FALSE}
+EU_secteurs
+```
+
+
+```{r monde secteurs va, echo=FALSE, dev = "png", dpi=400}
+EU_secteurs_VA
+```

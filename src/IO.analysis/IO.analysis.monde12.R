@@ -124,6 +124,8 @@ format = "pdf"
 dir.create(str_c(path_codedata, "results/plots/", year,"/",br_pays,"_",br,"/", format), recursive = TRUE)
 path_results_plots <- str_c(path_codedata, "results/plots/", year,"/",br_pays,"_",br,"/", format, "/")
 
+rm(list = ls()[grep("^IO", ls())])
+
 #Attention, il faut mettre "Europe" et non "Europe (autres)", sinon la sélection ne marche pas
 
 #Boucle qui crée un tableau avec les indicateurs pour chaque pays
@@ -279,11 +281,13 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
          device="pdf",
          path=path_results_plots,
          width = 280 , height = 200 , units = "mm", dpi = 600)
-  
+
+rm(IO, io_table, IO_all)  
 }
 
 #Créer grand dataframe (monde)
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
+saveRDS(IO_all, str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
 
 #Plot mondial par secteur
 monde_secteurs <- IO_all %>% 
@@ -357,6 +361,7 @@ ggsave(filename=str_c("plot.monde_pays.",format),
        path=path_results_plots,
        width = 280 , height = 200 , units = "mm", dpi = 600)
 
+#plot VA décomposition
 monde_secteurs_VA=IO_all %>% 
   #par produits
   group_by(produits) %>%
