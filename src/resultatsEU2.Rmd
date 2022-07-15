@@ -163,3 +163,56 @@ EU_secteurs
 ```{r monde secteurs va, echo=FALSE, dev = "png", dpi=400}
 EU_secteurs_VA
 ```
+
+### Contrastes par pays
+
+```{r groupes pays eu, echo=FALSE}
+##groupes de pays (EuroVoc)
+eastern <- c("Bulgarie","République Tchèque","Hongrie",
+             "Roumanie","Pologne","Slovaquie","Slovénie","Croatie")
+western <- c("Autriche","Belgique","Allemagne","France","Pays-bas",
+             "Luxembourg","Royaume-Uni")
+southern <- c("Chypre","Espagne","Grèce","Italie",
+              "Portugal","Malte")
+northern <- c("Danemark","Estonie","Lituanie","Lettonnie","Finlande","Irlande",
+              "Suède")
+
+IO_all2 <- IO_all %>%
+  mutate(EU_region = ifelse(nom_pays %in% eastern, "eastern",
+                            ifelse(nom_pays %in% western, "western",
+                                   ifelse(nom_pays %in% southern, "southern",
+                                          "northern"))))
+facet_EU <- IO_all2 %>% 
+  filter(nom_pays != "Reste du monde") %>%
+  group_by(nom_pays) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_select),
+         agg.producteur_impact=sum(GES_impact_S_select),
+         agg.VA_impact=sum(impact_VA_select),
+         agg.production=sum(production_pays),
+         agg.demande_finale=sum(DF_tot)) %>%
+  ungroup() %>%
+  mutate(categorie.produit=substr(produits, 1,5)) %>% 
+  pivot_longer(
+    cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
+    names_to = "indicator",
+    values_to = "impact") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= nom_pays, 
+        y = impact,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge", width=0.8) +
+  theme(axis.text.x = element_text(angle = 25, size=10, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts",
+       x ="Région ou pays", y = "Impact GES (CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(
+    labels = c("Demande", "Production","VA"), 
+    values = c("indianred1", "cornflowerblue","orange1")) +
+  facet_grid(~EU_region, scales="free_x")
+facet_EU
+```
