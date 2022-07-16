@@ -457,3 +457,39 @@ facet_EU <- IO_all2 %>%
     values = c("indianred1", "cornflowerblue","orange1")) +
   facet_grid(~EU_region, scales="free_x")
 facet_EU
+
+graphtest = IO_all2 %>% 
+  filter(nom_pays != "Reste du monde") %>%
+  group_by(produits) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_select),
+         agg.producteur_impact=sum(GES_impact_S_select),
+         agg.VA_impact=sum(impact_VA_select),
+         total_impact = agg.demande_impact+agg.producteur_impact+agg.VA_impact,
+         part_demande = agg.demande_impact/total_impact,
+         part_producteur = agg.producteur_impact/total_impact,
+         part_VA = agg.VA_impact/total_impact) %>%
+  ungroup() %>%
+  pivot_longer(
+    cols = c("part_demande","part_producteur","part_VA"),
+    names_to = "parts",
+    values_to = "part_impact") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= produits, 
+        y = part_impact,
+        fill = parts)) +
+  geom_bar(stat='identity',position = "stack") +
+  theme(axis.text.x = element_text(angle = 25, size=10, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts",
+       x ="Région ou pays", y = "Impact GES (CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(
+    labels = c("Demande", "Production","VA"), 
+    values = c("indianred1", "cornflowerblue","orange1"))
+
+graphtest
+
