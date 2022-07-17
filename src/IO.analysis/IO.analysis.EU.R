@@ -409,6 +409,7 @@ ggsave(filename=str_c("plot.monde_secteurs_va.", pays, ".",format),
        width = 280 , height = 200 , units = "mm", dpi = 600)
 
 
+#graph par groupes de pays pour faciliter les comparaisons
 ##groupes de pays (EuroVoc)
 eastern <- c("Bulgarie","République Tchèque","Hongrie",
              "Roumanie","Pologne","Slovaquie","Slovénie","Croatie")
@@ -459,7 +460,8 @@ facet_EU <- IO_all2 %>%
 facet_EU
 
 graphtest = IO_all2 %>% 
-  filter(nom_pays != "Reste du monde") %>%
+  filter(nom_pays != "Reste du monde",
+         produits != "SERVICES EXTRA-TERRITORIAUX") %>%
   group_by(produits) %>%
   mutate(agg.demande_impact=sum(GES_impact_M_select),
          agg.producteur_impact=sum(GES_impact_S_select),
@@ -492,4 +494,111 @@ graphtest = IO_all2 %>%
     values = c("indianred1", "cornflowerblue","orange1"))
 
 graphtest
+
+#quel impact est le plus important ?
+part_D = IO_all2 %>% 
+  filter(nom_pays != "Reste du monde",
+         produits != "SERVICES EXTRA-TERRITORIAUX") %>%
+  pivot_longer(
+    cols = c("GES_impact_M_select","GES_impact_S_select","impact_VA_select"),
+    names_to = "cat",
+    values_to = "val") %>%
+  select(produits,cat,val) %>%
+  group_by(produits,cat) %>%
+  mutate(valeur=sum(val)) %>%
+  select(-val) %>% distinct() %>% ungroup(cat) %>%
+  mutate(val2 = valeur[cat == "GES_impact_M_select"]/sum(valeur)) %>%
+  ungroup() %>%
+  arrange(val2) %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= reorder(produits,val2), 
+        y = valeur,
+        fill = cat)) + #group=valeur
+  geom_col(position = position_fill(reverse = TRUE)) +
+  theme(axis.text.x = element_text(angle = 25, size=5, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title=NULL,
+       x =NULL, y = NULL,
+       fill="Indicateur") +
+  scale_fill_manual(
+    labels = c("Demande", "Production","VA"), 
+    values = c("indianred1", "cornflowerblue","orange1"))
+
+part_P = IO_all2 %>% 
+  filter(nom_pays != "Reste du monde",
+         produits != "SERVICES EXTRA-TERRITORIAUX") %>%
+  pivot_longer(
+    cols = c("GES_impact_S_select","GES_impact_M_select","impact_VA_select"),
+    names_to = "cat",
+    values_to = "val") %>%
+  select(produits,cat,val) %>%
+  group_by(produits,cat) %>%
+  mutate(valeur=sum(val)) %>%
+  select(-val) %>% distinct() %>% ungroup(cat) %>%
+  mutate(val2 = valeur[cat == "GES_impact_S_select"]/sum(valeur)) %>%
+  ungroup() %>%
+  arrange(val2) %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= reorder(produits,val2), 
+        y = valeur,
+        fill = factor(cat, levels=c("GES_impact_S_select","GES_impact_M_select","impact_VA_select")))) + #group=valeur
+  geom_col(position = position_fill(reverse = TRUE)) +
+  theme(axis.text.x = element_text(angle = 25, size=5, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title=NULL,
+       x =NULL, y = NULL,
+       fill="Indicateur") +
+  scale_fill_manual(
+    labels = c("Production", "Demande","VA"), 
+    values = c("cornflowerblue", "indianred1","orange1"))
+
+part_VA = IO_all2 %>% 
+  filter(nom_pays != "Reste du monde",
+         produits != "SERVICES EXTRA-TERRITORIAUX") %>%
+  pivot_longer(
+    cols = c("GES_impact_M_select","GES_impact_S_select","impact_VA_select"),
+    names_to = "cat",
+    values_to = "val") %>%
+  select(produits,cat,val) %>%
+  group_by(produits,cat) %>%
+  mutate(valeur=sum(val)) %>%
+  select(-val) %>% distinct() %>% ungroup(cat) %>%
+  mutate(val2 = valeur[cat == "impact_VA_select"]/sum(valeur)) %>%
+  ungroup() %>%
+  arrange(val2) %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= reorder(produits,val2), 
+        y = valeur,
+        fill = cat)) + #group=valeur
+  geom_col(position = position_fill(reverse = FALSE)) +
+  theme(axis.text.x = element_text(angle = 25, size=5, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title=NULL,
+       x =NULL, y = NULL,
+       fill="Indicateur") +
+  scale_fill_manual(
+    labels = c("Demande", "Production","VA"), 
+    values = c("indianred1", "cornflowerblue","orange1")) 
+
+#library(ggpubr)
+figure=ggarrange(part_D, part_P, part_VA,
+          common.legend = TRUE, labels=NULL,
+          ncol = 3, nrow = 1, heights = c(6, 6, 6))
+
+figure=annotate_figure(figure,
+                top = text_grob("Parts de chaque impact par secteur", face = "bold", size = 12),
+                bottom = text_grob("Secteur"),
+                left = text_grob("Parts (en %)", rot = 90))
 
