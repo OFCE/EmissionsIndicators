@@ -602,3 +602,34 @@ figure=annotate_figure(figure,
                 bottom = text_grob("Secteur"),
                 left = text_grob("Parts (en %)", rot = 90))
 
+table_EU %>% 
+  #filter(nom_pays != "Reste du monde") %>%
+  mutate(binaire = ifelse(nom_pays == "Reste du monde",
+                          "Reste",
+                          "EU")) %>% 
+  group_by(binaire) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_select),
+         agg.producteur_impact=sum(GES_impact_S_select),
+         agg.VA_impact=sum(impact_VA_select)) %>%
+  ungroup() %>%
+  pivot_longer(
+    cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
+    names_to = "indicator",
+    values_to = "impact") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= binaire, 
+        y = impact,
+        fill = indicator)) +
+  geom_col(position = "dodge") + #ou "fill"
+  theme(axis.text.x = element_text(angle = 25, size=6, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts",
+       x ="Région ou pays", y = "Impact GES (CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(labels = c("Demande", "Production","VA"), 
+                    values = c("indianred1", "cornflowerblue","orange1")) #+
+  facet_grid(~binaire, scales="free_x")

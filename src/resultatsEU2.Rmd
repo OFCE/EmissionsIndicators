@@ -1,5 +1,5 @@
 ---
-title: "Résumé des résultats : indicateurs de comptabilité carbone"
+title: "Résumé des résultats EU : indicateurs de comptabilité carbone"
 author: "Léa Settepani"
 date: "`r Sys.Date()`"
 output: pdf_document
@@ -13,6 +13,7 @@ library(readxl)
 library(openxlsx)
 library(stringr)
 library(ggpubr)
+library(scales)
 ```
 
 ## Description des données utilisées
@@ -131,7 +132,7 @@ EU_secteurs_VA=IO_all %>%
         y = impact,
         fill = composante)) +
   geom_bar(stat='identity',
-           position = position_stack(reverse = FALSE)) +
+           position = position_stack(reverse = FALSE)) + #fill
   theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
         plot.title =element_text(size=12, face='bold', hjust=0.5),
         panel.background = element_blank(),
@@ -145,7 +146,6 @@ EU_secteurs_VA=IO_all %>%
 
 
 
-
 ### Faits stylisés au niveau mondial
 
 Les trois graphiques au niveau mondial sont inclus pour avoir une vision plus globale.
@@ -154,7 +154,9 @@ Les trois graphiques au niveau mondial sont inclus pour avoir une vision plus gl
 EU_pays
 ```
 
+Dans l'Union Européenne, la plupart des pays sont nets demandeurs d'émissions. L'Union dans son ensemble est également nette demandeuse d'émissions (le reste du monde produit plus d'émissions qu'il n'en demande). Certains pays européens sont nets producteurs (la Bulgarie, Chypre, l'Estonie, la Grèce, la Pologne, le Portugal, la République Tchèque) mais la différence n'est flagrante que pour quatre d'entre eux.
 
+L'Allemagne a de loin le plus fort impact selon les trois approches.
 
 ```{r monde secteurs, echo=FALSE}
 EU_secteurs
@@ -164,6 +166,8 @@ EU_secteurs
 ```{r monde secteurs va, echo=FALSE, dev = "png", dpi=400}
 EU_secteurs_VA
 ```
+
+Globalement, parmi les facteurs de production c'est le capital fixe qui a le plus fort impact.
 
 ### Contrastes par pays
 
@@ -218,7 +222,10 @@ facet_EU <- IO_all2 %>%
 facet_EU
 ```
 
-```{r parts impacts, echo=FALSE}
+On voit également des contrastes à l'échelle régionale. L'Europe de l'Ouest et du Sud ont le plus fort impact. Ces deux régions sont également très hétérogènes, au contraire de l'Europe de l'Est et du Sud dont les impacts sont plus homogènes entre pays.
+Les pays d'Europe de l'Est sont généralement désavantagés par l'approche producteur (approche selon lauelle ils ont le plus fort impact) alors que les autres sont généralement désavantagés par l'approche valeur ajoutée. 
+
+```{r parts impacts secteurs, echo=FALSE}
 part_D = IO_all2 %>% 
   filter(nom_pays != "Reste du monde",
          produits != "SERVICES EXTRA-TERRITORIAUX") %>%
@@ -326,3 +333,126 @@ figure=annotate_figure(figure,
 figure
 ```
 
+
+Le graphique ci-dessus montre à quel point chaque secteur peut-être avantagé ou désavantagé par l'approche choisie : il représente la part de chaque approche dans l'impact total d'un secteur.
+
+En ce qui concerne la répartition des impacts selon l'approche adoptée, il semble y avoir une corrélation positive entre la part de l'impact de la demande et la part de l'impact créé par la valeur ajoutée. Il y a aussi une corrélation négative entre la part de ces deux impacts, et la part de l'impact producteur.
+
+
+Deux secteurs ressortent particulièrement: "ELECTRICITE, GAZ ET EAU" et "PRODUITS D'EXTRACTION" ont à la fois le plus faible impact demande et revenu en proportion, et la plus forte part d'impact producteur.
+Le secteur "ACTIVITES DES MENAGES" est le plus avantagé par l'approche producteur et le plus désavantagé par l'approche revenus.
+
+```{r parts impacts pays, echo=FALSE}
+part_D_pays = IO_all2 %>% 
+  filter(nom_pays != "Reste du monde",
+         produits != "SERVICES EXTRA-TERRITORIAUX") %>%
+  pivot_longer(
+    cols = c("GES_impact_M_select","GES_impact_S_select","impact_VA_select"),
+    names_to = "cat",
+    values_to = "val") %>%
+  select(nom_pays,cat,val) %>%
+  group_by(nom_pays,cat) %>%
+  mutate(valeur=sum(val)) %>%
+  select(-val) %>% distinct() %>% ungroup(cat) %>%
+  mutate(val2 = valeur[cat == "GES_impact_M_select"]/sum(valeur)) %>%
+  ungroup() %>%
+  arrange(val2) %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= reorder(nom_pays,val2), 
+        y = valeur,
+        fill = cat)) + #group=valeur
+  geom_col(position = position_fill(reverse = TRUE)) +
+  theme(axis.text.x = element_text(angle = 25, size=3, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title=NULL,
+       x =NULL, y = NULL,
+       fill="Indicateur") +
+  scale_fill_manual(
+    labels = c("Demande", "Production","VA"), 
+    values = c("indianred1", "cornflowerblue","orange1")) 
+
+part_P_pays = IO_all2 %>% 
+  filter(nom_pays != "Reste du monde",
+         produits != "SERVICES EXTRA-TERRITORIAUX") %>%
+  pivot_longer(
+    cols = c("GES_impact_S_select","GES_impact_M_select","impact_VA_select"),
+    names_to = "cat",
+    values_to = "val") %>%
+  select(nom_pays,cat,val) %>%
+  group_by(nom_pays,cat) %>%
+  mutate(valeur=sum(val)) %>%
+  select(-val) %>% distinct() %>% ungroup(cat) %>%
+  mutate(val2 = valeur[cat == "GES_impact_S_select"]/sum(valeur)) %>%
+  ungroup() %>%
+  arrange(val2) %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= reorder(nom_pays,val2), 
+        y = valeur,
+        fill = factor(cat, levels=c("GES_impact_S_select","GES_impact_M_select","impact_VA_select")))) + #group=valeur
+  geom_col(position = position_fill(reverse = TRUE)) +
+  theme(axis.text.x = element_text(angle = 25, size=3, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title=NULL,
+       x =NULL, y = NULL,
+       fill="Indicateur") +
+  scale_fill_manual(
+    labels = c("Production", "Demande","VA"), 
+    values = c("cornflowerblue", "indianred1","orange1"))
+
+part_VA_pays = IO_all2 %>% 
+  filter(nom_pays != "Reste du monde",
+         produits != "SERVICES EXTRA-TERRITORIAUX") %>%
+  pivot_longer(
+    cols = c("GES_impact_M_select","GES_impact_S_select","impact_VA_select"),
+    names_to = "cat",
+    values_to = "val") %>%
+  select(nom_pays,cat,val) %>%
+  group_by(nom_pays,cat) %>%
+  mutate(valeur=sum(val)) %>%
+  select(-val) %>% distinct() %>% ungroup(cat) %>%
+  mutate(val2 = valeur[cat == "impact_VA_select"]/sum(valeur)) %>%
+  ungroup() %>%
+  arrange(val2) %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= reorder(nom_pays,val2), 
+        y = valeur,
+        fill = cat)) + #group=valeur
+  geom_col(position = position_fill(reverse = FALSE)) +
+  theme(axis.text.x = element_text(angle = 25, size=3, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title=NULL,
+       x =NULL, y = NULL,
+       fill="Indicateur") +
+  scale_fill_manual(
+    labels = c("Demande", "Production","VA"), 
+    values = c("indianred1", "cornflowerblue","orange1")) 
+
+figure_pays=ggarrange(part_D_pays, part_P_pays, part_VA_pays,
+          common.legend = TRUE, labels=NULL,
+          ncol = 1, nrow = 3)
+
+figure_pays=annotate_figure(figure_pays,
+                top = text_grob("Parts de chaque impact par pays", face = "bold", size = 12),
+                bottom = text_grob("Pays"),
+                left = text_grob("Parts (en %)", rot = 90))
+figure_pays
+```
+
+Le graphique ci-dessus permet de tirer le même type de conclusions mais au niveau des pays, et non des secteurs.
+
+Le constat n'est pas le même: il semble plutôt y avoir une corrélation positive entre le fait d'être avantagé par l'approche demande et le fait d'être avantagé par l'approche production ; et une corrélation négative avec le fait d'être avantagé par l'approche revenus. 
+
+
+La conclusion est donc que selon qu'on adopte une approche territoriale/nationale ou une approche sectorielle, la répartition des coûts suit une logique différente.
