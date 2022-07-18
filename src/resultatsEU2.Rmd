@@ -1,5 +1,5 @@
 ---
-title: "Résumé des résultats EU : indicateurs de comptabilité carbone"
+title: "Rapport résultats EU : indicateurs de comptabilité carbone"
 author: "Léa Settepani"
 date: "`r Sys.Date()`"
 output: 
@@ -17,6 +17,13 @@ library(stringr)
 library(ggpubr)
 library(scales)
 ```
+
+
+intro meta sur la question de la resp, contextualiser
+rappel des concepts et la problématique
+
+## Revue
+principales études
 
 ## Description des données utilisées
 
@@ -39,6 +46,11 @@ table_EU <- readRDS(str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
 
 
 ## Visualisation et analyse des résultats
+
+### échelle monde pour le cadre
+
+#### europe
+SECTEURS EUROPE SEULEMENT SI GROSSE DIFF
 
 ```{r calculs intro}
 table_EU %>% 
@@ -183,6 +195,9 @@ L'Allemagne a de loin le plus fort impact selon les trois approches.
 
 Les petits pays et certains pays d'Europe du Nord ont le plus faible impact (Chypre, Malte, le Luxembourg, la Croatie, l'Estonie, la Lettonie, la Lituanie).
 
+
+ATTENTION CHAGER UNITE METTRE EN MILLIONS DE TONNE
+
 ```{r monde secteurs, echo=FALSE}
 EU_secteurs
 ```
@@ -229,7 +244,7 @@ table_EU %>%
   scale_fill_manual(labels = c("E", "L","K","CP"), values = c("gray95", "gray85","gray75","gray65"))
 ```
 
-Globalement, parmi les facteurs de production c'est le capital fixe qui a le plus fort impact. L'impacts du capital est 
+Globalement, parmi les facteurs de production c'est le capital fixe qui a le plus fort impact. L'impacts du capital est le plus petit en proportion pour chaque secteur. 
 
 ### Contrastes par pays
 
@@ -522,3 +537,9 @@ L'hétérogénéité semble moins forte que dans l'approche sectorielle. L'appro
 La conclusion est donc que selon qu'on adopte une approche territoriale/nationale ou une approche sectorielle, la répartition des coûts suit une logique différente.
 
 ## Conclusion
+
+NORMALISER PAR POPULATION
+PAR UNITE PRODUITE 
+EDIT GRAPH VA (AUSSI AJOUTER GRAPH NORMALISE PAR EURO DE VA)
+AJOUTER UN RADAR PAR PAYS OU CHAQUE AXE EST UN SECTEUR (PE CHOISIR QQUES PAYS POUR LE DOC)
+GROUPES DE PIB PAR HABITANT AU LIEU DE REGIONS, TROIS OU QUATRE CATEGORIES

@@ -613,4 +613,6 @@ table_EU %>%
   ungroup() %>%
   select(binaire,agg.demande_impact,agg.producteur_impact,agg.VA_impact) %>%
   distinct()
-  
+
+### Récupérer les données économiques et démographiques pour l'UE
+library(eurostat)
