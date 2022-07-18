@@ -615,4 +615,93 @@ table_EU %>%
   distinct()
 
 ### Récupérer les données économiques et démographiques pour l'UE
-library(eurostat)
+pib=read_xlsx(str_c(path_data.source,"eurostat/PIBhab.xlsx"),
+          sheet="Feuille 1",
+          skip=8,
+          col_names = TRUE)
+pib=pib[-c(1,41:49),c("TIME",year)]
+pib=setnames(pib,old=c("TIME",year),new=c("nom_pays","PIB.hab"))
+pib[pib$nom_pays=="Allemagne (jusqu'en 1990, ancien territoire de la RFA)",]$nom_pays = "Allemagne"
+pib[pib$nom_pays=="Tchéquie",]$nom_pays = "République Tchèque"
+IO_all_ponderation=merge(IO_all,pib,by.x="nom_pays")
+
+pop=read_xlsx(str_c(path_data.source,"eurostat/population.xlsx"),
+              sheet="Feuille 1",
+              skip=6,
+              col_names = TRUE)
+pop=pop[-c(1,56:66),c("TIME",year)]
+pop=setnames(pop,old=c("TIME",year),new=c("nom_pays","population"))
+pop$population = as.numeric(pop$population)
+pop[pop$nom_pays=="Allemagne (jusqu'en 1990, ancien territoire de la RFA)",]$nom_pays = "Allemagne"
+pop[pop$nom_pays=="Tchéquie",]$nom_pays = "République Tchèque"
+IO_all_ponderation=merge(IO_all_ponderation,pop,by.x="nom_pays")
+
+
+#et refaire le groupement par pays selon l'indicateur économique cette fois
+graph_facet2 <- IO_all_ponderation %>%
+  mutate(level_income = ifelse(PIB.hab <= 20000, "poorest",
+                            ifelse(PIB.hab > 20000 & PIB.hab <= 35000, "mid",
+                                   "richest"))) %>% 
+  #filter(nom_pays != "Reste du monde") %>%
+  group_by(nom_pays) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_select),
+         agg.producteur_impact=sum(GES_impact_S_select),
+         agg.VA_impact=sum(impact_VA_select),
+         agg.production=sum(production_pays),
+         agg.demande_finale=sum(DF_tot)) %>%
+  ungroup() %>%
+  pivot_longer(
+    cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
+    names_to = "indicator",
+    values_to = "impact") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= nom_pays, 
+        y = impact,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") +
+  theme(axis.text.x = element_text(angle = 25, size=10, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts",
+       x ="Région ou pays", y = "Impact GES (CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(
+    labels = c("Demande", "Production","VA"), 
+    values = c("indianred1", "cornflowerblue","orange1")) +
+  facet_grid(~level_income, scales="free_x")
+graph_facet2
+
+IO_all_ponderation %>% 
+  #filter(nom_pays != "Reste du monde") %>%
+  group_by(nom_pays) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_select),
+         agg.producteur_impact=sum(GES_impact_S_select),
+         agg.VA_impact=sum(impact_VA_select),
+         agg.production=sum(production_pays),
+         agg.demande_finale=sum(DF_tot)) %>%
+  ungroup() %>%
+  mutate(categorie.produit=substr(produits, 1,5)) %>% 
+  pivot_longer(
+    cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
+    names_to = "indicator",
+    values_to = "impact") %>%
+  mutate(norm=impact/population) %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= nom_pays, 
+        y = norm,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") +
+  theme(axis.text.x = element_text(angle = 25, size=10, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts",
+       x ="Région ou pays", y = "Impact GES (CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
+
