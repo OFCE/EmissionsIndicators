@@ -176,7 +176,7 @@ EU_secteurs_VA=IO_all %>%
   labs(title="Impacts",
        x ="Secteurs", y = "Impact GES (CO2eq)",
        fill="Indicateur") +
-  scale_fill_manual(labels = c("E", "L","K","CP"), values = c("gray95", "gray85","gray75","gray65"))
+  scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), values = c("yellow", "tomato","slateblue1","slateblue"))
 ```
 
 
@@ -241,7 +241,7 @@ table_EU %>%
   labs(title="Impacts",
        x ="Secteurs", y = "Impact GES (CO2eq)",
        fill="Indicateur") +
-  scale_fill_manual(labels = c("E", "L","K","CP"), values = c("gray95", "gray85","gray75","gray65"))
+  scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), values = c("yellow", "tomato","slateblue1","slateblue"))
 ```
 
 Globalement, parmi les facteurs de production c'est le capital fixe qui a le plus fort impact. L'impacts du capital est le plus petit en proportion pour chaque secteur. 
@@ -538,8 +538,12 @@ La conclusion est donc que selon qu'on adopte une approche territoriale/national
 
 ## Conclusion
 
-NORMALISER PAR POPULATION
+NORMALISER PAR POPULATION (V)
+
 PAR UNITE PRODUITE 
-EDIT GRAPH VA (AUSSI AJOUTER GRAPH NORMALISE PAR EURO DE VA)
+
+EDIT GRAPH VA (AUSSI AJOUTER GRAPH NORMALISE PAR EURO DE VA) (V)
+
 AJOUTER UN RADAR PAR PAYS OU CHAQUE AXE EST UN SECTEUR (PE CHOISIR QQUES PAYS POUR LE DOC)
-GROUPES DE PIB PAR HABITANT AU LIEU DE REGIONS, TROIS OU QUATRE CATEGORIES
+
+GROUPES DE PIB PAR HABITANT AU LIEU DE REGIONS, TROIS OU QUATRE CATEGORIES  (V)

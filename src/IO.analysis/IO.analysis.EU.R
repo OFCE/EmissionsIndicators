@@ -674,6 +674,7 @@ graph_facet2 <- IO_all_ponderation %>%
   facet_grid(~level_income, scales="free_x")
 graph_facet2
 
+#pondération par population europe
 IO_all_ponderation %>% 
   #filter(nom_pays != "Reste du monde") %>%
   group_by(nom_pays) %>%
@@ -705,3 +706,33 @@ IO_all_ponderation %>%
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 
+#normaliser par unité produite/demandée
+#!!encore ajouter VA
+IO_all %>% 
+  filter(nom_pays != "Reste du monde") %>%
+  group_by(nom_pays) %>%
+  mutate(agg.demande_impact_norm=sum(GES_impact_M_select)/sum(DF_tot),
+         agg.producteur_impact_norm=sum(GES_impact_S_select)/sum(production_pays),
+         #agg.VA_impact=sum(impact_VA_select),
+         ) %>%
+  ungroup() %>%
+  pivot_longer(
+    cols = c("agg.producteur_impact_norm","agg.demande_impact_norm"),
+    names_to = "indicator",
+    values_to = "impact") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= nom_pays, 
+        y = impact,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") +
+  theme(axis.text.x = element_text(angle = 25, size=10, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts",
+       x ="Région ou pays", y = "Impact GES (CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(labels = c("Demande", "Production"), 
+                    values = c("indianred1", "cornflowerblue"))
