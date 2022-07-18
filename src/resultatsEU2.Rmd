@@ -2,7 +2,9 @@
 title: "Résumé des résultats EU : indicateurs de comptabilité carbone"
 author: "Léa Settepani"
 date: "`r Sys.Date()`"
-output: pdf_document
+output: 
+  pdf_document:
+    fig_caption: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -18,7 +20,7 @@ library(scales)
 
 ## Description des données utilisées
 
-
+### Données
 ```{r nomenclatures et header, echo=FALSE}
 year <- 2015
 br <- "CPA2002_Niv1"
@@ -32,8 +34,29 @@ path_results_tables <- str_c(path_codedata, "results/IO_pays/", year,"/",br_pays
 
 table_EU <- readRDS(str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
 ```
+### Démarche et indicateurs
+
+
 
 ## Visualisation et analyse des résultats
+
+```{r calculs intro}
+table_EU %>% 
+  mutate(binaire = ifelse(nom_pays == "Reste du monde",
+                          "Reste",
+                          "EU")) %>% 
+  group_by(binaire) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_select),
+         agg.producteur_impact=sum(GES_impact_S_select),
+         agg.VA_impact=sum(impact_VA_select)) %>%
+  ungroup() %>%
+  select(binaire,agg.demande_impact,agg.producteur_impact,agg.VA_impact) %>%
+  distinct()
+```
+
+Avant de détailler comment se répartissent les impacts environnementaux au sein de l'Union Européenne, on situe celle-ci par rapport au reste du monde.
+
+L'impact en gaz à effets de serre de l'Union Européenne est bien moindre que celui du reste du monde (RDM), quel que soit l'indicateur choisi. L'impact de la demande du RDM est 7 fois plus élevé que celui de la demande européenne, l'impact de la production du RDM est 9 fois plus élevé que celui de la production européenne, l'impact des revenus du RDM est plus de 3 fois supérieur à celui des revenus européens.
 
 ```{r results, include=FALSE}
 for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque","Allemagne",
@@ -146,28 +169,67 @@ EU_secteurs_VA=IO_all %>%
 
 
 
-### Faits stylisés au niveau mondial
+### Faits stylisés au niveau européen
 
-Les trois graphiques au niveau mondial sont inclus pour avoir une vision plus globale.
+Les trois graphiques au niveau européen sont inclus pour avoir une vision plus globale.
 
-```{r monde pays, echo=FALSE}
+```{r monde pays, echo=FALSE, fig.cap="D'importantes disparités dans les impacts des pays de l'UE"}
 EU_pays
 ```
 
 Dans l'Union Européenne, la plupart des pays sont nets demandeurs d'émissions. L'Union dans son ensemble est également nette demandeuse d'émissions (le reste du monde produit plus d'émissions qu'il n'en demande). Certains pays européens sont nets producteurs (la Bulgarie, Chypre, l'Estonie, la Grèce, la Pologne, le Portugal, la République Tchèque) mais la différence n'est flagrante que pour quatre d'entre eux.
 
-L'Allemagne a de loin le plus fort impact selon les trois approches.
+L'Allemagne a de loin le plus fort impact selon les trois approches. 
+
+Les petits pays et certains pays d'Europe du Nord ont le plus faible impact (Chypre, Malte, le Luxembourg, la Croatie, l'Estonie, la Lettonie, la Lituanie).
 
 ```{r monde secteurs, echo=FALSE}
 EU_secteurs
 ```
 
+Dans une approche sectorielle, le plus fort contraste entre secteurs s'observe au niveau de l'impact producteur. Le secteur "ELECTRICITE, GAZ ET EAU" se détache nettement avec le plus fort impact producteur, suivi par les "PRODUITS MANUFACTURES".
 
-```{r monde secteurs va, echo=FALSE, dev = "png", dpi=400}
+Le plus fort impact demande concerne les secteurs "PRODUITS MANUFACTURES", "SERVICES IMMOBILIERS, DE LOCATION ET AUX ENTREPRISES" et "TRAVAUX DE CONSTRUCTION".
+
+Enfin, les secteurs des "SERVICES IMMOBILIERS, DE LOCATION ET AUX ENTREPRISES" et des "PRODUITS MANUFACTURES" ont le plus fort impact revenus.
+
+```{r monde secteurs va, echo=FALSE, warning=FALSE, dev="png", dpi=400}
 EU_secteurs_VA
+
+table_EU %>% 
+  filter(nom_pays != "Reste du monde") %>%
+  #par produits
+  group_by(produits) %>%
+  filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>% #toujours=0
+  mutate(agg.Etat=sum(Etat),
+         agg.Travail=sum(Travail),
+         agg.Capital=sum(Capital),
+         agg.Cout=sum(Cout_production)) %>%
+  ungroup() %>%
+  #format long pour afficher les deux indicateurs
+  pivot_longer(
+    cols = c("agg.Etat","agg.Travail","agg.Capital","agg.Cout"),
+    names_to = "composante",
+    values_to = "impact") %>%
+  ggplot( 
+    aes(x= produits, 
+        y = impact,
+        fill = composante,
+        alpha=0.9)) +
+  guides(alpha=FALSE) +
+  geom_col(position = position_fill(reverse = FALSE)) + #fill
+  theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts",
+       x ="Secteurs", y = "Impact GES (CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(labels = c("E", "L","K","CP"), values = c("gray95", "gray85","gray75","gray65"))
 ```
 
-Globalement, parmi les facteurs de production c'est le capital fixe qui a le plus fort impact.
+Globalement, parmi les facteurs de production c'est le capital fixe qui a le plus fort impact. L'impacts du capital est 
 
 ### Contrastes par pays
 
@@ -246,7 +308,7 @@ part_D = IO_all2 %>%
         y = valeur,
         fill = cat)) + #group=valeur
   geom_col(position = position_fill(reverse = TRUE)) +
-  theme(axis.text.x = element_text(angle = 25, size=5, vjust = 1, hjust=1),
+  theme(axis.text.x = element_text(angle = 25, size=3, vjust = 1, hjust=1),
         plot.title =element_text(size=12, face='bold', hjust=0.5),
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
@@ -278,7 +340,7 @@ part_P = IO_all2 %>%
         y = valeur,
         fill = factor(cat, levels=c("GES_impact_S_select","GES_impact_M_select","impact_VA_select")))) + #group=valeur
   geom_col(position = position_fill(reverse = TRUE)) +
-  theme(axis.text.x = element_text(angle = 25, size=5, vjust = 1, hjust=1),
+  theme(axis.text.x = element_text(angle = 25, size=3, vjust = 1, hjust=1),
         plot.title =element_text(size=12, face='bold', hjust=0.5),
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
@@ -310,7 +372,7 @@ part_VA = IO_all2 %>%
         y = valeur,
         fill = cat)) + #group=valeur
   geom_col(position = position_fill(reverse = FALSE)) +
-  theme(axis.text.x = element_text(angle = 25, size=5, vjust = 1, hjust=1),
+  theme(axis.text.x = element_text(angle = 25, size=3, vjust = 1, hjust=1),
         plot.title =element_text(size=12, face='bold', hjust=0.5),
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
@@ -441,7 +503,7 @@ part_VA_pays = IO_all2 %>%
 
 figure_pays=ggarrange(part_D_pays, part_P_pays, part_VA_pays,
           common.legend = TRUE, labels=NULL,
-          ncol = 1, nrow = 3)
+          ncol = 3, nrow = 1)
 
 figure_pays=annotate_figure(figure_pays,
                 top = text_grob("Parts de chaque impact par pays", face = "bold", size = 12),
@@ -452,7 +514,11 @@ figure_pays
 
 Le graphique ci-dessus permet de tirer le même type de conclusions mais au niveau des pays, et non des secteurs.
 
-Le constat n'est pas le même: il semble plutôt y avoir une corrélation positive entre le fait d'être avantagé par l'approche demande et le fait d'être avantagé par l'approche production ; et une corrélation négative avec le fait d'être avantagé par l'approche revenus. 
+Le constat n'est pas le même: il semble plutôt y avoir une corrélation positive entre le fait d'être avantagé par l'approche demande et le fait d'être avantagé par l'approche production ; et une corrélation négative entre le fait d'être avantagé par ces deux approches et par l'approche revenus. L'exemple typique est la Suède : c'est à la fois le pays qui est le plus avantagé par les indicateurs demande et producteur, et celui qui est le plus désavantagé par l'indicateur valuer ajoutée (son impact est 5 fois plus grand selon l'indicateur valeur ajoutée que selon l'indicateur production).
+
+L'hétérogénéité semble moins forte que dans l'approche sectorielle. L'approche par la demande semble traiter les pays européens de la façon la plus égalitaire (sans tenir compte ici du niveau de richesse, de la taille du pays). L'approche valeur ajoutée est celle qui présente le plus de disparités entre pays.
 
 
 La conclusion est donc que selon qu'on adopte une approche territoriale/nationale ou une approche sectorielle, la répartition des coûts suit une logique différente.
+
+## Conclusion
