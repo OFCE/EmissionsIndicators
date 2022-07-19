@@ -1,24 +1,11 @@
-#Obtenir un dataframe avec les données pour un pays:
-###Généralisation pour n'importe quel pays
 
-
-br ="ThreeME"
-br.pays ="OG"
-# 
-ghg <- "GES"
 # Choix du pays considéré pour calcul empreinte carbone 
-iso <- "FR"
-
-
-
-
-path_loader <- str_c(path_out,br,"/",br.pays,"/")
 
 # Chargement des données I-O sauvegardées par le script exio3.loader.R
-Y <-readRDS(str_c(path_loader,"/Y_",br.pays,"_",br,".rds"))
-Fe <-readRDS(str_c(path_loader,"/Fe_",br.pays,"_",br,".rds")) %>% t
-Z <-readRDS(str_c(path_loader,"/Z_",br.pays,"_",br,".rds"))
-X <-readRDS(str_c(path_loader,"/X_",br.pays,"_",br,".rds"))
+Y <-readRDS(str_c(path_loader,"Y_",br.pays,"_",br,".rds"))
+Fe <-readRDS(str_c(path_loader,"Fe_",br.pays,"_",br,".rds")) %>% t
+Z <-readRDS(str_c(path_loader,"Z_",br.pays,"_",br,".rds"))
+X <-readRDS(str_c(path_loader,"X_",br.pays,"_",br,".rds"))
 
 ## Mutate with string 
 names_y <- rownames(Y) %>% as.data.frame() %>%
@@ -42,7 +29,7 @@ L <- LeontiefInverse(t(Z), coef = FALSE)
 ##Vecteur de demande pour un pays iso
 Y.vec <- shock.demand(Y, iso, aggregate = TRUE) 
 
-##Vecteur de demande pour un pays iso
+##Vecteur de demande mondiale
 Y.vec <- shock.demand(Y, aggregate = TRUE) 
 
 #Matrice S (impact producteur/ million €)
@@ -52,10 +39,21 @@ S <- Env.multiplier(Y.vec, Fe.ghg, L)
 M <- diag(as.numeric(S)) %*% L 
 
 # Volume d'émissions producteur
-EMS_S <- S %*% diag(as.numeric(x)) %>% `colnames<-`(rownames(X))
+EMS_S_0 <- S %*% diag(as.numeric(X)) %>% `colnames<-`(rownames(X))
+EMS_S <- Env.multiplier(Y.vec, Fe.ghg, L, volume = TRUE)
+
 # Volume d'émissions consommateur pays iso
-EMS_M <- M %*% diag(as.numeric(Y.vec)) %>%
-  `colnames<-`(rownames(X)) %>% `colnames<-`(rownames(Y))
+EMS_M_0 <- M %*% diag(as.numeric(Y.vec)) %>%
+  `colnames<-`(colnames(Z)) %>% `rownames<-`(rownames(Y)) 
+
+EMS_M <- M %*% (as.numeric(Y.vec))   %>%
+  `rownames<-`(rownames(Y))  %>% as.data.frame() %>%
+  mutate(id = seq(1:length(.)))
+# EMS_M %>% as.data.frame() %>%
+#   mutate(id = seq(1:length(.)), 
+#          countries = str_extract(rownames(.),"^.+?(?=_)"),
+#          products = str_extract(rownames(.),"(?<=_)(.*)")) %>% 
+#   select(id, countries, products) %>% group_by()
 
 #  Verif comptabilité carbone source et output
 sum(Fe.ghg) / 10^12
@@ -70,16 +68,34 @@ Y_export <-  (Y.vec) %>% as.data.frame() %>%mutate(id = seq(1:nrow(.)))  %>%
   merge(names_y, ., by = "id") %>% select(-id) %>% 
   pivot_wider(names_from = countries, values_from = "V1") 
 
-# GES_M_export <-  t(EMS_M) %>% as.data.frame() %>%mutate(id = seq(1:nrow(.))) %>% 
-#   merge(names_y, by = "id") %>% select(-id) %>%
-#   pivot_wider(names_from = countries, values_from = "value") 
+
+factor_M_export <-  (M) %>% as.data.frame() %>%mutate(id = seq(1:nrow(.))) %>% 
+  merge(names_y, by = "id") %>% select(-id) %>%
+ `rownames<-`(rownames(Y))
+
+factor_S_export <-  t(S) %>% as.data.frame() %>%mutate(id = seq(1:nrow(.))) %>% 
+  merge(names_io, by = "id") %>% select(-id) %>%
+  pivot_wider(names_from = countries, values_from = "value")
+
 
 GES_S_export <-  t(EMS_S) %>% as.data.frame() %>%mutate(id = seq(1:nrow(.))) %>% 
   merge(names_io, by = "id") %>% select(-id) %>%
   pivot_wider(names_from = countries, values_from = "value")
 
 
+GES_M_export <-  (EMS_M) %>% as.data.frame() %>%mutate(id = seq(1:nrow(.))) %>% 
+  merge(names_y, by = "id") %>% select(-id) %>%
+  pivot_wider(names_from = countries, values_from = "V1") 
+
+GES_M.TOT <- (GES_M_export[-1]/10^9) %>% rowSums %>% bind_cols(GES_M_export[1],.)
+GES_S.TOT <- (GES_S_export[-1]/10^9) %>% rowSums %>% bind_cols(GES_S_export[1],.)
+
+
 # Export results
-saveRDS(Y_export, str_c(path_loader,"Imports.Y_",iso,".rds"))
-saveRDS(GES_M_export, str_c(path_loader,"M_",iso,"_",ghg,".rds"))
-saveRDS(GES_S_export, str_c(path_loader,"S_",iso,"_",ghg,".rds"))
+
+saveRDS(EMS_M, str_c(path_loader,"M.mat_",ghg,".rds"))
+saveRDS(EMS_S, str_c(path_loader,"S.mat_",ghg,".rds"))
+
+
+saveRDS(GES_M_export, str_c(path_loader,"M_",ghg,".rds"))
+saveRDS(GES_S_export, str_c(path_loader,"S_",ghg,".rds"))
