@@ -15,7 +15,6 @@ library(readxl)
 library(openxlsx)
 library(stringr)
 library(ggpubr)
-library(scales)
 ```
 
 
@@ -28,6 +27,9 @@ principales études
 ## Description des données utilisées
 
 ### Données
+
+Données exiobase pour le modèle input-output.
+
 ```{r nomenclatures et header, echo=FALSE}
 year <- 2015
 br <- "CPA2002_Niv1"
@@ -37,10 +39,37 @@ br_pays <- "EU1"
 path_user <- str_c("C:/Users/leasy/")
 path_codedata <- str_c(path_user,"Documents/GitHub/EmissionsIndicators/")
 
+path_data.source <- str_c(path_user,"Documents/GitHub/EmissionsIndicators/data_in/")
+
 path_results_tables <- str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/")
 
 table_EU <- readRDS(str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
 ```
+
+
+Données économiques et démographiques Eurostat pour ajuster les graphiques.
+
+```{r données eurostat, include=FALSE}
+pib=read_xlsx(str_c(path_data.source,"eurostat/PIBhab.xlsx"),
+          sheet="Feuille 1",
+          skip=8,
+          col_names = TRUE)
+pib=pib[-c(1,41:49),c("TIME",year)]
+pib=setnames(pib,old=c("TIME",year),new=c("nom_pays","PIB.hab"))
+pib[pib$nom_pays=="Allemagne (jusqu'en 1990, ancien territoire de la RFA)",]$nom_pays = "Allemagne"
+pib[pib$nom_pays=="Tchéquie",]$nom_pays = "République Tchèque"
+
+pop=read_xlsx(str_c(path_data.source,"eurostat/population.xlsx"),
+              sheet="Feuille 1",
+              skip=6,
+              col_names = TRUE)
+pop=pop[-c(1,56:66),c("TIME",year)]
+pop=setnames(pop,old=c("TIME",year),new=c("nom_pays","population"))
+pop$population = as.numeric(pop$population)
+pop[pop$nom_pays=="Allemagne (jusqu'en 1990, ancien territoire de la RFA)",]$nom_pays = "Allemagne"
+pop[pop$nom_pays=="Tchéquie",]$nom_pays = "République Tchèque"
+```
+
 ### Démarche et indicateurs
 
 
@@ -85,6 +114,10 @@ for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque",
 #Créer grand dataframe (monde)
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
 
+#Ajouter données eurostat
+IO_all_ponderation=merge(IO_all,pib,by.x="nom_pays")
+IO_all_ponderation=merge(IO_all_ponderation,pop,by.x="nom_pays")
+
 #Plot monde secteurs
 EU_secteurs <- IO_all %>% 
   group_by(produits) %>%
@@ -102,7 +135,7 @@ EU_secteurs <- IO_all %>%
   as.data.frame() %>% 
   ggplot( 
     aes(x= produits, 
-        y = impact,
+        y = impact/10^12,
         fill = indicator)) +
   geom_bar(stat='identity',position = "dodge") +
   theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
@@ -111,7 +144,7 @@ EU_secteurs <- IO_all %>%
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
   labs(title="Impacts",
-       x ="Secteurs", y = "Impact GES (CO2eq)",
+       x ="Secteurs", y = "Impact GES (Gt CO2eq)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 
@@ -125,7 +158,6 @@ EU_pays <- IO_all %>%
          agg.production=sum(production_pays),
          agg.demande_finale=sum(DF_tot)) %>%
   ungroup() %>%
-  mutate(categorie.produit=substr(produits, 1,5)) %>% 
   pivot_longer(
     cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
     names_to = "indicator",
@@ -133,7 +165,7 @@ EU_pays <- IO_all %>%
   as.data.frame() %>% 
   ggplot( 
     aes(x= nom_pays, 
-        y = impact,
+        y = impact/10^12, #/10^12 convertit en gt
         fill = indicator)) +
   geom_bar(stat='identity',position = "dodge") +
   theme(axis.text.x = element_text(angle = 25, size=6, vjust = 1, hjust=1),
@@ -142,7 +174,7 @@ EU_pays <- IO_all %>%
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
   labs(title="Impacts",
-       x ="Région ou pays", y = "Impact GES (CO2eq)",
+       x ="Région ou pays", y = "Impact GES (Gt CO2eq)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 
@@ -164,7 +196,7 @@ EU_secteurs_VA=IO_all %>%
     values_to = "impact") %>%
   ggplot( 
     aes(x= produits, 
-        y = impact,
+        y = impact/10^12,
         fill = composante)) +
   geom_bar(stat='identity',
            position = position_stack(reverse = FALSE)) + #fill
@@ -174,44 +206,11 @@ EU_secteurs_VA=IO_all %>%
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
   labs(title="Impacts",
-       x ="Secteurs", y = "Impact GES (CO2eq)",
-       fill="Indicateur") +
+       x ="Secteurs", y = "Impact GES (Gt CO2eq)",
+       fill="Rémunération de:") +
   scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), values = c("yellow", "tomato","slateblue1","slateblue"))
-```
 
-
-
-### Faits stylisés au niveau européen
-
-Les trois graphiques au niveau européen sont inclus pour avoir une vision plus globale.
-
-```{r monde pays, echo=FALSE, fig.cap="D'importantes disparités dans les impacts des pays de l'UE"}
-EU_pays
-```
-
-Dans l'Union Européenne, la plupart des pays sont nets demandeurs d'émissions. L'Union dans son ensemble est également nette demandeuse d'émissions (le reste du monde produit plus d'émissions qu'il n'en demande). Certains pays européens sont nets producteurs (la Bulgarie, Chypre, l'Estonie, la Grèce, la Pologne, le Portugal, la République Tchèque) mais la différence n'est flagrante que pour quatre d'entre eux.
-
-L'Allemagne a de loin le plus fort impact selon les trois approches. 
-
-Les petits pays et certains pays d'Europe du Nord ont le plus faible impact (Chypre, Malte, le Luxembourg, la Croatie, l'Estonie, la Lettonie, la Lituanie).
-
-
-ATTENTION CHAGER UNITE METTRE EN MILLIONS DE TONNE
-
-```{r monde secteurs, echo=FALSE}
-EU_secteurs
-```
-
-Dans une approche sectorielle, le plus fort contraste entre secteurs s'observe au niveau de l'impact producteur. Le secteur "ELECTRICITE, GAZ ET EAU" se détache nettement avec le plus fort impact producteur, suivi par les "PRODUITS MANUFACTURES".
-
-Le plus fort impact demande concerne les secteurs "PRODUITS MANUFACTURES", "SERVICES IMMOBILIERS, DE LOCATION ET AUX ENTREPRISES" et "TRAVAUX DE CONSTRUCTION".
-
-Enfin, les secteurs des "SERVICES IMMOBILIERS, DE LOCATION ET AUX ENTREPRISES" et des "PRODUITS MANUFACTURES" ont le plus fort impact revenus.
-
-```{r monde secteurs va, echo=FALSE, warning=FALSE, dev="png", dpi=400}
-EU_secteurs_VA
-
-table_EU %>% 
+EU_secteurs_VA_norm <- table_EU %>% 
   filter(nom_pays != "Reste du monde") %>%
   #par produits
   group_by(produits) %>%
@@ -231,7 +230,7 @@ table_EU %>%
         y = impact,
         fill = composante,
         alpha=0.9)) +
-  guides(alpha=FALSE) +
+  guides(alpha="none") +
   geom_col(position = position_fill(reverse = FALSE)) + #fill
   theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
         plot.title =element_text(size=12, face='bold', hjust=0.5),
@@ -239,33 +238,15 @@ table_EU %>%
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
   labs(title="Impacts",
-       x ="Secteurs", y = "Impact GES (CO2eq)",
-       fill="Indicateur") +
+       x ="Secteurs", y = "Part des composantes (%)",
+       fill="Rémunération de:") +
   scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), values = c("yellow", "tomato","slateblue1","slateblue"))
-```
 
-Globalement, parmi les facteurs de production c'est le capital fixe qui a le plus fort impact. L'impacts du capital est le plus petit en proportion pour chaque secteur. 
-
-### Contrastes par pays
-
-```{r groupes pays eu, echo=FALSE}
-##groupes de pays (EuroVoc)
-eastern <- c("Bulgarie","République Tchèque","Hongrie",
-             "Roumanie","Pologne","Slovaquie","Slovénie","Croatie")
-western <- c("Autriche","Belgique","Allemagne","France","Pays-bas",
-             "Luxembourg","Royaume-Uni")
-southern <- c("Chypre","Espagne","Grèce","Italie",
-              "Portugal","Malte")
-northern <- c("Danemark","Estonie","Lituanie","Lettonnie","Finlande","Irlande",
-              "Suède")
-
-IO_all2 <- IO_all %>%
-  mutate(EU_region = ifelse(nom_pays %in% eastern, "eastern",
-                            ifelse(nom_pays %in% western, "western",
-                                   ifelse(nom_pays %in% southern, "southern",
-                                          "northern"))))
-facet_EU <- IO_all2 %>% 
-  filter(nom_pays != "Reste du monde") %>%
+EU_groupes_pays <- IO_all_ponderation %>%
+  mutate(level_income = ifelse(PIB.hab <= 20000, "poorest",
+                            ifelse(PIB.hab > 20000 & PIB.hab <= 35000, "mid",
+                                   "richest"))) %>% 
+  #filter(nom_pays != "Reste du monde") %>%
   group_by(nom_pays) %>%
   mutate(agg.demande_impact=sum(GES_impact_M_select),
          agg.producteur_impact=sum(GES_impact_S_select),
@@ -273,7 +254,6 @@ facet_EU <- IO_all2 %>%
          agg.production=sum(production_pays),
          agg.demande_finale=sum(DF_tot)) %>%
   ungroup() %>%
-  mutate(categorie.produit=substr(produits, 1,5)) %>% 
   pivot_longer(
     cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
     names_to = "indicator",
@@ -281,22 +261,63 @@ facet_EU <- IO_all2 %>%
   as.data.frame() %>% 
   ggplot( 
     aes(x= nom_pays, 
-        y = impact,
+        y = impact/10^12,
         fill = indicator)) +
-  geom_bar(stat='identity',position = "dodge", width=0.8) +
+  geom_bar(stat='identity',position = "dodge") +
   theme(axis.text.x = element_text(angle = 25, size=10, vjust = 1, hjust=1),
         plot.title =element_text(size=12, face='bold', hjust=0.5),
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
   labs(title="Impacts",
-       x ="Région ou pays", y = "Impact GES (CO2eq)",
+       x ="Région ou pays", y = "Impact GES (Gt CO2eq)",
        fill="Indicateur") +
   scale_fill_manual(
     labels = c("Demande", "Production","VA"), 
     values = c("indianred1", "cornflowerblue","orange1")) +
-  facet_grid(~EU_region, scales="free_x")
-facet_EU
+  facet_grid(~level_income, scales="free_x")
+```
+
+
+
+### Faits stylisés au niveau européen
+
+Les trois graphiques au niveau européen sont inclus pour avoir une vision plus globale.
+
+```{r monde pays, echo=FALSE, fig.cap="D'importantes disparités dans les impacts des pays de l'UE"}
+EU_pays
+```
+
+Dans l'Union Européenne, la plupart des pays sont nets demandeurs d'émissions. L'Union dans son ensemble est également nette demandeuse d'émissions (le reste du monde produit plus d'émissions qu'il n'en demande). Certains pays européens sont nets producteurs (la Bulgarie, Chypre, l'Estonie, la Grèce, la Pologne, le Portugal, la République Tchèque) mais la différence n'est flagrante que pour quatre d'entre eux.
+
+L'Allemagne a de loin le plus fort impact selon les trois approches. 
+
+Les petits pays et certains pays d'Europe du Nord ont le plus faible impact (Chypre, Malte, le Luxembourg, la Croatie, l'Estonie, la Lettonie, la Lituanie).
+
+
+
+```{r monde secteurs, echo=FALSE}
+EU_secteurs
+```
+
+Dans une approche sectorielle, le plus fort contraste entre secteurs s'observe au niveau de l'impact producteur. Le secteur "ELECTRICITE, GAZ ET EAU" se détache nettement avec le plus fort impact producteur, suivi par les "PRODUITS MANUFACTURES".
+
+Le plus fort impact demande concerne les secteurs "PRODUITS MANUFACTURES", "SERVICES IMMOBILIERS, DE LOCATION ET AUX ENTREPRISES" et "TRAVAUX DE CONSTRUCTION".
+
+Enfin, les secteurs des "SERVICES IMMOBILIERS, DE LOCATION ET AUX ENTREPRISES" et des "PRODUITS MANUFACTURES" ont le plus fort impact revenus.
+
+```{r monde secteurs va, echo=FALSE, warning=FALSE, dev="png", dpi=400}
+EU_secteurs_VA
+
+EU_secteurs_VA_norm
+```
+
+Globalement, parmi les facteurs de production c'est le capital fixe qui a le plus fort impact. L'impacts du capital est le plus petit en proportion pour chaque secteur. 
+
+### Contrastes par pays
+
+```{r groupes pays eu, echo=FALSE}
+EU_groupes_pays
 ```
 
 On voit également des contrastes à l'échelle régionale. L'Europe de l'Ouest et du Sud ont le plus fort impact. Ces deux régions sont également très hétérogènes, au contraire de l'Europe de l'Est et du Sud dont les impacts sont plus homogènes entre pays.
@@ -537,6 +558,8 @@ L'hétérogénéité semble moins forte que dans l'approche sectorielle. L'appro
 La conclusion est donc que selon qu'on adopte une approche territoriale/nationale ou une approche sectorielle, la répartition des coûts suit une logique différente.
 
 ## Conclusion
+
+CHANGER UNITES DES GRAPHS (V)
 
 NORMALISER PAR POPULATION (V)
 
