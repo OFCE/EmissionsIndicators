@@ -791,7 +791,11 @@ IO_all %>%
                     values = c("indianred1", "cornflowerblue")) #,"orange1"
 
 
-##radar
+##Créer des radar plot pour comparer les indicateurs
+
+library(ggradar)
+
+#Test: un graph avec tous les pays
 ###créer data
 radar_data=IO_all %>% 
   filter(nom_pays != "Reste du monde") %>%
@@ -807,9 +811,10 @@ radar_data=radar_data%>%
   as.data.frame() %>%
   `colnames<-`(radar_data.pays) %>%
   add_rownames( var = "group" ) 
-
-library(ggradar)
+#chart
 ggradar(radar_data,
+        axis.label.size = 3,
+        axis.label.offset = 1.05,
         grid.min = 0,
         grid.max = max(radar_data[,-1]),
         label.gridline.min = FALSE,
@@ -817,7 +822,58 @@ ggradar(radar_data,
         label.gridline.max = FALSE,
         group.line.width = 0.5,
         group.point.size = 1,
+        legend.title = "Indicateur",
+        legend.text.size = 10,
         fill=TRUE,
-        fill.alpha = 0.25)
+        fill.alpha = 0.25)+
+  theme(legend.title = element_text(size=12)) +
+  scale_fill_manual(labels = c("Demande", "Production","VA"), #
+                    values = c("indianred1", "cornflowerblue","orange1")) +
+  scale_colour_manual(labels = c("Demande", "Production","VA"), #
+                      values = c("indianred1", "cornflowerblue","orange1")) +
+  guides(fill="none") 
 
+#Plusieurs graphs: un par pays, en fonction des secteurs
+radar_data2=IO_all %>% 
+  filter(nom_pays != "Reste du monde") %>%
+  group_by(produits) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_select)/10^12,
+         agg.producteur_impact=sum(GES_impact_S_select)/10^12,
+         agg.VA_impact=sum(impact_VA_select)/10^12) %>%
+  ungroup() %>%
+  distinct(produits,agg.demande_impact,agg.producteur_impact,agg.VA_impact)
+radar_data.secteurs=radar_data2$produits
+radar_data2=radar_data2%>%
+  select(-produits) %>%  t() %>% 
+  as.data.frame() %>%
+  `colnames<-`(radar_data.secteurs) %>%
+  add_rownames( var = "group" )
 
+ggradar(radar_data2,
+        axis.label.size = 1.5,
+        axis.label.offset = 1.05,
+        grid.min = 0,
+        grid.max = max(radar_data2[,-1]),
+        grid.line.width=0.1,
+        label.gridline.min = FALSE,
+        gridline.min.colour="gray",
+        gridline.min.linetype="longdash",
+        label.gridline.mid = FALSE,
+        gridline.mid.colour="gray",
+        gridline.mid.linetype="longdash",
+        label.gridline.max = FALSE,
+        gridline.max.colour="gray",
+        gridline.max.linetype="longdash",
+        group.line.width = 0.5,
+        group.point.size = 1,
+        background.circle.transparency=0,
+        legend.title = "Indicateur",
+        legend.text.size = 10,
+        fill=TRUE,
+        fill.alpha = 0.25)+
+  theme(legend.title = element_text(size=12)) +
+  scale_fill_manual(labels = c("Demande", "Production","VA"), #
+                    values = c("indianred1", "cornflowerblue","orange1")) +
+  scale_colour_manual(labels = c("Demande", "Production","VA"), #
+                      values = c("indianred1", "cornflowerblue","orange1")) +
+  guides(fill="none")
