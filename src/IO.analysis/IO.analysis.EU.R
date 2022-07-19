@@ -32,6 +32,15 @@ S <- (as.matrix(Fe) %*% x_1d) %>% `colnames<-`(rownames(X))
 S[is.nan(S)]
 S_volume <- S %*% as.matrix(X)
 
+#Matrice impacts CI???
+CI= (t(Z) %*% Id(Z)) %>% as.data.frame()
+ci_1 <- 1/as.numeric(unlist(CI))
+ci_1[is.infinite(ci_1)] <- 0 
+ci_1d <- as.numeric(ci_1) %>% diag()
+S.CI <- (as.matrix(Fe) %*% ci_1d) %>% `colnames<-`(rownames(CI))
+S.CI[is.nan(S.CI)]
+S.CI_volume <- S.CI %*% as.matrix(CI)
+
 #Matrice M (impact demande et CI)
 M <- S %*% L 
 M_volume <- M %*% as.matrix(Y)
@@ -55,6 +64,7 @@ VA=Fe_VA$gross.VA %>% as.data.frame
 ValeurAjoutee.calcul <- function(prod,IO){
   CI= (t(IO) %*% Id(IO)) %>% as.data.frame()
   VA= prod-CI
+  VA=setnames(VA,"production","valeur_ajoutee")
   return(VA)
 }
 VA=ValeurAjoutee.calcul(X,Z)
@@ -152,6 +162,11 @@ for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque",
   production_pays[-str_which(rownames(production_pays),as.character(pays)),]<-0
   production_pays=as.numeric(unlist(production_pays))
   
+  #Vecteur VA
+  VA_pays <- VA
+  VA_pays[-str_which(rownames(VA_pays),as.character(pays)),]<-0
+  VA_pays <- as.numeric(unlist(VA_pays))
+  
   #Impacts producteur du pays
   GES_impact_S_select <- GES_impact_S
   #Sélectionner les impacts de la production du pays en question
@@ -192,7 +207,7 @@ for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque",
   #Créer le tableau en assemblant les colonnes
   assign("io_table",
          data.frame(nom_pays,
-                    DF_tot,production_pays,GES_impact_S_select,GES_impact_M_select,impact_VA_select,GES_VA_compo_select
+                    DF_tot,production_pays,VA_pays,GES_impact_S_select,GES_impact_M_select,impact_VA_select,GES_VA_compo_select
          )
   )
   
@@ -205,7 +220,7 @@ for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque",
   io_table$produits=sub(".*?_", "",io_table$pays.produits)
   io_table$regions=sub("_.*", "",io_table$pays.produits)
   io_table = io_table %>% 
-    select(regions,nom_pays,produits,DF_tot,production_pays,GES_impact_S_select,GES_impact_M_select,impact_VA_select,Etat,Travail,Capital,Cout_production)
+    select(regions,nom_pays,produits,DF_tot,production_pays,VA_pays,GES_impact_S_select,GES_impact_M_select,impact_VA_select,Etat,Travail,Capital,Cout_production)
   io_table[sapply(io_table, simplify = 'matrix', is.infinite)] <- 0
   io_table[sapply(io_table, simplify = 'matrix', is.nan)] <- 0
   
@@ -225,7 +240,8 @@ for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque",
            agg.producteur_impact=sum(GES_impact_S_select),
            agg.VA_impact=sum(impact_VA_select),
            agg.production=sum(production_pays),
-           agg.demande_finale=sum(DF_tot)) %>%
+           agg.demande_finale=sum(DF_tot),
+           agg.VA=sum(VA_pays)) %>%
     ungroup() %>%
     #format long pour afficher les deux indicateurs
     pivot_longer(
@@ -305,7 +321,8 @@ monde_secteurs <- IO_all %>%
          agg.producteur_impact=sum(GES_impact_S_select),
          agg.VA_impact=sum(impact_VA_select),
          agg.production=sum(production_pays),
-         agg.demande_finale=sum(DF_tot)) %>%
+         agg.demande_finale=sum(DF_tot),
+         agg.VA=sum(VA_pays)) %>%
   ungroup() %>% 
   pivot_longer(
     cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
@@ -341,7 +358,8 @@ EU_pays <- IO_all %>%
          agg.producteur_impact=sum(GES_impact_S_select),
          agg.VA_impact=sum(impact_VA_select),
          agg.production=sum(production_pays),
-         agg.demande_finale=sum(DF_tot)) %>%
+         agg.demande_finale=sum(DF_tot),
+         agg.VA=sum(VA_pays)) %>%
   ungroup() %>%
   mutate(categorie.produit=substr(produits, 1,5)) %>% 
   pivot_longer(
@@ -363,7 +381,7 @@ EU_pays <- IO_all %>%
        x ="Région ou pays", y = "Impact GES (CO2eq)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
-monde_pays
+EU_pays
 ggsave(filename=str_c("plot.monde_pays.",format), 
        plot=EU_pays, 
        device="pdf",
@@ -371,7 +389,7 @@ ggsave(filename=str_c("plot.monde_pays.",format),
        width = 280 , height = 200 , units = "mm", dpi = 600)
 
 #plot VA pour EU
-EU_secteurs_VA=IO_all %>% 
+IO_all %>% 
   filter(nom_pays != "Reste du monde") %>%
   #par produits
   group_by(produits) %>%
@@ -401,7 +419,39 @@ EU_secteurs_VA=IO_all %>%
        x ="Secteurs", y = "Impact GES (CO2eq)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("E", "L","K","CP"), values = c("gray95", "gray85","gray75","gray65"))
-monde_secteurs_VA
+EU_secteurs_VA=IO_all %>% 
+  filter(nom_pays != "Reste du monde") %>%
+  #par produits
+  group_by(produits) %>%
+  filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>% #toujours=0
+  mutate(agg.Etat=sum(Etat),
+         agg.Travail=sum(Travail),
+         agg.Capital=sum(Capital),
+         agg.Cout=sum(Cout_production)) %>%
+  ungroup() %>%
+  #format long pour afficher les deux indicateurs
+  pivot_longer(
+    cols = c("agg.Etat","agg.Travail","agg.Capital","agg.Cout"),
+    names_to = "composante",
+    values_to = "impact") %>%
+  ggplot( 
+    aes(x= produits, 
+        y = impact/10^12,
+        fill = composante)) +
+  geom_bar(stat='identity',
+           position = position_stack(reverse = FALSE)) + #fill
+  theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts",
+       x ="Secteurs", y = "Impact GES (Gt CO2eq)",
+       fill="Rémunération de:") +
+  scale_fill_manual(
+    labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), 
+    values = c("yellow", "tomato","slateblue1","slateblue"))
+EU_secteurs_VA
 ggsave(filename=str_c("plot.monde_secteurs_va.", pays, ".",format), 
        plot=EU_secteurs_VA, 
        device="pdf",
@@ -432,7 +482,8 @@ facet_EU <- IO_all2 %>%
          agg.producteur_impact=sum(GES_impact_S_select),
          agg.VA_impact=sum(impact_VA_select),
          agg.production=sum(production_pays),
-         agg.demande_finale=sum(DF_tot)) %>%
+         agg.demande_finale=sum(DF_tot),
+         agg.VA=sum(VA_pays)) %>%
   ungroup() %>%
   mutate(categorie.produit=substr(produits, 1,5)) %>% 
   pivot_longer(
@@ -638,17 +689,18 @@ IO_all_ponderation=merge(IO_all_ponderation,pop,by.x="nom_pays")
 
 
 #et refaire le groupement par pays selon l'indicateur économique cette fois
-graph_facet2 <- IO_all_ponderation %>%
-  mutate(level_income = ifelse(PIB.hab <= 20000, "poorest",
-                            ifelse(PIB.hab > 20000 & PIB.hab <= 35000, "mid",
-                                   "richest"))) %>% 
+EU_groupes_pays <- IO_all_ponderation %>%
+  mutate(level_income = ifelse(PIB.hab < 20000, "<20,000€",
+                            ifelse(PIB.hab >= 20000 & PIB.hab <= 35000, "20,000-35,000 €",
+                                   ">35,000 €"))) %>% 
   #filter(nom_pays != "Reste du monde") %>%
   group_by(nom_pays) %>%
   mutate(agg.demande_impact=sum(GES_impact_M_select),
          agg.producteur_impact=sum(GES_impact_S_select),
          agg.VA_impact=sum(impact_VA_select),
          agg.production=sum(production_pays),
-         agg.demande_finale=sum(DF_tot)) %>%
+         agg.demande_finale=sum(DF_tot),
+         agg.VA=sum(VA_pays)) %>%
   ungroup() %>%
   pivot_longer(
     cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
@@ -657,7 +709,7 @@ graph_facet2 <- IO_all_ponderation %>%
   as.data.frame() %>% 
   ggplot( 
     aes(x= nom_pays, 
-        y = impact,
+        y = impact/10^12,
         fill = indicator)) +
   geom_bar(stat='identity',position = "dodge") +
   theme(axis.text.x = element_text(angle = 25, size=10, vjust = 1, hjust=1),
@@ -666,13 +718,13 @@ graph_facet2 <- IO_all_ponderation %>%
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
   labs(title="Impacts",
-       x ="Région ou pays", y = "Impact GES (CO2eq)",
+       x ="Région ou pays", y = "Impact GES (Gt CO2eq)",
        fill="Indicateur") +
   scale_fill_manual(
     labels = c("Demande", "Production","VA"), 
     values = c("indianred1", "cornflowerblue","orange1")) +
-  facet_grid(~level_income, scales="free_x")
-graph_facet2
+  facet_wrap(~level_income, scales="free_x")
+EU_groupes_pays
 
 #pondération par population europe
 IO_all_ponderation %>% 
@@ -682,7 +734,8 @@ IO_all_ponderation %>%
          agg.producteur_impact=sum(GES_impact_S_select),
          agg.VA_impact=sum(impact_VA_select),
          agg.production=sum(production_pays),
-         agg.demande_finale=sum(DF_tot)) %>%
+         agg.demande_finale=sum(DF_tot),
+         agg.VA=sum(VA)) %>%
   ungroup() %>%
   mutate(categorie.produit=substr(produits, 1,5)) %>% 
   pivot_longer(
@@ -702,28 +755,29 @@ IO_all_ponderation %>%
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
   labs(title="Impacts",
-       x ="Région ou pays", y = "Impact GES (CO2eq)",
+       x ="Région ou pays", y = "Impact GES (CO2eq/cap)",
        fill="Indicateur") +
-  scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
+  scale_fill_manual(labels = c("Demande", "Production","VA"), 
+                    values = c("indianred1", "cornflowerblue","orange1"))
 
 #normaliser par unité produite/demandée
-#!!encore ajouter VA
+#pas pour VA car c'est une constante
 IO_all %>% 
   filter(nom_pays != "Reste du monde") %>%
   group_by(nom_pays) %>%
   mutate(agg.demande_impact_norm=sum(GES_impact_M_select)/sum(DF_tot),
-         agg.producteur_impact_norm=sum(GES_impact_S_select)/sum(production_pays),
-         #agg.VA_impact=sum(impact_VA_select),
+         agg.producteur_impact_norm=sum(GES_impact_S_select)/sum(production_pays)
+         #agg.VA_impact_norm=sum(impact_VA_select)/sum(VA_pays)
          ) %>%
   ungroup() %>%
   pivot_longer(
-    cols = c("agg.producteur_impact_norm","agg.demande_impact_norm"),
+    cols = c("agg.producteur_impact_norm","agg.demande_impact_norm"), #,"agg.VA_impact_norm"
     names_to = "indicator",
     values_to = "impact") %>%
   as.data.frame() %>% 
   ggplot( 
     aes(x= nom_pays, 
-        y = impact,
+        y = impact/1000,
         fill = indicator)) +
   geom_bar(stat='identity',position = "dodge") +
   theme(axis.text.x = element_text(angle = 25, size=10, vjust = 1, hjust=1),
@@ -732,7 +786,7 @@ IO_all %>%
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
   labs(title="Impacts",
-       x ="Région ou pays", y = "Impact GES (CO2eq)",
+       x ="Région ou pays", y = "Impact GES (t CO2eq)",
        fill="Indicateur") +
-  scale_fill_manual(labels = c("Demande", "Production"), 
-                    values = c("indianred1", "cornflowerblue"))
+  scale_fill_manual(labels = c("Demande", "Production"), #,"VA"
+                    values = c("indianred1", "cornflowerblue")) #,"orange1"
