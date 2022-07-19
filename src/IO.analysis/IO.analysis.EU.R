@@ -361,7 +361,6 @@ EU_pays <- IO_all %>%
          agg.demande_finale=sum(DF_tot),
          agg.VA=sum(VA_pays)) %>%
   ungroup() %>%
-  mutate(categorie.produit=substr(produits, 1,5)) %>% 
   pivot_longer(
     cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
     names_to = "indicator",
@@ -790,3 +789,35 @@ IO_all %>%
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production"), #,"VA"
                     values = c("indianred1", "cornflowerblue")) #,"orange1"
+
+
+##radar
+###créer data
+radar_data=IO_all %>% 
+  filter(nom_pays != "Reste du monde") %>%
+  group_by(nom_pays) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_select)/10^12,
+         agg.producteur_impact=sum(GES_impact_S_select)/10^12,
+         agg.VA_impact=sum(impact_VA_select)/10^12) %>%
+  ungroup() %>%
+  distinct(nom_pays,agg.demande_impact,agg.producteur_impact,agg.VA_impact) #%>% 
+radar_data.pays=radar_data$nom_pays
+radar_data=radar_data%>% 
+  select(-nom_pays) %>%  t() %>% 
+  as.data.frame() %>%
+  `colnames<-`(radar_data.pays) %>%
+  add_rownames( var = "group" ) 
+
+library(ggradar)
+ggradar(radar_data,
+        grid.min = 0,
+        grid.max = max(radar_data[,-1]),
+        label.gridline.min = FALSE,
+        label.gridline.mid = FALSE,
+        label.gridline.max = FALSE,
+        group.line.width = 0.5,
+        group.point.size = 1,
+        fill=TRUE,
+        fill.alpha = 0.25)
+
+
