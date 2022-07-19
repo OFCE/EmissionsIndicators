@@ -302,7 +302,59 @@ for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque",
          device="pdf",
          path=path_results_plots,
          width = 280 , height = 200 , units = "mm", dpi = 600)
-rm(IO, io_table)  
+  
+  radar.data=IO %>%
+    group_by(produits) %>%
+    mutate(agg.demande_impact=sum(GES_impact_M_select)/1000,
+           agg.producteur_impact=sum(GES_impact_S_select)/1000,
+           agg.VA_impact=sum(impact_VA_select)/1000) %>%
+    ungroup() %>%
+    distinct(produits,agg.demande_impact,agg.producteur_impact,agg.VA_impact)
+  radar_data.secteurs=radar.data$produits
+  radar.data=radar.data%>%
+    select(-produits) %>%  t() %>% 
+    as.data.frame() %>%
+    `colnames<-`(radar_data.secteurs) %>%
+    add_rownames( var = "group" )
+  plot3 = ggradar(radar.data,
+                  axis.labels=gsub('\\s','\n',colnames(radar.data[,-1])),
+                  axis.label.size = 2,
+                  axis.label.offset = 1.1,
+                  grid.min = 0,
+                  grid.max = max(radar.data[,-1]),
+                  grid.line.width=0.1,
+                  label.gridline.min = FALSE,
+                  gridline.min.colour="gray",
+                  gridline.min.linetype="longdash",
+                  label.gridline.mid = FALSE,
+                  gridline.mid.colour="gray",
+                  gridline.mid.linetype="longdash",
+                  label.gridline.max = FALSE,
+                  gridline.max.colour="gray",
+                  gridline.max.linetype="longdash",
+                  group.line.width = 0.5,
+                  group.point.size = 1,
+                  background.circle.transparency=0,
+                  legend.title = "Indicateur",
+                  legend.text.size = 10,
+                  fill=TRUE,
+                  fill.alpha = 0.25,
+                  plot.title = str_c("Indicateurs pour :", pays))+
+    theme(legend.title = element_text(size=12)) +
+    scale_fill_manual(labels = c("Demande", "Production","VA"), #
+                      values = c("indianred1", "cornflowerblue","orange1")) +
+    scale_colour_manual(labels = c("Demande", "Production","VA"), #
+                        values = c("indianred1", "cornflowerblue","orange1")) +
+    guides(fill="none")
+  ggsave(filename=str_c("radar.plot.secteurs.va_", pays, ".",format), 
+         plot=plot3, 
+         device="pdf",
+         path=path_results_plots,
+         width = 280 , height = 200 , units = "mm", dpi = 600)
+  
+  assign(str_c("radar_",pays),plot3)
+  
+rm(IO, io_table, radar.data)  
 }
 
 #rm(list = ls(pattern = "^IO_*"))
@@ -850,8 +902,9 @@ radar_data2=radar_data2%>%
   add_rownames( var = "group" )
 
 ggradar(radar_data2,
-        axis.label.size = 1.5,
-        axis.label.offset = 1.05,
+        axis.labels=gsub('\\s','\n',colnames(radar_data2[,-1])),
+        axis.label.size = 2,
+        axis.label.offset = 1.1,
         grid.min = 0,
         grid.max = max(radar_data2[,-1]),
         grid.line.width=0.1,
@@ -877,3 +930,4 @@ ggradar(radar_data2,
   scale_colour_manual(labels = c("Demande", "Production","VA"), #
                       values = c("indianred1", "cornflowerblue","orange1")) +
   guides(fill="none")
+
