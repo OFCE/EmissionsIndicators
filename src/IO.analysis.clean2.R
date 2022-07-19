@@ -126,6 +126,8 @@ path_results_plots <- str_c(path_codedata, "results/plots/", year,"/",br_pays,"_
 
 #Attention, il faut mettre "Europe" et non "Europe (autres)", sinon la sélection ne marche pas
 
+rm(list = ls()[grep("^IO", ls())])
+
 #Boucle qui crée un tableau avec les indicateurs pour chaque pays
 #(il faut avoir Y, Fe et L au préalable)
 for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afrique","Russie","Europe","Asie","Moyen-Orient","Oceanie")) {
@@ -302,7 +304,7 @@ monde_secteurs <- IO_all %>%
   as.data.frame() %>% 
   ggplot( 
     aes(x= produits, 
-        y = impact,
+        y = impact/10^12,
         fill = indicator)) +
   geom_bar(stat='identity',position = "dodge") +
   theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
@@ -311,7 +313,7 @@ monde_secteurs <- IO_all %>%
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
   labs(title="Impacts",
-       x ="Secteurs", y = "Impact GES (CO2eq)",
+       x ="Secteurs", y = "Impact GES (Gt CO2eq)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 monde_secteurs
@@ -338,7 +340,7 @@ monde_pays <- IO_all %>%
   as.data.frame() %>% 
   ggplot( 
     aes(x= nom_pays, 
-        y = impact,
+        y = impact/10^12,
         fill = indicator)) +
   geom_bar(stat='identity',position = "dodge") +
   theme(axis.text.x = element_text(angle = 25, size=10, vjust = 1, hjust=1),
@@ -347,7 +349,7 @@ monde_pays <- IO_all %>%
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
   labs(title="Impacts",
-       x ="Région ou pays", y = "Impact GES (CO2eq)",
+       x ="Région ou pays", y = "Impact GES (Gt CO2eq)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 monde_pays

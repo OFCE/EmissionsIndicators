@@ -778,7 +778,7 @@ EU_groupes_pays <- IO_all_ponderation %>%
 EU_groupes_pays
 
 #pondération par population europe
-IO_all_ponderation %>% 
+EU_pays_pondere=IO_all_ponderation %>% 
   #filter(nom_pays != "Reste du monde") %>%
   group_by(nom_pays) %>%
   mutate(agg.demande_impact=sum(GES_impact_M_select),
@@ -793,7 +793,7 @@ IO_all_ponderation %>%
     cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
     names_to = "indicator",
     values_to = "impact") %>%
-  mutate(norm=impact/population) %>%
+  mutate(norm=(impact/population)/1000) %>%
   as.data.frame() %>% 
   ggplot( 
     aes(x= nom_pays, 
@@ -806,14 +806,14 @@ IO_all_ponderation %>%
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
   labs(title="Impacts",
-       x ="Région ou pays", y = "Impact GES (CO2eq/cap)",
+       x ="Région ou pays", y = "Impact GES (tCO2eq/cap)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), 
                     values = c("indianred1", "cornflowerblue","orange1"))
 
 #normaliser par unité produite/demandée
 #pas pour VA car c'est une constante
-IO_all %>% 
+EU_norm_unite=IO_all %>% 
   filter(nom_pays != "Reste du monde") %>%
   group_by(nom_pays) %>%
   mutate(agg.demande_impact_norm=sum(GES_impact_M_select)/sum(DF_tot),
@@ -841,7 +841,7 @@ IO_all %>%
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production"), #,"VA"
                     values = c("indianred1", "cornflowerblue")) #,"orange1"
-
+EU_norm_unite
 
 ##Créer des radar plot pour comparer les indicateurs
 
@@ -886,6 +886,7 @@ ggradar(radar_data,
   guides(fill="none") 
 
 #Plusieurs graphs: un par pays, en fonction des secteurs
+##Test avec un au niveau européen
 radar_data2=IO_all %>% 
   filter(nom_pays != "Reste du monde") %>%
   group_by(produits) %>%
@@ -900,7 +901,7 @@ radar_data2=radar_data2%>%
   as.data.frame() %>%
   `colnames<-`(radar_data.secteurs) %>%
   add_rownames( var = "group" )
-
+#graph secteurs
 ggradar(radar_data2,
         axis.labels=gsub('\\s','\n',colnames(radar_data2[,-1])),
         axis.label.size = 2,
@@ -931,3 +932,46 @@ ggradar(radar_data2,
                       values = c("indianred1", "cornflowerblue","orange1")) +
   guides(fill="none")
 
+#Par pays avec pondération
+radar_data3 = IO_all_ponderation %>% 
+  filter(nom_pays != "Reste du monde") %>%
+  group_by(nom_pays) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_select/population)/1000,
+         agg.producteur_impact=sum(GES_impact_S_select/population)/1000,
+         agg.VA_impact=sum(impact_VA_select/population)/1000) %>%
+  ungroup() %>%
+  distinct(nom_pays,agg.demande_impact,agg.producteur_impact,agg.VA_impact) 
+radar_data3.pays=radar_data3$nom_pays
+radar_data3=radar_data3%>%select(-nom_pays) %>%  t() %>% 
+  as.data.frame() %>%
+  `colnames<-`(radar_data3.pays) %>%
+  add_rownames( var = "group" ) 
+
+ggradar(radar_data3,
+        axis.label.size = 2,
+        axis.label.offset = 1.1,
+        grid.min = 0,
+        grid.max = max(radar_data3[,-1]),
+        grid.line.width=0.1,
+        label.gridline.min = FALSE,
+        gridline.min.colour="gray",
+        gridline.min.linetype="longdash",
+        label.gridline.mid = FALSE,
+        gridline.mid.colour="gray",
+        gridline.mid.linetype="longdash",
+        label.gridline.max = FALSE,
+        gridline.max.colour="gray",
+        gridline.max.linetype="longdash",
+        group.line.width = 0.5,
+        group.point.size = 1,
+        background.circle.transparency=0,
+        legend.title = "Indicateur",
+        legend.text.size = 10,
+        fill=TRUE,
+        fill.alpha = 0.25)+
+  theme(legend.title = element_text(size=12)) +
+  scale_fill_manual(labels = c("Demande", "Production","VA"), #
+                    values = c("indianred1", "cornflowerblue","orange1")) +
+  scale_colour_manual(labels = c("Demande", "Production","VA"), #
+                      values = c("indianred1", "cornflowerblue","orange1")) +
+  guides(fill="none")

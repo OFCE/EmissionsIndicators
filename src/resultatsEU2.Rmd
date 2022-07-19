@@ -15,6 +15,7 @@ library(readxl)
 library(openxlsx)
 library(stringr)
 library(ggpubr)
+library(ggradar)
 ```
 
 
@@ -26,25 +27,20 @@ principales études
 
 ## Description des données utilisées
 
-### Données
-
-Données exiobase pour le modèle input-output.
-
-```{r nomenclatures et header, echo=FALSE}
-year <- 2015
-br <- "CPA2002_Niv1"
-br_pays <- "EU1"
+```{r paths generaux, include=FALSE}
+year = 2015
 
 #Chemin user, du projet, et données résultats
 path_user <- str_c("C:/Users/leasy/")
 path_codedata <- str_c(path_user,"Documents/GitHub/EmissionsIndicators/")
 
 path_data.source <- str_c(path_user,"Documents/GitHub/EmissionsIndicators/data_in/")
-
-path_results_tables <- str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/")
-
-table_EU <- readRDS(str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
 ```
+
+### Données
+
+Données exiobase pour le modèle input-output.
+
 
 
 Données économiques et démographiques Eurostat pour ajuster les graphiques.
@@ -78,7 +74,63 @@ pop[pop$nom_pays=="Tchéquie",]$nom_pays = "République Tchèque"
 
 ### échelle monde pour le cadre
 
+```{r nomenclatures et header monde, echo=FALSE}
+year <- 2015
+br <- "CPA2002_Niv1"
+br_pays <- "monde.12"
+
+path_results_tables <- str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/")
+
+table_monde <- readRDS(str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
+```
+
+```{r monde datawork, include=FALSE}
+monde_secteurs <- table_monde %>% 
+  group_by(produits) %>%
+  filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_select),
+         agg.producteur_impact=sum(GES_impact_S_select),
+         agg.VA_impact=sum(impact_VA_select),
+         agg.production=sum(production_pays),
+         agg.demande_finale=sum(DF_tot)) %>%
+  ungroup() %>% 
+  pivot_longer(
+    cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
+    names_to = "indicator",
+    values_to = "impact") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= produits, 
+        y = impact/10^12,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") +
+  theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts",
+       x ="Secteurs", y = "Impact GES (Gt CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
+```
+
+```{r monde secteurs, echo=FALSE}
+monde_secteurs
+```
+
 #### europe
+
+```{r nomenclatures et header EU, echo=FALSE}
+year <- 2015
+br <- "CPA2002_Niv1"
+br_pays <- "EU1"
+
+
+path_results_tables <- str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/")
+
+table_EU <- readRDS(str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
+```
 SECTEURS EUROPE SEULEMENT SI GROSSE DIFF
 
 ```{r calculs intro}
@@ -119,9 +171,10 @@ IO_all_ponderation=merge(IO_all,pib,by.x="nom_pays")
 IO_all_ponderation=merge(IO_all_ponderation,pop,by.x="nom_pays")
 
 #Plot monde secteurs
-EU_secteurs <- IO_all %>% 
+EU_secteurs <- table_EU %>% 
   group_by(produits) %>%
-  filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
+  filter(produits != "SERVICES EXTRA-TERRITORIAUX",
+         nom_pays != "Reste du monde") %>%
   mutate(agg.demande_impact=sum(GES_impact_M_select),
          agg.producteur_impact=sum(GES_impact_S_select),
          agg.VA_impact=sum(impact_VA_select),
@@ -243,9 +296,9 @@ EU_secteurs_VA_norm <- table_EU %>%
   scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), values = c("yellow", "tomato","slateblue1","slateblue"))
 
 EU_groupes_pays <- IO_all_ponderation %>%
-  mutate(level_income = ifelse(PIB.hab <= 20000, "poorest",
-                            ifelse(PIB.hab > 20000 & PIB.hab <= 35000, "mid",
-                                   "richest"))) %>% 
+  mutate(level_income = ifelse(PIB.hab < 20000, "<20,000€",
+                            ifelse(PIB.hab >= 20000 & PIB.hab <= 35000, "20,000-35,000 €",
+                                   ">35,000 €"))) %>% 
   #filter(nom_pays != "Reste du monde") %>%
   group_by(nom_pays) %>%
   mutate(agg.demande_impact=sum(GES_impact_M_select),
@@ -276,6 +329,39 @@ EU_groupes_pays <- IO_all_ponderation %>%
     labels = c("Demande", "Production","VA"), 
     values = c("indianred1", "cornflowerblue","orange1")) +
   facet_grid(~level_income, scales="free_x")
+
+EU_pays_pondere=IO_all_ponderation %>% 
+  #filter(nom_pays != "Reste du monde") %>%
+  group_by(nom_pays) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_select),
+         agg.producteur_impact=sum(GES_impact_S_select),
+         agg.VA_impact=sum(impact_VA_select),
+         agg.production=sum(production_pays),
+         agg.demande_finale=sum(DF_tot),
+         agg.VA=sum(VA_pays)) %>%
+  ungroup() %>%
+  mutate(categorie.produit=substr(produits, 1,5)) %>% 
+  pivot_longer(
+    cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
+    names_to = "indicator",
+    values_to = "impact") %>%
+  mutate(norm=(impact/population)/1000) %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= nom_pays, 
+        y = norm,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") +
+  theme(axis.text.x = element_text(angle = 25, size=10, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts",
+       x ="Région ou pays", y = "Impact GES (tCO2eq/cap)",
+       fill="Indicateur") +
+  scale_fill_manual(labels = c("Demande", "Production","VA"), 
+                    values = c("indianred1", "cornflowerblue","orange1"))
 ```
 
 
@@ -285,7 +371,10 @@ EU_groupes_pays <- IO_all_ponderation %>%
 Les trois graphiques au niveau européen sont inclus pour avoir une vision plus globale.
 
 ```{r monde pays, echo=FALSE, fig.cap="D'importantes disparités dans les impacts des pays de l'UE"}
-EU_pays
+
+ggarrange(EU_pays, EU_pays_pondere,
+          common.legend = TRUE, labels=NULL,
+          ncol = 1, nrow = 2)
 ```
 
 Dans l'Union Européenne, la plupart des pays sont nets demandeurs d'émissions. L'Union dans son ensemble est également nette demandeuse d'émissions (le reste du monde produit plus d'émissions qu'il n'en demande). Certains pays européens sont nets producteurs (la Bulgarie, Chypre, l'Estonie, la Grèce, la Pologne, le Portugal, la République Tchèque) mais la différence n'est flagrante que pour quatre d'entre eux.
@@ -296,7 +385,7 @@ Les petits pays et certains pays d'Europe du Nord ont le plus faible impact (Chy
 
 
 
-```{r monde secteurs, echo=FALSE}
+```{r EU secteurs, echo=FALSE}
 EU_secteurs
 ```
 
@@ -338,6 +427,48 @@ Le secteur "ACTIVITES DES MENAGES" est le plus avantagé par l'approche producte
 
 ```{r parts impacts pays, echo=FALSE}
 #figure_pays
+radar_data3 = IO_all_ponderation %>% 
+  filter(nom_pays != "Reste du monde") %>%
+  group_by(nom_pays) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_select/population)/1000,
+         agg.producteur_impact=sum(GES_impact_S_select/population)/1000,
+         agg.VA_impact=sum(impact_VA_select/population)/1000) %>%
+  ungroup() %>%
+  distinct(nom_pays,agg.demande_impact,agg.producteur_impact,agg.VA_impact) 
+radar_data3.pays=radar_data3$nom_pays
+radar_data3=radar_data3%>%select(-nom_pays) %>%  t() %>% 
+  as.data.frame() %>%
+  `colnames<-`(radar_data3.pays) %>%
+  add_rownames( var = "group" ) 
+
+ggradar(radar_data3,
+        axis.label.size = 2,
+        axis.label.offset = 1.1,
+        grid.min = 0,
+        grid.max = max(radar_data3[,-1]),
+        grid.line.width=0.1,
+        label.gridline.min = FALSE,
+        gridline.min.colour="gray",
+        gridline.min.linetype="longdash",
+        label.gridline.mid = FALSE,
+        gridline.mid.colour="gray",
+        gridline.mid.linetype="longdash",
+        label.gridline.max = FALSE,
+        gridline.max.colour="gray",
+        gridline.max.linetype="longdash",
+        group.line.width = 0.5,
+        group.point.size = 1,
+        background.circle.transparency=0,
+        legend.title = "Indicateur",
+        legend.text.size = 10,
+        fill=TRUE,
+        fill.alpha = 0.25)+
+  theme(legend.title = element_text(size=12)) +
+  scale_fill_manual(labels = c("Demande", "Production","VA"), #
+                    values = c("indianred1", "cornflowerblue","orange1")) +
+  scale_colour_manual(labels = c("Demande", "Production","VA"), #
+                      values = c("indianred1", "cornflowerblue","orange1")) +
+  guides(fill="none")
 ```
 
 EX FIGURE_PAYS
@@ -360,6 +491,6 @@ PAR UNITE PRODUITE (V)
 
 EDIT GRAPH VA (AUSSI AJOUTER GRAPH NORMALISE PAR EURO DE VA) (V)
 
-AJOUTER UN RADAR PAR PAYS OU CHAQUE AXE EST UN SECTEUR (PE CHOISIR QQUES PAYS POUR LE DOC)
+AJOUTER UN RADAR PAR PAYS OU CHAQUE AXE EST UN SECTEUR (PE CHOISIR QQUES PAYS POUR LE DOC) (V)
 
 GROUPES DE PIB PAR HABITANT AU LIEU DE REGIONS, TROIS OU QUATRE CATEGORIES  (V)
