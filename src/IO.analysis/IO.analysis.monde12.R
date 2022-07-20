@@ -34,7 +34,10 @@ colnames(S_volume)<-rownames(X)
 
 #Matrice M (impact demande et CI)
 M <- S %*% L 
+
 #pour avoir en volume, contribution de chaque secteur à la demande totale de ce pays
+##contribution de chaque secteur à la DF de ce pays: 
+##colonne Y divisée par somme colonne (total de chaque DF)
 Y_comp.tot<-colSums(Y)
 y_1 <- 1/Y_comp.tot
 y_1[is.infinite(y_1)] <- 0 
@@ -82,15 +85,8 @@ S.VA[is.nan(S.VA)]
 S.VA_volume <- S.VA %*% diag(unlist(VA))
 colnames(S_volume)<-rownames(X)
 
-#mauvais calcul
-test_volume <- M %*% as.matrix(VA)
-test_volume.dim=test_volume %*% t(VA.share)
-
-#calcul d'après paper
-t=L%*%as.matrix(VA)
-
 #Conversion des impacts production et demande
-listdf=list(S=Fe,M=M_volume,S.VA=S.VA_volume.dim)
+listdf=list(S=Fe,M=M_volume,S.VA=S.VA_volume)
 index=1
 for (matrix in listdf) {
   GES_list <- list()
@@ -120,7 +116,7 @@ for (matrix in listdf) {
 #impact GES producteur
 GES_impact_S=as.numeric(unlist(GES_impact_S)) %>% as.data.frame(row.names=rownames(Z), col.names=GES_impact_S)
 #impact GES demande
-GES_impact_M=as.numeric(unlist(GES_impact_M)) %>% as.data.frame(row.names=colnames(Y), col.names=GES_impact_M)
+GES_impact_M=as.numeric(unlist(GES_impact_M)) %>% as.data.frame(row.names=rownames(Z), col.names=GES_impact_M)
 #passage de l'impact GES producteur à l'impact VA (reventilation via les parts de VA)
 impact_VA = (VA.share * sum(GES_impact_S)) %>% as.data.frame(row.names=rownames(Z), col.names=impact_VA)
 
@@ -189,26 +185,12 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   GES_impact_S_select = GES_impact_S_select%>%unlist()%>%as.numeric()
   
   #Impacts demande du pays
-  #GES_impact_M_select <- GES_impact_M
-  #####GES_impact_M_select[-str_which(rownames(GES_impact_M_select),as.character(pays)),]<-0
-  
-  #contribution de chaque secteur à la DF de ce pays: 
-  #colonne Y divisée par somme colonne (total de chaque DF)
-  Y_select=Y
-  Y_select[,-str_which(colnames(Y_select),as.character(pays))]<-0
-  Y_sectors.tot<-colSums(Y_select)
-  y_2 <- 1/Y_sectors.tot
-  y_2[is.infinite(y_2)] <- 0 
-  y_2d <- as.numeric(y_2) %>% diag
-  Y_sectors.share <- as.matrix(Y) %*% y_2d
-  
-  GES_impact_M_select = GES_impact_M
-  GES_impact_M_select[,-str_which(colnames(GES_impact_M_select),as.character(pays))]<-0
-  GES_impact_M_select = t(GES_impact_M_select) %*% t(Y_sectors.share)
+  GES_impact_M_select <- GES_impact_M
+  GES_impact_M_select[-str_which(rownames(GES_impact_M_select),as.character(pays)),]<-0
   GES_impact_M_select=GES_impact_M_select%>%unlist()%>%as.numeric()
   
   #Impacts VA du pays
-  impact_VA_select <- impact_VA
+  impact_VA_select <- GES_impact_S.VA
   #Sélectionner les impacts de la production du pays en question
   impact_VA_select[-str_which(rownames(impact_VA_select),as.character(pays)),]<-0
   impact_VA_select = impact_VA_select%>%unlist()%>%as.numeric()
@@ -437,7 +419,7 @@ monde_pays2 <- IO_all %>%
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 monde_pays2
 ggsave(filename=str_c("plot.monde_pays.",format), 
-       plot=monde_pays, 
+       plot=monde_pays2, 
        device="pdf",
        path=path_results_plots,
        width = 280 , height = 200 , units = "mm", dpi = 600)
@@ -505,8 +487,8 @@ rep <- IO_all %>%
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Impacts",
-       x ="Secteurs", y = "Impact GES (CO2eq)",
+  labs(title="Volume",
+       x ="Secteurs", y = "Volume (euros)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 rep
@@ -519,7 +501,7 @@ monde_secteurs_norm <- IO_all %>%
   filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
   mutate(agg.demande_impact=sum(GES_impact_M_select)/sum(DF_tot),
          agg.producteur_impact=sum(GES_impact_S_select)/sum(production_pays),
-         agg.VA_impact=sum(GES_impact_S_select)/sum(VA_pays),
+         agg.VA_impact=sum(impact_VA_select)/sum(VA_pays),
          agg.production=sum(production_pays),
          agg.demande_finale=sum(DF_tot),
          agg.VA=sum(VA_pays)) %>%
