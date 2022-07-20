@@ -29,11 +29,22 @@ x_1[is.infinite(x_1)] <- 0
 x_1d <- as.numeric(x_1) %>% diag()
 S <- (as.matrix(Fe) %*% x_1d) %>% `colnames<-`(rownames(X))
 S[is.nan(S)]
-S_volume <- S %*% as.matrix(X)
+S_volume <- S %*% diag(unlist(X))
+colnames(S_volume)<-rownames(X)
 
 #Matrice M (impact demande et CI)
 M <- S %*% L 
-M_volume <- M %*% as.matrix(Y)
+#pour avoir en volume, contribution de chaque secteur à la demande totale de ce pays
+Y_comp.tot<-colSums(Y)
+y_1 <- 1/Y_comp.tot
+y_1[is.infinite(y_1)] <- 0 
+y_1d <- as.numeric(y_1) %>% diag
+Y.share <- as.matrix(Y) %*% y_1d
+demand=colSums(Y)
+demandd=demand%*%t(Y.share)
+
+M_volume <- M %*% diag(as.data.frame(demandd))
+colnames(M_volume)<-rownames(X)
 
 #Valeur ajoutée
 #Sélection des variables correspondant à la VA, et somme des composantes
@@ -62,17 +73,21 @@ VA=ValeurAjoutee.calcul(X,Z)
 VA.share=VA/sum(VA)
 sum(VA.share)
 
-##
+##TEST CALCUL
 va_1 <- 1/VA
 va_1[is.infinite(as.numeric(unlist(va_1))),] <- 0 
 va_1d <- as.numeric(unlist(va_1)) %>% diag()
 S.VA <- (as.matrix(Fe) %*% va_1d) %>% `colnames<-`(rownames(VA))
 S.VA[is.nan(S.VA)]
-S.VA_volume <- S.VA %*% as.matrix(VA)
-S.VA_volume.dim=S.VA_volume %*% t(VA.share)
+S.VA_volume <- S.VA %*% diag(unlist(VA))
+colnames(S_volume)<-rownames(X)
 
+#mauvais calcul
 test_volume <- M %*% as.matrix(VA)
 test_volume.dim=test_volume %*% t(VA.share)
+
+#calcul d'après paper
+t=L%*%as.matrix(VA)
 
 #Conversion des impacts production et demande
 listdf=list(S=Fe,M=M_volume,S.VA=S.VA_volume.dim)
@@ -179,7 +194,6 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   
   #contribution de chaque secteur à la DF de ce pays: 
   #colonne Y divisée par somme colonne (total de chaque DF)
-  ###a supprimer??
   Y_select=Y
   Y_select[,-str_which(colnames(Y_select),as.character(pays))]<-0
   Y_sectors.tot<-colSums(Y_select)
@@ -517,7 +531,7 @@ monde_secteurs_norm <- IO_all %>%
   as.data.frame() %>% 
   ggplot( 
     aes(x= produits, 
-        y = impact,
+        y = impact/1000000,
         fill = indicator)) +
   geom_bar(stat='identity',position = "dodge") +
   theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
@@ -530,8 +544,50 @@ monde_secteurs_norm <- IO_all %>%
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 monde_secteurs_norm
-ggsave(filename=str_c("plot.monde_secteurs.",format), 
+ggsave(filename=str_c("plot.monde_secteurs_norm.",format), 
        plot=monde_secteurs_norm, 
        device="pdf",
        path=path_results_plots,
        width = 280 , height = 200 , units = "mm", dpi = 600)
+
+#DISPLAY
+ggarrange(monde_secteurs, monde_secteurs_norm)
+
+#Plot mondial par région normalisé par euro de ..
+monde_pays_norm <- IO_all %>% 
+  group_by(nom_pays) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_select)/sum(DF_tot),
+         agg.producteur_impact=sum(GES_impact_S_select)/sum(production_pays),
+         agg.VA_impact=sum(GES_impact_S_select)/sum(VA_pays),
+         agg.production=sum(production_pays),
+         agg.demande_finale=sum(DF_tot),
+         agg.VA=sum(VA_pays)) %>%
+  ungroup() %>%
+  pivot_longer(
+    cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
+    names_to = "indicator",
+    values_to = "impact") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= nom_pays, 
+        y = impact/1000000,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") +
+  theme(axis.text.x = element_text(angle = 25, size=10, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impact environnemental par région du monde",
+       x ="Région ou pays", y = "Impact GES (kg CO2eq / million €)",
+       fill="Indicateur") +
+  scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
+monde_pays_norm
+ggsave(filename=str_c("plot.monde_pays_norm.",format), 
+       plot=monde_pays_norm, 
+       device="pdf",
+       path=path_results_plots,
+       width = 280 , height = 200 , units = "mm", dpi = 600)
+
+#DISPLAY
+ggarrange(monde_pays, monde_pays_norm)
