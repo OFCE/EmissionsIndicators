@@ -1,5 +1,5 @@
 ---
-title: "Rapport résultats EU : indicateurs de comptabilité carbone"
+title: "Rapport des résultats : comptabilité carbone et choix des indicateurs"
 author: "Léa Settepani"
 date: "`r Sys.Date()`"
 output: 
@@ -85,6 +85,7 @@ table_monde <- readRDS(str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds
 ```
 
 ```{r monde datawork, include=FALSE}
+##par secteur
 monde_secteurs <- table_monde %>% 
   group_by(produits) %>%
   filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
@@ -113,10 +114,51 @@ monde_secteurs <- table_monde %>%
        x ="Secteurs", y = "Impact GES (Gt CO2eq)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
+
+##Par région du monde
+monde_pays2 <- IO_all %>% 
+  mutate(nom_pays2=ifelse(nom_pays=="France"|nom_pays=="EU"|nom_pays=="Europe", 
+                "Europe",
+                ifelse(nom_pays=="Amerique du N."|nom_pays=="US",
+                       "Amerique du N.",
+                       ifelse(nom_pays=="Chine"|nom_pays=="Russie"|nom_pays=="Asie",
+                              "Asie",
+                              nom_pays)))) %>%
+  group_by(nom_pays2) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_select),
+         agg.producteur_impact=sum(GES_impact_S_select),
+         agg.VA_impact=sum(impact_VA_select),
+         agg.production=sum(production_pays),
+         agg.demande_finale=sum(DF_tot),
+         agg.VA=sum(VA_pays)) %>%
+  ungroup() %>%
+  pivot_longer(
+    cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
+    names_to = "indicator",
+    values_to = "impact") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= nom_pays2, 
+        y = impact/10^12,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") +
+  theme(axis.text.x = element_text(angle = 25, size=10, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impact environnemental par région du monde",
+       x ="Région ou pays", y = "Impact GES (Gt CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 ```
 
-```{r monde secteurs, echo=FALSE}
+```{r monde secteurs, echo=FALSE, fig.cap="Des inégalités d'impacts qui varient selon l'approche choisie"}
 monde_secteurs
+```
+
+```{r monde secteurs, echo=FALSE, fig.cap="Des inégalités d'impacts qui varient selon l'approche choisie"}
+monde_pays2
 ```
 
 #### europe
