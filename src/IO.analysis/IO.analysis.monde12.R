@@ -162,7 +162,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   
   #Vecteur production du pays
   production_pays <- X
-  production_pays[-str_which(rownames(production_pays),as.character(pays)),]<-0
+  production_pays[-str_which(rownames(VA_pays),as.character(pays)),]<-0
   production_pays=as.numeric(unlist(production_pays))
   
   #Vecteur VA du pays
@@ -557,6 +557,33 @@ rep <- IO_all %>%
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 rep
+
+table_monde %>% 
+  filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
+  group_by(nom_pays) %>%
+  mutate(agg.production=sum(production_pays),
+         agg.demande_finale=sum(DF_tot),
+         agg.VA=sum(VA_pays)) %>%
+  ungroup() %>% 
+  pivot_longer(
+    cols = c("agg.production","agg.demande_finale","agg.VA"),
+    names_to = "indicator",
+    values_to = "volume") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= nom_pays, 
+        y = volume/1000000,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") +
+  theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Volume",
+       x ="Région ou pays", y = "Volume (millions €)",
+       fill="Indicateur") +
+  scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 
 #
 rep

@@ -240,14 +240,22 @@ monde_secteurs_VA=table_monde %>%
 ```
 
 ```{r monde pays, echo=FALSE, fig.cap="Des inégalités d'impacts qui varient selon l'approche choisie"}
-ggarrange(repartition_pays, monde_pays2,
-          ncol = 1,nrow = 2)
+repartition_pays
+monde_pays2
 ```
+
+Countries that produce (and demand) the most are the US and China, followed by other Asian countries and EU. When looking at aggregate world regions, Asia (including China) has by far the largest environmental impact: three times as large as the second largest impact (North America). The smallest impact is attributed to Oceania (and the second smallest to South America).
+
+Regions can be divided into two groups: net exporters of GHG emissions (Africa, Asia, Middle East) and net importers of GHG emissions (America and Europe) ^[Oceania's situation is roughly balanced.].
+
+Inequalities in environmental impact are larger with PBE (or VBE) than with CBE. But regardless of the approach chosen, the attribution of responsibility preserves the same ranking across regions.
 
 ```{r monde secteurs volume, echo=FALSE, fig.cap="Des inégalités d'impacts qui varient selon l'approche choisie"}
 ggarrange(repartition_secteurs, monde_secteurs,
           ncol = 1,nrow = 2)
 ```
+
+The repartition between sectors is very different because the sectors that produce (and demand) the most are not those with the largest impact.
 
 ```{r monde secteurs impact, echo=FALSE, fig.cap="Des inégalités d'impacts qui varient selon l'approche choisie", dev="png", dpi=400}
 ggarrange(monde_secteurs, monde_secteurs_VA,
