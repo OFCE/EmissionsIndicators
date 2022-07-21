@@ -22,10 +22,10 @@ library(ggradar)
 intro meta sur la question de la resp, contextualiser
 rappel des concepts et la problématique
 
-## Revue
+# Revue
 principales études
 
-## Description des données utilisées
+# Description des données utilisées
 
 ```{r paths generaux, include=FALSE}
 year = 2015
@@ -37,7 +37,7 @@ path_codedata <- str_c(path_user,"Documents/GitHub/EmissionsIndicators/")
 path_data.source <- str_c(path_user,"Documents/GitHub/EmissionsIndicators/data_in/")
 ```
 
-### Données
+## Données
 
 Données exiobase pour le modèle input-output.
 
@@ -66,16 +66,15 @@ pop[pop$nom_pays=="Allemagne (jusqu'en 1990, ancien territoire de la RFA)",]$nom
 pop[pop$nom_pays=="Tchéquie",]$nom_pays = "République Tchèque"
 ```
 
-### Démarche et indicateurs
+## Démarche et indicateurs
 
 
 
-## Visualisation et analyse des résultats
+# Visualisation et analyse des résultats
 
-### échelle monde pour le cadre
+## échelle monde pour le cadre
 
 ```{r nomenclatures et header monde, echo=FALSE}
-year <- 2015
 br <- "CPA2002_Niv1"
 br_pays <- "monde.12"
 
@@ -86,12 +85,67 @@ table_monde <- readRDS(str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds
 
 ```{r monde datawork, include=FALSE}
 ##par secteur
+repartition_secteurs <- table_monde %>% 
+  group_by(produits) %>%
+  filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
+  mutate(agg.production=sum(production_pays),
+         agg.demande_finale=sum(DF_tot),
+         agg.VA=sum(VA_pays)) %>%
+  ungroup() %>% 
+  pivot_longer(
+    cols = c("agg.production","agg.demande_finale","agg.VA"),
+    names_to = "indicator",
+    values_to = "volume") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= produits, 
+        y = volume/1000000,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") +
+  theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Volume",
+       x ="Secteurs", y = "Volume (millions €)",
+       fill="Indicateur") +
+  scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
+
+repartition_pays <- table_monde %>% 
+  filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
+  group_by(nom_pays) %>%
+  mutate(agg.production=sum(production_pays),
+         agg.demande_finale=sum(DF_tot),
+         agg.VA=sum(VA_pays)) %>%
+  ungroup() %>% 
+  pivot_longer(
+    cols = c("agg.production","agg.demande_finale","agg.VA"),
+    names_to = "indicator",
+    values_to = "volume") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= nom_pays, 
+        y = volume/1000000,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") +
+  theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Volume",
+       x ="Région ou pays", y = "Volume (millions €)",
+       fill="Indicateur") +
+  scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
+
+#impacts
 monde_secteurs <- table_monde %>% 
   group_by(produits) %>%
   filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
-  mutate(agg.demande_impact=sum(GES_impact_M_select),
-         agg.producteur_impact=sum(GES_impact_S_select),
-         agg.VA_impact=sum(impact_VA_select),
+  mutate(agg.demande_impact=sum(GES_impact_M_vol_select),
+         agg.producteur_impact=sum(GES_impact_S_vol_select),
+         agg.VA_impact=sum(GES_impact_S.VA_vol_select),
          agg.production=sum(production_pays),
          agg.demande_finale=sum(DF_tot)) %>%
   ungroup() %>% 
@@ -106,6 +160,7 @@ monde_secteurs <- table_monde %>%
         fill = indicator)) +
   geom_bar(stat='identity',position = "dodge") +
   theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
+        axis.title.y = element_text(size=7),
         plot.title =element_text(size=12, face='bold', hjust=0.5),
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
@@ -116,7 +171,7 @@ monde_secteurs <- table_monde %>%
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 
 ##Par région du monde
-monde_pays2 <- IO_all %>% 
+monde_pays2 <- table_monde %>% 
   mutate(nom_pays2=ifelse(nom_pays=="France"|nom_pays=="EU"|nom_pays=="Europe", 
                 "Europe",
                 ifelse(nom_pays=="Amerique du N."|nom_pays=="US",
@@ -125,9 +180,9 @@ monde_pays2 <- IO_all %>%
                               "Asie",
                               nom_pays)))) %>%
   group_by(nom_pays2) %>%
-  mutate(agg.demande_impact=sum(GES_impact_M_select),
-         agg.producteur_impact=sum(GES_impact_S_select),
-         agg.VA_impact=sum(impact_VA_select),
+  mutate(agg.demande_impact=sum(GES_impact_M_vol_select),
+         agg.producteur_impact=sum(GES_impact_S_vol_select),
+         agg.VA_impact=sum(GES_impact_S.VA_vol_select),
          agg.production=sum(production_pays),
          agg.demande_finale=sum(DF_tot),
          agg.VA=sum(VA_pays)) %>%
@@ -148,20 +203,59 @@ monde_pays2 <- IO_all %>%
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
   labs(title="Impact environnemental par région du monde",
-       x ="Région ou pays", y = "Impact GES (Gt CO2eq)",
+       x ="Région", y = "Impact GES (Gt CO2eq)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
+
+monde_secteurs_VA=table_monde %>% 
+  #par produits
+  group_by(produits) %>%
+  filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>% #toujours=0
+  mutate(agg.Etat=sum(Etat),
+         agg.Travail=sum(Travail),
+         agg.Capital=sum(Capital),
+         agg.Cout=sum(Cout_production)) %>%
+  ungroup() %>%
+  #format long pour afficher les deux indicateurs
+  pivot_longer(
+    cols = c("agg.Etat","agg.Travail","agg.Capital","agg.Cout"),
+    names_to = "composante",
+    values_to = "impact") %>%
+  ggplot( 
+    aes(x= produits, 
+        y = impact/10^12,
+        fill = composante)) +
+  geom_bar(stat='identity',
+           position = position_stack(reverse = FALSE)) +
+  theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Décomposition de l'impact environnemental",
+       x ="Secteurs", y = "Impact GES (Gt CO2eq)",
+       fill="Rémunération de :") +
+  scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), 
+                    values = c("yellow", "tomato","slateblue1","slateblue"))
 ```
 
-```{r monde secteurs, echo=FALSE, fig.cap="Des inégalités d'impacts qui varient selon l'approche choisie"}
-monde_secteurs
+```{r monde pays, echo=FALSE, fig.cap="Des inégalités d'impacts qui varient selon l'approche choisie"}
+ggarrange(repartition_pays, monde_pays2,
+          ncol = 1,nrow = 2)
 ```
 
-```{r monde secteurs, echo=FALSE, fig.cap="Des inégalités d'impacts qui varient selon l'approche choisie"}
-monde_pays2
+```{r monde secteurs volume, echo=FALSE, fig.cap="Des inégalités d'impacts qui varient selon l'approche choisie"}
+ggarrange(repartition_secteurs, monde_secteurs,
+          ncol = 1,nrow = 2)
 ```
 
-#### europe
+```{r monde secteurs impact, echo=FALSE, fig.cap="Des inégalités d'impacts qui varient selon l'approche choisie", dev="png", dpi=400}
+ggarrange(monde_secteurs, monde_secteurs_VA,
+          ncol = 1,nrow = 2)
+```
+
+
+## europe
 
 ```{r nomenclatures et header EU, echo=FALSE}
 year <- 2015
@@ -359,7 +453,7 @@ EU_groupes_pays <- IO_all_ponderation %>%
         y = impact/10^12,
         fill = indicator)) +
   geom_bar(stat='identity',position = "dodge") +
-  theme(axis.text.x = element_text(angle = 25, size=10, vjust = 1, hjust=1),
+  theme(axis.text.x = element_text(angle = 25, size=8, vjust = 1, hjust=1),
         plot.title =element_text(size=12, face='bold', hjust=0.5),
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
@@ -412,7 +506,7 @@ EU_pays_pondere=IO_all_ponderation %>%
 
 Les trois graphiques au niveau européen sont inclus pour avoir une vision plus globale.
 
-```{r monde pays, echo=FALSE, fig.cap="D'importantes disparités dans les impacts des pays de l'UE"}
+```{r EU pays, echo=FALSE, fig.cap="D'importantes disparités dans les impacts des pays de l'UE"}
 
 ggarrange(EU_pays, EU_pays_pondere,
           common.legend = TRUE, labels=NULL,
@@ -467,7 +561,7 @@ En ce qui concerne la répartition des impacts selon l'approche adoptée, il sem
 Deux secteurs ressortent particulièrement: "ELECTRICITE, GAZ ET EAU" et "PRODUITS D'EXTRACTION" ont à la fois le plus faible impact demande et revenu en proportion, et la plus forte part d'impact producteur.
 Le secteur "ACTIVITES DES MENAGES" est le plus avantagé par l'approche producteur et le plus désavantagé par l'approche revenus.
 
-```{r parts impacts pays, echo=FALSE}
+```{r parts impacts pays, echo=FALSE, message=FALSE, warning=FALSE}
 #figure_pays
 radar_data3 = IO_all_ponderation %>% 
   filter(nom_pays != "Reste du monde") %>%
@@ -537,6 +631,6 @@ AJOUTER UN RADAR PAR PAYS OU CHAQUE AXE EST UN SECTEUR (PE CHOISIR QQUES PAYS PO
 
 GROUPES DE PIB PAR HABITANT AU LIEU DE REGIONS, TROIS OU QUATRE CATEGORIES  (V)
 
-DIAGONALISER POUR TROUVER LES VOLUMES DE LA BONNE DIMENSION
+DIAGONALISER POUR TROUVER LES VOLUMES DE LA BONNE DIMENSION (V)
 
-FAIRE LES RADARS AVEC LES MULTIPLICATEURS PLUTOT QUE VOLUMES
+FAIRE LES RADARS AVEC LES MULTIPLICATEURS PLUTOT QUE VOLUMES (V)

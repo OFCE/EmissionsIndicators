@@ -34,7 +34,6 @@ colnames(S_volume)<-rownames(X)
 
 #Matrice M (impact demande et CI)
 M <- S %*% L 
-
 #pour avoir en volume, contribution de chaque secteur à la demande totale de ce pays
 ##contribution de chaque secteur à la DF de ce pays: 
 ##colonne Y divisée par somme colonne (total de chaque DF)
@@ -71,7 +70,11 @@ ValeurAjoutee.calcul <- function(prod,IO.Z){
   colnames(VA) <- "valeur_ajoutee"
   return(VA)
 }
+
+#####Plus court (utiliser les fonctions)
+Fe_VA=Composantes.VA(Fe)
 VA=ValeurAjoutee.calcul(X,Z)
+
 #Parts de VA
 VA.share=VA/sum(VA)
 sum(VA.share)
@@ -85,7 +88,7 @@ S.VA[is.nan(S.VA)]
 S.VA_volume <- S.VA %*% diag(unlist(VA))
 colnames(S_volume)<-rownames(X)
 
-#Conversion des impacts production et demande
+#Conversion des impacts production, demande et VA
 listdf=list(S_coef=S,S_vol=Fe,M_coef=M,M_vol=M_volume,S.VA_coef=S.VA,S.VA_vol=S.VA_volume)
 index=1
 for (matrix in listdf) {
@@ -110,39 +113,25 @@ for (matrix in listdf) {
     GES_list[["SF6"]] +
     GES_list[["HFC"]] +
     GES_list[["PFC"]]
-  assign(str_c("GES_impact_",names(listdf)[index]), GES_list[["GES"]])
+  assign(str_c("GES_impact_",names(listdf)[index]), 
+         as.numeric(unlist(GES_list[["GES"]])) %>% 
+           as.data.frame(row.names=rownames(Z), 
+                         col.names=str_c("GES_impact_",names(listdf)[index])))
   index=index+1
 }
-#impact GES producteur
-GES_impact_S_coef=as.numeric(unlist(GES_impact_S_coef)) %>% as.data.frame(row.names=rownames(Z), col.names=GES_impact_S_coef)
-GES_impact_S_vol=as.numeric(unlist(GES_impact_S_vol)) %>% as.data.frame(row.names=rownames(Z), col.names=GES_impact_S_vol)
-#impact GES demande
-GES_impact_M_coef=as.numeric(unlist(GES_impact_M_coef)) %>% as.data.frame(row.names=rownames(Z), col.names=GES_impact_M_coef)
-GES_impact_M_vol=as.numeric(unlist(GES_impact_M_vol)) %>% as.data.frame(row.names=rownames(Z), col.names=GES_impact_M_vol)
-#re impact GES VA
-GES_impact_S.VA_coef=as.numeric(unlist(GES_impact_S.VA_coef)) %>% as.data.frame(row.names=rownames(Z), col.names=GES_impact_S.VA_coef)
-GES_impact_S.VA_vol=as.numeric(unlist(GES_impact_S.VA_vol)) %>% as.data.frame(row.names=rownames(Z), col.names=GES_impact_S.VA_vol)
 
+#précédent calcul:
 #passage de l'impact GES producteur à l'impact VA (reventilation via les parts de VA)
 impact_VA = (VA.share * sum(GES_impact_S)) %>% as.data.frame(row.names=rownames(Z), col.names=impact_VA)
 
 
 #Valeur ajoutée par composante: impact GES par composante
 Fe_VA$rows = rownames(Fe_VA)
-Fe_VA_compo = Fe_VA %>% pivot_longer(
-  cols = c("Etat","Travail","Capital","Operating surplus: Consumption of fixed capital"),
-  names_to = "beneficiary",
-  values_to = "value") %>% 
-  mutate(share = value / sum(VA)) %>%
-  select(beneficiary,share,rows) %>%
-  as.data.frame() %>%
-  pivot_wider(names_from = beneficiary,
-              values_from = share) %>%
-  select(-rows) %>% as.data.frame()
-row.names(Fe_VA_compo) <- Fe_VA$rows
-GES_VA_compo = Fe_VA_compo * sum(GES_impact_S)
+Fe_VA_compo=Fe_VA[,c(6,12:14)]/rowSums(Fe_VA[,c(6,12:14)]) 
+GES_VA_compo = Fe_VA_compo * rowSums(GES_impact_S.VA_vol)
+GES_VA_compo[is.na(GES_VA_compo)] <- 0
 GES_VA_compo=rename(GES_VA_compo, "Cout_production"="Operating surplus: Consumption of fixed capital")
-(sum(GES_VA_compo)-sum(GES_impact_S))/sum(GES_VA_compo)*100
+(sum(GES_VA_compo)-sum(GES_impact_S_vol))/sum(GES_VA_compo)*100
 
 
 #Chemin pour exporter les données
@@ -256,9 +245,9 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
     #par produits
     group_by(produits) %>%
     filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>% #toujours=0
-    mutate(agg.demande_impact=sum(GES_impact_M_select),
-           agg.producteur_impact=sum(GES_impact_S_select),
-           agg.VA_impact=sum(impact_VA_select),
+    mutate(agg.demande_impact=sum(GES_impact_M_vol_select),
+           agg.producteur_impact=sum(GES_impact_S_vol_select),
+           agg.VA_impact=sum(GES_impact_S.VA_vol_select),
            agg.production=sum(production_pays),
            agg.demande_finale=sum(DF_tot),
            agg.VA=sum(VA_pays)) %>%
@@ -316,7 +305,8 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
     labs(title="Décomposition de l'impact environnemental par secteur",
          x ="Secteurs", y = "Impact GES (Gt CO2eq)",
          fill="Rémunération de :") +
-    scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), values = c("gray95", "gray85","gray75","gray65"))
+    scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), 
+                      values = c("yellow", "tomato","slateblue1","slateblue"))
   ggsave(filename=str_c("plot.secteurs.va_", pays, ".",format), 
          plot=plot2, 
          device="pdf",
@@ -341,15 +331,19 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
                   axis.label.size = 2,
                   axis.label.offset = 1.1,
                   grid.min = 0,
+                  grid.mid = max(radar.data[,-1])/2,
                   grid.max = max(radar.data[,-1]),
                   grid.line.width=0.1,
+                  values.radar = c("0", floor(max(radar.data[,-1])/2), floor(max(radar.data[,-1]))),
+                  grid.label.size = 4,
+                  gridline.label.offset = 0.3 * (max(radar.data[,-1])+150),
                   label.gridline.min = FALSE,
                   gridline.min.colour="gray",
                   gridline.min.linetype="longdash",
-                  label.gridline.mid = FALSE,
+                  label.gridline.mid = TRUE,
                   gridline.mid.colour="gray",
                   gridline.mid.linetype="longdash",
-                  label.gridline.max = FALSE,
+                  label.gridline.max = TRUE,
                   gridline.max.colour="gray",
                   gridline.max.linetype="longdash",
                   group.line.width = 0.5,
@@ -359,7 +353,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
                   legend.text.size = 10,
                   fill=TRUE,
                   fill.alpha = 0.25,
-                  plot.title = str_c("Indicateurs pour :", pays))+
+                  plot.title = str_c("Coefficient environnemental pour : ", pays))+
     theme(legend.title = element_text(size=12)) +
     scale_fill_manual(labels = c("Demande", "Production","VA"), #
                       values = c("indianred1", "cornflowerblue","orange1")) +
@@ -372,20 +366,28 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
          path=path_results_plots,
          width = 280 , height = 200 , units = "mm", dpi = 600)
 
-rm(IO, io_table, IO_all)  
+rm(IO, io_table, IO_all, radar.data, plot, plot2, plot3)  
 }
 
 #Créer grand dataframe (monde)
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
+IO_all = IO_all %>%
+  mutate(nom_pays2=ifelse(nom_pays=="France"|nom_pays=="EU"|nom_pays=="Europe", 
+                          "Europe",
+                          ifelse(nom_pays=="Amerique du N."|nom_pays=="US",
+                                 "Amerique du N.",
+                                 ifelse(nom_pays=="Chine"|nom_pays=="Russie"|nom_pays=="Asie",
+                                        "Asie",
+                                        nom_pays))))
 saveRDS(IO_all, str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
 
 #Plot mondial par secteur normalisé par euro de ..
 monde_secteurs <- IO_all %>% 
   group_by(produits) %>%
   filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
-  mutate(agg.demande_impact=sum(GES_impact_M_select),
-         agg.producteur_impact=sum(GES_impact_S_select),
-         agg.VA_impact=sum(impact_VA_select),
+  mutate(agg.demande_impact=sum(GES_impact_M_vol_select),
+         agg.producteur_impact=sum(GES_impact_S_vol_select),
+         agg.VA_impact=sum(GES_impact_S.VA_vol_select),
          agg.production=sum(production_pays),
          agg.demande_finale=sum(DF_tot),
          agg.VA=sum(VA_pays)) %>%
@@ -419,9 +421,9 @@ ggsave(filename=str_c("plot.monde_secteurs.",format),
 #Plot mondial par pays
 monde_pays <- IO_all %>% 
   group_by(nom_pays) %>%
-  mutate(agg.demande_impact=sum(GES_impact_M_select),
-         agg.producteur_impact=sum(GES_impact_S_select),
-         agg.VA_impact=sum(impact_VA_select),
+  mutate(agg.demande_impact=sum(GES_impact_M_vol_select),
+         agg.producteur_impact=sum(GES_impact_S_vol_select),
+         agg.VA_impact=sum(GES_impact_S.VA_vol_select),
          agg.production=sum(production_pays),
          agg.demande_finale=sum(DF_tot),
          agg.VA=sum(VA_pays)) %>%
@@ -455,17 +457,10 @@ ggsave(filename=str_c("plot.monde_pays.",format),
 
 #seulement par régions (pas de pays individuels)
 monde_pays2 <- IO_all %>% 
-  mutate(nom_pays2=ifelse(nom_pays=="France"|nom_pays=="EU"|nom_pays=="Europe", 
-                "Europe",
-                ifelse(nom_pays=="Amerique du N."|nom_pays=="US",
-                       "Amerique du N.",
-                       ifelse(nom_pays=="Chine"|nom_pays=="Russie"|nom_pays=="Asie",
-                              "Asie",
-                              nom_pays)))) %>%
   group_by(nom_pays2) %>%
-  mutate(agg.demande_impact=sum(GES_impact_M_select),
-         agg.producteur_impact=sum(GES_impact_S_select),
-         agg.VA_impact=sum(impact_VA_select),
+  mutate(agg.demande_impact=sum(GES_impact_M_vol_select),
+         agg.producteur_impact=sum(GES_impact_S_vol_select),
+         agg.VA_impact=sum(GES_impact_S.VA_vol_select),
          agg.production=sum(production_pays),
          agg.demande_finale=sum(DF_tot),
          agg.VA=sum(VA_pays)) %>%
@@ -525,7 +520,8 @@ monde_secteurs_VA=IO_all %>%
   labs(title="Décomposition de l'impact environnemental par secteur",
        x ="Secteurs", y = "Impact GES (Gt CO2eq)",
        fill="Rémunération de :") +
-  scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), values = c("gray95", "gray85","gray75","gray65"))
+  scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), 
+                    values = c("yellow", "tomato","slateblue1","slateblue"))
 monde_secteurs_VA
 ggsave(filename=str_c("plot.monde_secteurs_va.", pays, ".",format), 
        plot=monde_secteurs_VA, 
@@ -537,21 +533,18 @@ ggsave(filename=str_c("plot.monde_secteurs_va.", pays, ".",format),
 rep <- IO_all %>% 
   group_by(produits) %>%
   filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
-  mutate(agg.demande_impact=sum(GES_impact_M_select),
-         agg.producteur_impact=sum(GES_impact_S_select),
-         agg.VA_impact=sum(impact_VA_select),
-         agg.production=sum(production_pays),
+  mutate(agg.production=sum(production_pays),
          agg.demande_finale=sum(DF_tot),
          agg.VA=sum(VA_pays)) %>%
   ungroup() %>% 
   pivot_longer(
     cols = c("agg.production","agg.demande_finale","agg.VA"),
     names_to = "indicator",
-    values_to = "impact") %>%
+    values_to = "volume") %>%
   as.data.frame() %>% 
   ggplot( 
     aes(x= produits, 
-        y = impact,
+        y = volume/1000000,
         fill = indicator)) +
   geom_bar(stat='identity',position = "dodge") +
   theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
@@ -560,20 +553,22 @@ rep <- IO_all %>%
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
   labs(title="Volume",
-       x ="Secteurs", y = "Volume (euros)",
+       x ="Secteurs", y = "Volume (millions €)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 rep
 
-ggarrange(monde_secteurs, rep)
+#
+rep
+ggarrange(monde_secteurs, monde_secteurs_VA)
 
 #Plot mondial par secteur normalisé par euro de ..
 monde_secteurs_norm <- IO_all %>% 
   group_by(produits) %>%
   filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
-  mutate(agg.demande_impact=sum(GES_impact_M_select)/sum(DF_tot),
-         agg.producteur_impact=sum(GES_impact_S_select)/sum(production_pays),
-         agg.VA_impact=sum(impact_VA_select)/sum(VA_pays),
+  mutate(agg.demande_impact=sum(GES_impact_M_vol_select)/sum(DF_tot),
+         agg.producteur_impact=sum(GES_impact_S_vol_select)/sum(production_pays),
+         agg.VA_impact=sum(GES_impact_S.VA_vol_select)/sum(VA_pays),
          agg.production=sum(production_pays),
          agg.demande_finale=sum(DF_tot),
          agg.VA=sum(VA_pays)) %>%
@@ -610,9 +605,9 @@ ggarrange(monde_secteurs, monde_secteurs_norm)
 #Plot mondial par région normalisé par euro de ..
 monde_pays_norm <- IO_all %>% 
   group_by(nom_pays) %>%
-  mutate(agg.demande_impact=sum(GES_impact_M_select)/sum(DF_tot),
-         agg.producteur_impact=sum(GES_impact_S_select)/sum(production_pays),
-         agg.VA_impact=sum(GES_impact_S_select)/sum(VA_pays),
+  mutate(agg.demande_impact=sum(GES_impact_M_vol_select)/sum(DF_tot),
+         agg.producteur_impact=sum(GES_impact_S_vol_select)/sum(production_pays),
+         agg.VA_impact=sum(GES_impact_S.VA_vol_select)/sum(VA_pays),
          agg.production=sum(production_pays),
          agg.demande_finale=sum(DF_tot),
          agg.VA=sum(VA_pays)) %>%
