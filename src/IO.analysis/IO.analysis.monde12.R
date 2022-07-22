@@ -42,10 +42,9 @@ y_1 <- 1/Y_comp.tot
 y_1[is.infinite(y_1)] <- 0 
 y_1d <- as.numeric(y_1) %>% diag
 Y.share <- as.matrix(Y) %*% y_1d
-demand=colSums(Y)
-demandd=demand%*%t(Y.share)
+demand=Y_comp.tot%*%t(Y.share)
 
-M_volume <- M %*% diag(as.data.frame(demandd))
+M_volume <- M %*% diag(as.data.frame(demand))
 colnames(M_volume)<-rownames(X)
 
 #Valeur ajoutée
@@ -87,6 +86,13 @@ S.VA <- (as.matrix(Fe) %*% va_1d) %>% `colnames<-`(rownames(VA))
 S.VA[is.nan(S.VA)]
 S.VA_volume <- S.VA %*% diag(unlist(VA))
 colnames(S_volume)<-rownames(X)
+
+
+
+essai=divide(Vect=X,Fe.mat=Fe,Y.mat=Y,L.mat=L,demand = FALSE,volume=TRUE)
+essai2=divide(Vect=VA,Fe.mat=Fe,Y.mat=Y,L.mat=L,demand = FALSE,volume=TRUE)
+essai3=divide(Vect=X,Fe.mat=Fe,Y.mat=Y,L.mat=L,demand = TRUE,volume=TRUE)
+
 
 #Conversion des impacts production, demande et VA
 listdf=list(S_coef=S,S_vol=Fe,M_coef=M,M_vol=M_volume,S.VA_coef=S.VA,S.VA_vol=S.VA_volume)
@@ -162,7 +168,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
   
   #Vecteur production du pays
   production_pays <- X
-  production_pays[-str_which(rownames(VA_pays),as.character(pays)),]<-0
+  production_pays[-str_which(rownames(production_pays),as.character(pays)),]<-0
   production_pays=as.numeric(unlist(production_pays))
   
   #Vecteur VA du pays
@@ -558,7 +564,8 @@ rep <- IO_all %>%
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 rep
 
-table_monde %>% 
+#GROS PB ICI!!
+IO_all %>% 
   filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
   group_by(nom_pays) %>%
   mutate(agg.production=sum(production_pays),
@@ -569,6 +576,7 @@ table_monde %>%
     cols = c("agg.production","agg.demande_finale","agg.VA"),
     names_to = "indicator",
     values_to = "volume") %>%
+  distinct(nom_pays,indicator,volume) %>%
   as.data.frame() %>% 
   ggplot( 
     aes(x= nom_pays, 

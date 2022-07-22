@@ -68,6 +68,9 @@ pop[pop$nom_pays=="Tchéquie",]$nom_pays = "République Tchèque"
 
 ## Démarche et indicateurs
 
+Indicators of environmental impact in PBE and VBE are equal in volume because VBA is closely related to PBA. 
+
+Even if the total impact by sector or country is the same, environmental multiplicators (impacts in volume normalized by the value of production or value-added) are different. Not only do they reflect that wealth creation is more emissions-intensive (mechanically since VA<production) but also that some sectors or countries benefit much more from emissions than what can be seen by just looking at volumes.
 
 
 # Visualisation et analyse des résultats
@@ -210,7 +213,7 @@ monde_pays2 <- table_monde %>%
 monde_secteurs_VA=table_monde %>% 
   #par produits
   group_by(produits) %>%
-  filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>% #toujours=0
+  filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>% 
   mutate(agg.Etat=sum(Etat),
          agg.Travail=sum(Travail),
          agg.Capital=sum(Capital),
@@ -232,6 +235,38 @@ monde_secteurs_VA=table_monde %>%
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Décomposition de l'impact environnemental par secteur",
+       x ="Secteurs", y = "Impact GES (Gt CO2eq)",
+       fill="Rémunération de :") +
+  scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), 
+                    values = c("yellow", "tomato","slateblue1","slateblue"))
+
+monde_secteurs_VA_share=table_monde %>% 
+  #par produits
+  group_by(produits) %>%
+  filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>% #toujours=0
+  mutate(agg.Etat=sum(Etat),
+         agg.Travail=sum(Travail),
+         agg.Capital=sum(Capital),
+         agg.Cout=sum(Cout_production)) %>%
+  ungroup() %>%
+  #format long pour afficher les deux indicateurs
+  pivot_longer(
+    cols = c("agg.Etat","agg.Travail","agg.Capital","agg.Cout"),
+    names_to = "composante",
+    values_to = "impact") %>%
+  ggplot( 
+    aes(x= produits, 
+        y = impact/10^12,
+        fill = composante,
+        alpha=0.9)) +
+  guides(alpha="none") +
+  geom_col(position = position_fill(reverse = FALSE)) +
+  theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
   labs(title="Décomposition de l'impact environnemental",
        x ="Secteurs", y = "Impact GES (Gt CO2eq)",
        fill="Rémunération de :") +
@@ -248,20 +283,27 @@ Countries that produce (and demand) the most are the US and China, followed by o
 
 Regions can be divided into two groups: net exporters of GHG emissions (Africa, Asia, Middle East) and net importers of GHG emissions (America and Europe) ^[Oceania's situation is roughly balanced.].
 
-Inequalities in environmental impact are larger with PBE (or VBE) than with CBE. But regardless of the approach chosen, the attribution of responsibility preserves the same ranking across regions.
+Inequalities in environmental impact are larger with PBE (or VBA) than with CBA. But regardless of the approach chosen, the attribution of responsibility preserves the same ranking across regions.
 
 ```{r monde secteurs volume, echo=FALSE, fig.cap="Des inégalités d'impacts qui varient selon l'approche choisie"}
-ggarrange(repartition_secteurs, monde_secteurs,
-          ncol = 1,nrow = 2)
+repartition_secteurs
+monde_secteurs
 ```
 
 The repartition between sectors is very different because the sectors that produce (and demand) the most are not those with the largest impact.
 
-```{r monde secteurs impact, echo=FALSE, fig.cap="Des inégalités d'impacts qui varient selon l'approche choisie", dev="png", dpi=400}
-ggarrange(monde_secteurs, monde_secteurs_VA,
-          ncol = 1,nrow = 2)
+The sector producing and demanding the most is "PRODUITS MANUFACTURES", but "ELECTRICITE, GAZ ET EAU" has the largest environmental impact (coming from the fact that in this sector each unit of production is much more emissions-intensive). However, "PRODUITS MANUFACTURES" still has the largest environmental impact in CBA, and the second largest in CBA. "TRAVAUX DE CONSTRUCTION" and "ELECTRICITE, GAZ ET EAU" come next in CBA, with impacts half as large (4 Gt CO2eq) as "PRODUITS MANUFACTURES" (8 Gt CO2eq). Transports and the primary sector ("PRODUITS AGRICOLES ET FORESTIERS", PRODUITS D'EXTRACTION" and "PRODUITS DE LA PECHE ET DE L'AQUACULTURE") also have relativley high environmental impacts (2 to 3 Gt CO2eq) in PBA while services have low impacts. In CBA, the primary and tertiary sectors range from 0 to 2 Gt CO2eq, with not particular pattern.
+
+One feature that is similar to the regional approach above is that impacts are more uneven in the PBA and VBA approaches than in CBA.
+
+```{r monde secteurs impact, echo=FALSE, fig.cap="Des inégalités d'impacts qui varient selon l'approche choisie", dev='png', dpi=400}
+monde_secteurs_VA
+monde_secteurs_VA_share
 ```
 
+The value-added-based indicator can be decomposed into several components. This allows to see which production factors contribute the most to GHG emissions.
+
+Capital is usually the largest contributor. Only in three instance does the capital amout for (slighly) less than half of the emissions created: "ELECTRICITE, GAZ ET EAU", "PRODUITS D'EXTRACTION" and "SERVICES IMMOBILIERS, DE LOCATION ET AUX ENTREPRISES". In the two latter cases, the share of taxes in VA is remarkably large (more than 1/4)
 
 ## europe
 
