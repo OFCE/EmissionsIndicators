@@ -17,7 +17,7 @@ shock.demand <- function(data,
   #mettre à 0 les entrées des autres pays (demande finale du pays en question adressée aux autres pays)
   if(!is.null(iso)){
     
-    data[,-str_which(colnames(data),as.character(iso))] <- 0
+    data[-str_which(rownames(data),as.character(iso)),] <- 0
   }
   
   if (aggregate == TRUE){
@@ -60,7 +60,6 @@ divide <- function(Vect,Fe.mat,Y.mat,L.mat,demand=FALSE,volume=FALSE){
     print("Convert to numeric")
     Vect=as.numeric(unlist(Vect))
   }
-  x <- L.mat %*% as.matrix(Y.mat)
   vect_1=1/Vect
   vect_1[is.infinite(vect_1)] <- 0 
   vect_1d <- as.numeric(vect_1) %>% diag

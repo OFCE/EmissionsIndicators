@@ -21,7 +21,19 @@ names_io <-rownames(Z) %>% as.data.frame() %>%
   select(id, countries, products)
 
 # Extraction of the emissions from production activities
+#? ghg="GES"
 Fe.ghg <- GHG.extraction(Fe ,ghg) %>% as.matrix()
+
+rm(list = ls()[grep("^Fe.", ls())])
+for(ghg in glist){
+  Fe.ghg <- GHG.extraction(Fe,ghg) %>% as.matrix()
+  Fe.CO2eq <- GHGToCO2eq(Fe.ghg)
+  assign(str_c("Fe.CO2eq.",ghg),as.data.frame(unlist(Fe.CO2eq)))
+  print(sum(Fe.CO2eq))
+  rm(Fe.ghg,Fe.CO2eq)
+}
+Fe.ghg <- do.call("rbind",mget(ls(pattern = "^Fe._*")))
+t=Reduce(function(x,y) merge(x,y,by=NULL,all=TRUE) ,mget(ls(pattern = "^Fe._*")))
 
 ##Inverse de Leontief
 L <- LeontiefInverse(t(Z), coef = FALSE)
