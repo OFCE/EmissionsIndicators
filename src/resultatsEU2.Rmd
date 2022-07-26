@@ -724,12 +724,17 @@ L'hétérogénéité semble moins forte que dans l'approche sectorielle. L'appro
 
 La conclusion est donc que selon qu'on adopte une approche territoriale/nationale ou une approche sectorielle, la répartition des coûts suit une logique différente.
 
-```{r radar pays européens, echo=FALSE, message=FALSE, warning=FALSE}
-radar.plot.secteurs_France
-radar.plot.secteurs_Allemagne
-radar.plot.secteurs_Espagne
-radar.plot.secteurs_Suède
+```{r radar pays européens, echo=FALSE, fig.height=8, fig.width=6, message=FALSE, warning=FALSE}
+ggarrange(radar.plot.secteurs_France, 
+          radar.plot.secteurs_Allemagne,
+          nrow = 2, ncol = 1, common.legend = TRUE)
+ggarrange(radar.plot.secteurs_Espagne,
+          radar.plot.secteurs_Suède,
+          nrow = 2, ncol = 1, common.legend = TRUE)
 ```
+
+In most cases, Value added is the most emissions-intensive (also makes sense because ). 
+From one country to another, the most emissions-intensive sector is not the same. In France "PRODUITS D'EXTRACTION" is the most intensive (all three indicators). "ELECTRICITE, GAZ ET EAU" is the most intensive sector in Germany (by far) and in Spain.
 
 ## Conclusion
 
