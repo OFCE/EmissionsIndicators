@@ -3,8 +3,8 @@
 
 
 br <- "CPA2002_Niv1"
-br.pays <- "EU1"
-br_pays <- "EU1"
+br.pays <- "monde.12"
+br_pays <- "monde.12"
 # Chargement des données I-O sauvegardées par le script exio3.loader.R
 Y <-readRDS(str_c(path_loader,"Y_",br_pays,"_",br,".rds"))
 Fe <-readRDS(str_c(path_loader,"Fe_",br_pays,"_",br,".rds"))
@@ -84,11 +84,7 @@ rm(list = ls()[grep("^IO", ls())])
 
 #Boucle qui crée un tableau avec les indicateurs pour chaque pays
 #(il faut avoir Y, Fe et L au préalable)
-for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque","Allemagne",
-               "Danemark","Estonie","Espagne","Finlande","France","Grèce","Croatie","Hongrie",
-               "Irlande","Italie","Lituanie","Luxembourg","Lettonnie","Malte","Pays-bas",
-               "Pologne","Portugal","Roumanie","Suède","Slovénie","Slovaquie","Royaume-Uni",
-               "Reste du monde")) {
+for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afrique","Russie","Europe","Asie","Moyen-Orient","Oceanie")) {
   
   #Colonne nom pays (pas nécessaire si pas rbind par la suite)
   nom_pays <- c(rep(pays,ncol(Z))) #length()=204
@@ -274,4 +270,12 @@ for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque",
 }
 
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
+IO_all = IO_all %>%
+  mutate(nom_pays2=ifelse(nom_pays=="France"|nom_pays=="EU"|nom_pays=="Europe", 
+                          "Europe",
+                          ifelse(nom_pays=="Amerique du N."|nom_pays=="US",
+                                 "Amerique du N.",
+                                 ifelse(nom_pays=="Chine"|nom_pays=="Russie"|nom_pays=="Asie",
+                                        "Asie",
+                                        nom_pays))))
 saveRDS(IO_all, str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))

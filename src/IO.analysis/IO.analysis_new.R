@@ -1,9 +1,12 @@
 
 # Choix du pays considéré pour calcul empreinte carbone 
-
+br <- "CPA2002_Niv1"
+br.pays <- "monde.12"
+br_pays <- "monde.12"
+year=2015
 # Chargement des données I-O sauvegardées par le script exio3.loader.R
 Y <-readRDS(str_c(path_loader,"Y_",br.pays,"_",br,".rds"))
-Fe <-readRDS(str_c(path_loader,"Fe_",br.pays,"_",br,".rds")) %>% t
+Fe <-readRDS(str_c(path_loader,"Fe_",br.pays,"_",br,".rds"))
 Z <-readRDS(str_c(path_loader,"Z_",br.pays,"_",br,".rds"))
 X <-readRDS(str_c(path_loader,"X_",br.pays,"_",br,".rds"))
 
@@ -21,20 +24,24 @@ names_io <-rownames(Z) %>% as.data.frame() %>%
   select(id, countries, products)
 
 # Extraction of the emissions from production activities
-#? ghg="GES"
-Fe.ghg <- GHG.extraction(Fe ,ghg) %>% as.matrix()
-
 rm(list = ls()[grep("^Fe.", ls())])
 for(ghg in glist){
   Fe.ghg <- GHG.extraction(Fe,ghg) %>% as.matrix()
-  Fe.CO2eq <- GHGToCO2eq(Fe.ghg)
-  assign(str_c("Fe.CO2eq.",ghg),as.data.frame(unlist(Fe.CO2eq)))
-  print(sum(Fe.CO2eq))
+  Fe.CO2eq <- as.data.frame(unlist(GHGToCO2eq(Fe.ghg)))
+  Fe.CO2eq$id <- seq(1,204)
+  Fe.CO2eq$ghg <- str_c(ghg)
+  assign(str_c("Fe.CO2eq.",ghg),Fe.CO2eq)
+  print(sum(Fe.CO2eq$value))
   rm(Fe.ghg,Fe.CO2eq)
 }
 Fe.ghg <- do.call("rbind",mget(ls(pattern = "^Fe._*")))
-t=Reduce(function(x,y) merge(x,y,by=NULL,all=TRUE) ,mget(ls(pattern = "^Fe._*")))
-
+Fe.ghg=pivot_wider(
+  Fe.ghg,
+  names_from = ghg,
+  values_from = value) %>% select(-id)
+rownames(Fe.ghg)=rownames(Z)
+Fe.ghg$total = rowSums(Fe.ghg)
+  
 ##Inverse de Leontief
 L <- LeontiefInverse(t(Z), coef = FALSE)
 
@@ -45,13 +52,13 @@ Y.vec <- shock.demand(Y, iso, aggregate = TRUE)
 Y.vec <- shock.demand(Y, aggregate = TRUE) 
 
 #Matrice S (impact producteur/ million €)
-S <- Env.multiplier(Y.vec, Fe.ghg, L)
+S <- Env.multiplier(Y.vec, Fe.ghg$total, L)
 
 #Matrice M (impact demande et CI kg emissions/ million €)
 M <- diag(as.numeric(S)) %*% L 
 
 # Volume d'émissions producteur
-EMS_S_0 <- S %*% diag(as.numeric(X)) %>% `colnames<-`(rownames(X))
+EMS_S_0 <- S %*% diag(as.numeric(unlist(X))) %>% `colnames<-`(rownames(X))
 EMS_S <- Env.multiplier(Y.vec, Fe.ghg, L, volume = TRUE)
 
 # Volume d'émissions consommateur pays iso
