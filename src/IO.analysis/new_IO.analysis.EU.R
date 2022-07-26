@@ -29,18 +29,13 @@ saveRDS(L, str_c(path_loader, "L_",br_pays,"_",br,".rds"))
 Fe_VA=Composantes.VA(Fe)
 VA=ValeurAjoutee.calcul(X,Z)
 
-Fe_VA_compo=Fe_VA[,c(6,12:14)]/rowSums(Fe_VA[,c(6,12:14)]) 
-GES_VA_compo = Fe_VA_compo * rowSums(GES_impact_S.VA_vol)
-GES_VA_compo[is.na(GES_VA_compo)] <- 0
-GES_VA_compo=rename(GES_VA_compo, "Cout_production"="Operating surplus: Consumption of fixed capital")
-
 #Impacts
-S_coef=divide(Vect=X,Fe.mat=Fe,Y.mat=Y,L.mat=L,demand = FALSE,volume=FALSE)
+S_coef=divide(Vect=as.vector(X),Fe.mat=Fe,Y.mat=Y,L.mat=L,demand = FALSE,volume=FALSE)
 S.VA_coef=divide(Vect=VA,Fe.mat=Fe,Y.mat=Y,L.mat=L,demand = FALSE,volume=FALSE)
-M_coef=divide(Vect=X,Fe.mat=Fe,Y.mat=Y,L.mat=L,demand = TRUE,volume=FALSE)
-S_volume=divide(Vect=X,Fe.mat=Fe,Y.mat=Y,L.mat=L,demand = FALSE,volume=TRUE)
+M_coef=divide(Vect=as.vector(X),Fe.mat=Fe,Y.mat=Y,L.mat=L,demand = TRUE,volume=FALSE)
+S_volume=divide(Vect=as.vector(X),Fe.mat=Fe,Y.mat=Y,L.mat=L,demand = FALSE,volume=TRUE)
 S.VA_volume=divide(Vect=VA,Fe.mat=Fe,Y.mat=Y,L.mat=L,demand = FALSE,volume=TRUE)
-M_volume=divide(Vect=X,Fe.mat=Fe,Y.mat=Y,L.mat=L,demand = TRUE,volume=TRUE)
+M_volume=divide(Vect=as.vector(X),Fe.mat=Fe,Y.mat=Y,L.mat=L,demand = TRUE,volume=TRUE)
 
 ##à modifier avec fonction?
 listdf=list(S_coef=S_coef,S_vol=S_volume,M_coef=M_coef,M_vol=M_volume,S.VA_coef=S.VA_coef,S.VA_vol=S.VA_volume)
@@ -69,6 +64,11 @@ for (matrix in listdf) {
   saveRDS(df.impact, str_c(path_loader,"GES_impact_",names(listdf)[index],".rds"))
   index=index+1
 }
+
+Fe_VA_compo=Fe_VA[,c(6,12:14)]/rowSums(Fe_VA[,c(6,12:14)]) 
+GES_VA_compo = Fe_VA_compo * rowSums(GES_impact_S.VA_vol)
+GES_VA_compo[is.na(GES_VA_compo)] <- 0
+GES_VA_compo=rename(GES_VA_compo, "Cout_production"="Operating surplus: Consumption of fixed capital")
 
 #Chemin pour exporter les données
 dir.create(str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br), recursive = TRUE)
@@ -264,6 +264,7 @@ for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque",
     scale_colour_manual(labels = c("Demande", "Production","VA"), #
                         values = c("indianred1", "cornflowerblue","orange1")) +
     guides(fill="none")
+  assign(str_c("radar.plot.secteurs_",pays),plot3)
   ggsave(filename=str_c("radar.plot.secteurs_", pays, ".",format), 
          plot=plot3, 
          device="pdf",
@@ -275,3 +276,34 @@ for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque",
 
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
 saveRDS(IO_all, str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
+
+EU_secteurs <- table_EU_ponderation %>% 
+  filter(produits != "SERVICES EXTRA-TERRITORIAUX", 
+         nom_pays != "Reste du monde") %>% 
+  group_by(produits) %>% 
+  mutate(agg.producteur_impact=sum(GES_impact_S_vol_select),
+         agg.demande_impact=sum(GES_impact_M_vol_select),
+         agg.VA_impact=sum(GES_impact_S.VA_vol_select),
+         agg.production=sum(production_pays),
+         agg.demande_finale=sum(DF_tot)) %>%
+  ungroup() %>% 
+  pivot_longer(
+    cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
+    names_to = "indicator",
+    values_to = "impact") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= produits, 
+        y = impact/10^12,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") +
+  theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts",
+       x ="Secteurs", y = "Impact GES (Gt CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
+

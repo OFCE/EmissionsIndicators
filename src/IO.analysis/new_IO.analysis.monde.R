@@ -28,7 +28,7 @@ saveRDS(L, str_c(path_loader, "L_",br_pays,"_",br,".rds"))
 #Sélection des variables correspondant à la VA, et somme des composantes
 Fe_VA=Composantes.VA(Fe)
 VA=ValeurAjoutee.calcul(X,Z)
-
+#impact de chaque composante
 Fe_VA_compo=Fe_VA[,c(6,12:14)]/rowSums(Fe_VA[,c(6,12:14)]) 
 GES_VA_compo = Fe_VA_compo * rowSums(GES_impact_S.VA_vol)
 GES_VA_compo[is.na(GES_VA_compo)] <- 0
@@ -260,6 +260,7 @@ for (pays in c("France","EU","US","Chine","Amerique du N.","Amerique du S.","Afr
     scale_colour_manual(labels = c("Demande", "Production","VA"), #
                         values = c("indianred1", "cornflowerblue","orange1")) +
     guides(fill="none")
+  assign(str_c("radar.plot.secteurs_",pays),plot3)
   ggsave(filename=str_c("radar.plot.secteurs_", pays, ".",format), 
          plot=plot3, 
          device="pdf",

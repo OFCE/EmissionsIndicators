@@ -9,6 +9,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
 library(tidyverse)
 library(data.table)
 library(readxl)
@@ -80,6 +81,7 @@ Even if the total impact by sector or country is the same, environmental multipl
 ```{r nomenclatures et header monde, echo=FALSE}
 br <- "CPA2002_Niv1"
 br_pays <- "monde.12"
+br.pays <- "monde.12"
 
 path_results_tables <- str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/")
 
@@ -311,6 +313,7 @@ Capital is usually the largest contributor. Only in three instance does the capi
 year <- 2015
 br <- "CPA2002_Niv1"
 br_pays <- "EU1"
+br.pays <- "EU1"
 
 
 path_results_tables <- str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/")
@@ -325,9 +328,9 @@ table_EU %>%
                           "Reste",
                           "EU")) %>% 
   group_by(binaire) %>%
-  mutate(agg.demande_impact=sum(GES_impact_M_select),
-         agg.producteur_impact=sum(GES_impact_S_select),
-         agg.VA_impact=sum(impact_VA_select)) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_vol_select),
+         agg.producteur_impact=sum(GES_impact_S_vol_select),
+         agg.VA_impact=sum(GES_impact_S.VA_vol_select)) %>%
   ungroup() %>%
   select(binaire,agg.demande_impact,agg.producteur_impact,agg.VA_impact) %>%
   distinct()
@@ -337,7 +340,9 @@ Avant de détailler comment se répartissent les impacts environnementaux au sei
 
 L'impact en gaz à effets de serre de l'Union Européenne est bien moindre que celui du reste du monde (RDM), quel que soit l'indicateur choisi. L'impact de la demande du RDM est 7 fois plus élevé que celui de la demande européenne, l'impact de la production du RDM est 9 fois plus élevé que celui de la production européenne, l'impact des revenus du RDM est plus de 3 fois supérieur à celui des revenus européens.
 
-```{r results, include=FALSE}
+```{r table eu, message=FALSE, warning=FALSE, include=FALSE}
+rm(list = ls()[grep("^IO", ls())])
+
 for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque","Allemagne",
                "Danemark","Estonie","Espagne","Finlande","France","Grèce","Croatie","Hongrie",
                "Irlande","Italie","Lituanie","Luxembourg","Lettonnie","Malte","Pays-bas",
@@ -346,54 +351,106 @@ for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque",
 
   IO <- readRDS(str_c(path_results_tables,"IO_",pays,".rds"))
   assign(str_c("IO_",pays),IO)
-  rm(IO)
+  
+  radar.data=IO %>%
+  group_by(produits) %>%
+  mutate(agg.demande_impact=mean(GES_impact_M_coef_select),
+         agg.producteur_impact=mean(GES_impact_S_coef_select),
+         agg.VA_impact=mean(GES_impact_S.VA_coef_select)) %>%
+  ungroup() %>%
+  distinct(produits,agg.demande_impact,agg.producteur_impact,agg.VA_impact)
+radar_data.secteurs=radar.data$produits
+radar.data=radar.data%>%
+  select(-produits) %>%  t() %>% 
+  as.data.frame() %>%
+  `colnames<-`(radar_data.secteurs) %>%
+  add_rownames( var = "group" )
+plot3 = ggradar(radar.data,
+                axis.labels=gsub('\\s','\n',colnames(radar.data[,-1])),
+                axis.label.size = 1.5,
+                axis.label.offset = 1.15,
+                grid.min = 0,
+                grid.mid = max(radar.data[,-1])/2,
+                grid.max = max(radar.data[,-1]),
+                grid.line.width=0.1,
+                values.radar = c("0", floor(max(radar.data[,-1])/2), floor(max(radar.data[,-1]))),
+                grid.label.size = 2,
+                gridline.label.offset = 0.3 * (max(radar.data[,-1])+150),
+                label.gridline.min = FALSE,
+                gridline.min.colour="gray",
+                gridline.min.linetype="longdash",
+                label.gridline.mid = TRUE,
+                gridline.mid.colour="gray",
+                gridline.mid.linetype="longdash",
+                label.gridline.max = TRUE,
+                gridline.max.colour="gray",
+                gridline.max.linetype="longdash",
+                group.line.width = 0.5,
+                group.point.size = 1,
+                background.circle.transparency=0,
+                legend.title = "Indicateur",
+                legend.text.size = 10,
+                fill=TRUE,
+                fill.alpha = 0.25,
+                plot.title = str_c("Coefficient environnemental pour : ", pays))+
+  theme(legend.title = element_text(size=12),
+        plot.title = element_text(size=13)) +
+  scale_fill_manual(labels = c("Demande", "Production","VA"), #
+                    values = c("indianred1", "cornflowerblue","orange1")) +
+  scale_colour_manual(labels = c("Demande", "Production","VA"), #
+                      values = c("indianred1", "cornflowerblue","orange1")) +
+  guides(fill="none")
+  assign(str_c("radar.plot.secteurs_",pays),plot3)
+  rm(IO, plot3)
 }
 
 #Créer grand dataframe (monde)
-IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
+table_EU <- readRDS(str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
 
 #Ajouter données eurostat
-IO_all_ponderation=merge(IO_all,pib,by.x="nom_pays")
-IO_all_ponderation=merge(IO_all_ponderation,pop,by.x="nom_pays")
+table_EU_ponderation=merge(table_EU,pib,by.x="nom_pays")
+table_EU_ponderation=merge(table_EU_ponderation,pop,by.x="nom_pays")
+```
 
+```{r plots eu, include=FALSE}
 #Plot monde secteurs
-EU_secteurs <- table_EU %>% 
-  group_by(produits) %>%
-  filter(produits != "SERVICES EXTRA-TERRITORIAUX",
-         nom_pays != "Reste du monde") %>%
-  mutate(agg.demande_impact=sum(GES_impact_M_select),
-         agg.producteur_impact=sum(GES_impact_S_select),
-         agg.VA_impact=sum(impact_VA_select),
-         agg.production=sum(production_pays),
-         agg.demande_finale=sum(DF_tot)) %>%
-  ungroup() %>% 
-  pivot_longer(
-    cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
-    names_to = "indicator",
-    values_to = "impact") %>%
-  as.data.frame() %>% 
-  ggplot( 
-    aes(x= produits, 
-        y = impact/10^12,
-        fill = indicator)) +
-  geom_bar(stat='identity',position = "dodge") +
-  theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
-        plot.title =element_text(size=12, face='bold', hjust=0.5),
-        panel.background = element_blank(),
-        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
-        plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Impacts",
-       x ="Secteurs", y = "Impact GES (Gt CO2eq)",
-       fill="Indicateur") +
-  scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
+EU_secteurs <- table_EU_ponderation %>% 
+      group_by(produits) %>%
+      filter(produits != "SERVICES EXTRA-TERRITORIAUX", 
+             nom_pays != "Reste du monde") %>% 
+      mutate(agg.producteur_impact=sum(GES_impact_S_vol_select),
+             agg.demande_impact=sum(GES_impact_M_vol_select),
+             agg.VA_impact=sum(GES_impact_S.VA_vol_select),
+             agg.production=sum(production_pays),
+             agg.demande_finale=sum(DF_tot)) %>%
+      ungroup() %>% 
+      pivot_longer(
+        cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
+        names_to = "indicator",
+        values_to = "impact") %>%
+      as.data.frame() %>% 
+      ggplot( 
+        aes(x= produits, 
+            y = impact/10^12,
+            fill = indicator)) +
+      geom_bar(stat='identity',position = "dodge") +
+      theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
+            plot.title =element_text(size=12, face='bold', hjust=0.5),
+            panel.background = element_blank(),
+            panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+            plot.margin = unit(c(10,5,5,5), "mm"))+
+      labs(title="Impacts",
+           x ="Secteurs", y = "Impact GES (Gt CO2eq)",
+           fill="Indicateur") +
+      scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 
 #Plot européen par pays
-EU_pays <- IO_all %>% 
+EU_pays <- table_EU_ponderation %>% 
   filter(nom_pays != "Reste du monde") %>%
   group_by(nom_pays) %>%
-  mutate(agg.demande_impact=sum(GES_impact_M_select),
-         agg.producteur_impact=sum(GES_impact_S_select),
-         agg.VA_impact=sum(impact_VA_select),
+  mutate(agg.demande_impact=sum(GES_impact_M_vol_select),
+         agg.producteur_impact=sum(GES_impact_S_vol_select),
+         agg.VA_impact=sum(GES_impact_S.VA_vol_select),
          agg.production=sum(production_pays),
          agg.demande_finale=sum(DF_tot)) %>%
   ungroup() %>%
@@ -418,7 +475,7 @@ EU_pays <- IO_all %>%
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 
 #Plot européen par secteur pour VA
-EU_secteurs_VA=IO_all %>% 
+EU_secteurs_VA=table_EU_ponderation %>% 
   filter(nom_pays != "Reste du monde") %>%
   #par produits
   group_by(produits) %>%
@@ -449,7 +506,7 @@ EU_secteurs_VA=IO_all %>%
        fill="Rémunération de:") +
   scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), values = c("yellow", "tomato","slateblue1","slateblue"))
 
-EU_secteurs_VA_norm <- table_EU %>% 
+EU_secteurs_VA_norm <- table_EU_ponderation %>% 
   filter(nom_pays != "Reste du monde") %>%
   #par produits
   group_by(produits) %>%
@@ -481,15 +538,15 @@ EU_secteurs_VA_norm <- table_EU %>%
        fill="Rémunération de:") +
   scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), values = c("yellow", "tomato","slateblue1","slateblue"))
 
-EU_groupes_pays <- IO_all_ponderation %>%
+EU_groupes_pays <- table_EU_ponderation %>%
   mutate(level_income = ifelse(PIB.hab < 20000, "<20,000€",
                             ifelse(PIB.hab >= 20000 & PIB.hab <= 35000, "20,000-35,000 €",
                                    ">35,000 €"))) %>% 
   #filter(nom_pays != "Reste du monde") %>%
   group_by(nom_pays) %>%
-  mutate(agg.demande_impact=sum(GES_impact_M_select),
-         agg.producteur_impact=sum(GES_impact_S_select),
-         agg.VA_impact=sum(impact_VA_select),
+  mutate(agg.demande_impact=sum(GES_impact_M_vol_select),
+         agg.producteur_impact=sum(GES_impact_S_vol_select),
+         agg.VA_impact=sum(GES_impact_S.VA_vol_select),
          agg.production=sum(production_pays),
          agg.demande_finale=sum(DF_tot)) %>%
   ungroup() %>%
@@ -516,12 +573,12 @@ EU_groupes_pays <- IO_all_ponderation %>%
     values = c("indianred1", "cornflowerblue","orange1")) +
   facet_grid(~level_income, scales="free_x")
 
-EU_pays_pondere=IO_all_ponderation %>% 
+EU_pays_pondere=table_EU_ponderation %>% 
   #filter(nom_pays != "Reste du monde") %>%
   group_by(nom_pays) %>%
-  mutate(agg.demande_impact=sum(GES_impact_M_select),
-         agg.producteur_impact=sum(GES_impact_S_select),
-         agg.VA_impact=sum(impact_VA_select),
+  mutate(agg.demande_impact=sum(GES_impact_M_vol_select),
+         agg.producteur_impact=sum(GES_impact_S_vol_select),
+         agg.VA_impact=sum(GES_impact_S.VA_vol_select),
          agg.production=sum(production_pays),
          agg.demande_finale=sum(DF_tot),
          agg.VA=sum(VA_pays)) %>%
@@ -613,12 +670,12 @@ Le secteur "ACTIVITES DES MENAGES" est le plus avantagé par l'approche producte
 
 ```{r parts impacts pays, echo=FALSE, message=FALSE, warning=FALSE}
 #figure_pays
-radar_data3 = IO_all_ponderation %>% 
+radar_data3 = table_EU_ponderation %>% 
   filter(nom_pays != "Reste du monde") %>%
   group_by(nom_pays) %>%
-  mutate(agg.demande_impact=sum(GES_impact_M_select/population)/1000,
-         agg.producteur_impact=sum(GES_impact_S_select/population)/1000,
-         agg.VA_impact=sum(impact_VA_select/population)/1000) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_vol_select/population)/1000,
+         agg.producteur_impact=sum(GES_impact_S_vol_select/population)/1000,
+         agg.VA_impact=sum(GES_impact_S.VA_vol_select/population)/1000) %>%
   ungroup() %>%
   distinct(nom_pays,agg.demande_impact,agg.producteur_impact,agg.VA_impact) 
 radar_data3.pays=radar_data3$nom_pays
@@ -666,6 +723,13 @@ L'hétérogénéité semble moins forte que dans l'approche sectorielle. L'appro
 
 
 La conclusion est donc que selon qu'on adopte une approche territoriale/nationale ou une approche sectorielle, la répartition des coûts suit une logique différente.
+
+```{r radar pays européens, echo=FALSE, message=FALSE, warning=FALSE}
+radar.plot.secteurs_France
+radar.plot.secteurs_Allemagne
+radar.plot.secteurs_Espagne
+radar.plot.secteurs_Suède
+```
 
 ## Conclusion
 

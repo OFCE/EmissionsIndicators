@@ -1,7 +1,11 @@
+library(dplyr)
 library(tidyverse)
 library(data.table)
 library(readxl)
 library(openxlsx)
+library(stringr)
+library(ggpubr)
+library(ggradar)
 
 ###
 # Choix de la nomenclature: Soit par produit par produit (pxp), soit industrie par industrie (ixi)
