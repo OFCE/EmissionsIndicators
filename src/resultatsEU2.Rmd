@@ -408,8 +408,8 @@ plot3 = ggradar(radar.data,
 table_EU <- readRDS(str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
 
 #Ajouter données eurostat
-table_EU_ponderation=merge(table_EU,pib,by.x="nom_pays")
-table_EU_ponderation=merge(table_EU_ponderation,pop,by.x="nom_pays")
+table_EU_ponderation=merge(table_EU,pib)
+table_EU_ponderation=merge(table_EU_ponderation,pop)
 ```
 
 ```{r plots eu, include=FALSE}

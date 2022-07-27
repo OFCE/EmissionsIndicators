@@ -11,6 +11,32 @@ Fe <-readRDS(str_c(path_loader,"Fe_",br_pays,"_",br,".rds"))
 Z <-readRDS(str_c(path_loader,"Z_",br_pays,"_",br,".rds"))
 X <-readRDS(str_c(path_loader,"X_",br_pays,"_",br,".rds"))
 
+# Données Eurostat (PIB/hab et Population des pays)
+pib=read_xlsx(str_c(path_data.source,"eurostat/PIBhab.xlsx"),
+              sheet="Feuille 1",
+              skip=8,
+              col_names = TRUE)
+pib=pib[-c(1,41:49),c("TIME",year)]
+pib=setnames(pib,old=c("TIME",year),new=c("nom_pays","PIB.hab"))
+pib[pib$nom_pays=="Allemagne (jusqu'en 1990, ancien territoire de la RFA)",]$nom_pays = "Allemagne"
+pib[pib$nom_pays=="Tchéquie",]$nom_pays = "République Tchèque"
+pib[pib$nom_pays=="Pays-Bas",]$nom_pays = "Pays-bas"
+#changer pour "lettonnie" en attendant de corriger la coquille
+pib[pib$nom_pays=="Lettonie",]$nom_pays = "Lettonnie"
+
+pop=read_xlsx(str_c(path_data.source,"eurostat/population.xlsx"),
+              sheet="Feuille 1",
+              skip=6,
+              col_names = TRUE)
+pop=pop[-c(1,56:66),c("TIME",year)]
+pop=setnames(pop,old=c("TIME",year),new=c("nom_pays","population"))
+pop$population = as.numeric(pop$population)
+pop[pop$nom_pays=="Allemagne (jusqu'en 1990, ancien territoire de la RFA)",]$nom_pays = "Allemagne"
+pop[pop$nom_pays=="Tchéquie",]$nom_pays = "République Tchèque"
+pop[pop$nom_pays=="Pays-Bas",]$nom_pays = "Pays-bas"
+#pareil
+pop[pop$nom_pays=="Lettonie",]$nom_pays = "Lettonnie"
+
 #Calcul des coefficients techniques
 ##Matrice de Leontief
 A <- sweep(Z, 
@@ -86,7 +112,7 @@ rm(list = ls()[grep("^IO", ls())])
 #(il faut avoir Y, Fe et L au préalable)
 for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque","Allemagne",
                "Danemark","Estonie","Espagne","Finlande","France","Grèce","Croatie","Hongrie",
-               "Irlande","Italie","Lituanie","Luxembourg","Lettonie","Malte","Pays-bas",
+               "Irlande","Italie","Lituanie","Luxembourg","Lettonnie","Malte","Pays-bas",
                "Pologne","Portugal","Roumanie","Suède","Slovénie","Slovaquie","Royaume-Uni",
                "Reste du monde")) {
   
@@ -143,6 +169,13 @@ for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque",
   #Charger le tableau dans l'environnement
   IO <- readRDS(str_c(path_results_tables, "/IO_", pays, ".rds"))
   assign(str_c("IO_",pays),IO)
+  saveRDS(IO, str_c(path_results_tables, "IO_",pays,"_",br_pays,"_",br,".rds"))
+  
+  #Ajouter données eurostat
+  IO_ponderation=merge(IO,pib,by.x="nom_pays")
+  IO_ponderation=merge(IO_ponderation,pop,by.x="nom_pays")
+  assign(str_c("IO_ponderation_",pays),IO_ponderation)
+  saveRDS(IO_ponderation, str_c(path_results_tables, "IO_ponderation_",pays,"_",br_pays,"_",br,".rds"))
   
   #Créer un graphique avec les trois indicateurs
   plot=IO %>% 
@@ -274,7 +307,10 @@ for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque",
   rm(IO, io_table, IO_all, radar.data, plot, plot2, plot3)  
 }
 
-IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
+IO_ponderation_all <- do.call("rbind",mget(ls(pattern = "^IO_ponderation*")))
+saveRDS(IO_ponderation_all, str_c(path_results_tables, "IO_ponderation_all_",br_pays,"_",br,".rds"))
+rm(list = ls()[grep("^IO_ponderation", ls())])
+IO_all <- do.call("rbind",mget(ls(pattern = "^IO*")))
 saveRDS(IO_all, str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
 
 EU_secteurs <- table_EU_ponderation %>% 
@@ -306,4 +342,8 @@ EU_secteurs <- table_EU_ponderation %>%
        x ="Secteurs", y = "Impact GES (Gt CO2eq)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
+
+###############
+#Créer grand dataframe (monde)
+table_EU <- readRDS(str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
 
