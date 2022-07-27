@@ -319,8 +319,9 @@ br.pays <- "EU1"
 path_results_tables <- str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/")
 
 table_EU <- readRDS(str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
+table_EU_ponderation <- readRDS(str_c(path_results_tables, "IO_ponderation_all_",br_pays,"_",br,".rds"))
 ```
-SECTEURS EUROPE SEULEMENT SI GROSSE DIFF
+SECTEURS EUROPE SEULEMENT SI GROSSE DIFFERENCE AVEC MONDE
 
 ```{r calculs intro}
 table_EU %>% 
