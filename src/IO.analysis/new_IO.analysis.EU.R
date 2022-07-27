@@ -86,7 +86,7 @@ rm(list = ls()[grep("^IO", ls())])
 #(il faut avoir Y, Fe et L au préalable)
 for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque","Allemagne",
                "Danemark","Estonie","Espagne","Finlande","France","Grèce","Croatie","Hongrie",
-               "Irlande","Italie","Lituanie","Luxembourg","Lettonnie","Malte","Pays-bas",
+               "Irlande","Italie","Lituanie","Luxembourg","Lettonie","Malte","Pays-bas",
                "Pologne","Portugal","Roumanie","Suède","Slovénie","Slovaquie","Royaume-Uni",
                "Reste du monde")) {
   
