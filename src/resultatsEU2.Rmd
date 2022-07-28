@@ -231,6 +231,7 @@ monde_secteurs_VA=table_monde %>%
     cols = c("agg.Etat","agg.Travail","agg.Capital","agg.Cout"),
     names_to = "composante",
     values_to = "impact") %>%
+  distinct(impact, composante, produits) %>%
   ggplot( 
     aes(x= produits, 
         y = impact/10^12,
@@ -262,6 +263,7 @@ monde_secteurs_VA_share=table_monde %>%
     cols = c("agg.Etat","agg.Travail","agg.Capital","agg.Cout"),
     names_to = "composante",
     values_to = "impact") %>%
+  distinct(impact, composante, produits) %>%
   ggplot( 
     aes(x= produits, 
         y = impact/10^12,
@@ -496,6 +498,7 @@ EU_secteurs_VA=table_EU_ponderation %>%
     cols = c("agg.Etat","agg.Travail","agg.Capital","agg.Cout"),
     names_to = "composante",
     values_to = "impact") %>%
+  distinct(impact, composante, produits) %>%
   ggplot( 
     aes(x= produits, 
         y = impact/10^12,
@@ -512,7 +515,7 @@ EU_secteurs_VA=table_EU_ponderation %>%
        fill="Rémunération de:") +
   scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), values = c("yellow", "tomato","slateblue1","slateblue"))
 
-data= table_EU_ponderation %>% 
+EU_secteurs_VA_norm <- table_EU_ponderation %>% 
   filter(nom_pays != "Reste du monde") %>%
   #par produits
   group_by(produits) %>%
@@ -526,8 +529,9 @@ data= table_EU_ponderation %>%
   pivot_longer(
     cols = c("agg.Etat","agg.Travail","agg.Capital","agg.Cout"),
     names_to = "composante",
-    values_to = "impact")
-EU_secteurs_VA_norm <-data%>%ggplot( 
+    values_to = "impact") %>%
+  distinct(impact, composante, produits) %>%
+  ggplot( 
     aes(x= produits, 
         y = impact,
         fill = composante,
@@ -748,7 +752,7 @@ Le secteur "ACTIVITES DES MENAGES" est le plus avantagé par l'approche producte
 ```{r parts impacts pays, echo=FALSE, message=FALSE, warning=FALSE}
 #figure_pays
 radar_data3 = table_EU_ponderation %>% 
-  filter(nom_pays != "Reste du monde") %>%
+  filter(nom_pays != "Malte" & nom_pays != "Chypre" & nom_pays != "Estonie" & nom_pays != "Luxembourg") %>%
   group_by(nom_pays) %>%
   mutate(agg.demande_impact=sum(GES_impact_M_coef_select/population)/1000,
          agg.producteur_impact=sum(GES_impact_S_coef_select/population)/1000,
@@ -768,7 +772,7 @@ ggradar(radar_data3,
         grid.min = 0,
         grid.mid = (max(radar_data3[,-1])/2),
         grid.max = max(radar_data3[,-1]),
-        values.radar = c("0", "9", "19"),
+        #values.radar = c("0", "9", "19"),
         grid.label.size = 3,
         grid.line.width=0.1,
         label.gridline.min = FALSE,
