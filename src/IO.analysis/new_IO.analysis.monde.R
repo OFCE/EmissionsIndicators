@@ -5,6 +5,7 @@
 br <- "CPA2002_Niv1"
 br.pays <- "monde.12"
 br_pays <- "monde.12"
+path_loader <- str_c(path_out, br_pays,"_", br, "/")
 # Chargement des données I-O sauvegardées par le script exio3.loader.R
 Y <-readRDS(str_c(path_loader,"Y_",br_pays,"_",br,".rds"))
 Fe <-readRDS(str_c(path_loader,"Fe_",br_pays,"_",br,".rds"))
@@ -28,11 +29,6 @@ saveRDS(L, str_c(path_loader, "L_",br_pays,"_",br,".rds"))
 #Sélection des variables correspondant à la VA, et somme des composantes
 Fe_VA=Composantes.VA(Fe)
 VA=ValeurAjoutee.calcul(X,Z)
-#impact de chaque composante
-Fe_VA_compo=Fe_VA[,c(6,12:14)]/rowSums(Fe_VA[,c(6,12:14)]) 
-GES_VA_compo = Fe_VA_compo * rowSums(GES_impact_S.VA_vol)
-GES_VA_compo[is.na(GES_VA_compo)] <- 0
-GES_VA_compo=rename(GES_VA_compo, "Cout_production"="Operating surplus: Consumption of fixed capital")
 
 #Impacts
 S_coef=divide(Vect=X,Fe.mat=Fe,Y.mat=Y,L.mat=L,demand = FALSE,volume=FALSE)
@@ -69,6 +65,12 @@ for (matrix in listdf) {
   saveRDS(df.impact, str_c(path_loader,"GES_impact_",names(listdf)[index],".rds"))
   index=index+1
 }
+
+#impact de chaque composante
+Fe_VA_compo=Fe_VA[,c(6,12:14)]/rowSums(Fe_VA[,c(6,12:14)]) 
+GES_VA_compo = Fe_VA_compo * rowSums(GES_impact_S.VA_vol)
+GES_VA_compo[is.na(GES_VA_compo)] <- 0
+GES_VA_compo=rename(GES_VA_compo, "Cout_production"="Operating surplus: Consumption of fixed capital")
 
 #Chemin pour exporter les données
 dir.create(str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br), recursive = TRUE)

@@ -29,8 +29,6 @@ path_data.source <- str_c(path_user,"Documents/GitHub/EmissionsIndicators/data_i
 path_codedata <- str_c(path_user,"Documents/GitHub/EmissionsIndicators/")
 path_out <- str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/")
 
-path_loader <- str_c(path_out, br_pays,"_", br, "/")
-
 
 
 # Descriptions of nomenclatures

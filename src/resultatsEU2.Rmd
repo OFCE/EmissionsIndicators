@@ -1,5 +1,5 @@
 ---
-title: "Rapport des résultats : comptabilité carbone et choix des indicateurs"
+title: "Report of the results : carbon accounting and choice of indicators"
 author: "Léa Settepani"
 date: "`r Sys.Date()`"
 output: 
@@ -20,13 +20,17 @@ library(ggradar)
 ```
 
 
+The primary goal of carbon accounting is to establish a measure of how much greenhouse gases (GHG) are emitted by which actors. The level can be regional (comparing groups of countries), national (comparing countries), sectoral (comparing products or aggregate sectors) or individual (comparing firms for example). Beyond the methodological concerns, it is important to state what the use of these indicators is. It is both a descriptive and a normative question. On the one hand, the need for action against climate change commands to have a clear view of the global situation. Hence the need for accurate measurements of carbon emissions as a descriptive concern. On the other hand, this situation also requires to identify policy strategies to avoid dramatic consequences on ecosystems. Hence the normative concern and the need to identify whom should take actions. This second question relates to the question of responsibility and is much less easy to solve: responsibility is preceded by ethics and morals, and triggers corrective actions as consequences. This makes social and political acceptability crucial. The contribution of research in this debate is at the core of the question in order to legitimate carbon accounting measures.
+
+This report rather situates itself on descriptive grounds. It includes a summary of the state of the art in terms of approaches and methods, as well as the computations of three indicators.
+
 intro meta sur la question de la resp, contextualiser
 rappel des concepts et la problématique
 
-# Revue
-principales études
+# Litterature review (carbon accounting methods)
+This litterature review aims at presenting the various methods that can be used for carbon accounting, with the underlying question of how to use them to solve market failures (externalities).
 
-# Description des données utilisées
+# Description of the empirical strategy
 
 ```{r paths generaux, include=FALSE}
 year = 2015
@@ -38,13 +42,13 @@ path_codedata <- str_c(path_user,"Documents/GitHub/EmissionsIndicators/")
 path_data.source <- str_c(path_user,"Documents/GitHub/EmissionsIndicators/data_in/")
 ```
 
-## Données
+## The data
 
-Données exiobase pour le modèle input-output.
+Exiobase data was used within an input-output model.
 
 
 
-Données économiques et démographiques Eurostat pour ajuster les graphiques.
+Economic and demographic data from Eurostat was added to custom the indicators and graphs and allow to draw conclusions more easily.
 
 ```{r données eurostat, include=FALSE}
 pib=read_xlsx(str_c(path_data.source,"eurostat/PIBhab.xlsx"),
@@ -67,16 +71,16 @@ pop[pop$nom_pays=="Allemagne (jusqu'en 1990, ancien territoire de la RFA)",]$nom
 pop[pop$nom_pays=="Tchéquie",]$nom_pays = "République Tchèque"
 ```
 
-## Démarche et indicateurs
+## Method and indicators
 
 Indicators of environmental impact in PBE and VBE are equal in volume because VBA is closely related to PBA. 
 
 Even if the total impact by sector or country is the same, environmental multiplicators (impacts in volume normalized by the value of production or value-added) are different. Not only do they reflect that wealth creation is more emissions-intensive (mechanically since VA<production) but also that some sectors or countries benefit much more from emissions than what can be seen by just looking at volumes.
 
 
-# Visualisation et analyse des résultats
+# Visualisation and analysis of the résults
 
-## échelle monde pour le cadre
+## The global scale (setting the big picture)
 
 ```{r nomenclatures et header monde, echo=FALSE}
 br <- "CPA2002_Niv1"
@@ -112,7 +116,7 @@ repartition_secteurs <- table_monde %>%
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Volume",
+  labs(title="Volume : indicateurs économiques",
        x ="Secteurs", y = "Volume (millions €)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
@@ -134,12 +138,12 @@ repartition_pays <- table_monde %>%
         y = volume/1000000,
         fill = indicator)) +
   geom_bar(stat='identity',position = "dodge") +
-  theme(axis.text.x = element_text(angle = 25, size=4, vjust = 1, hjust=1),
+  theme(axis.text.x = element_text(angle = 25, size=8, vjust = 1, hjust=1),
         plot.title =element_text(size=12, face='bold', hjust=0.5),
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Volume",
+  labs(title="Volume : indicateurs économiques",
        x ="Région ou pays", y = "Volume (millions €)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
@@ -170,7 +174,7 @@ monde_secteurs <- table_monde %>%
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Impacts",
+  labs(title="Impact environnemental par secteur",
        x ="Secteurs", y = "Impact GES (Gt CO2eq)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
@@ -212,6 +216,7 @@ monde_pays2 <- table_monde %>%
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 
+#PROBLEME ICI!!!
 monde_secteurs_VA=table_monde %>% 
   #par produits
   group_by(produits) %>%
@@ -237,7 +242,7 @@ monde_secteurs_VA=table_monde %>%
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Décomposition de l'impact environnemental par secteur",
+  labs(title="Décomposition de l'impact environnemental par composante de la VA",
        x ="Secteurs", y = "Impact GES (Gt CO2eq)",
        fill="Rémunération de :") +
   scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), 
@@ -269,17 +274,23 @@ monde_secteurs_VA_share=table_monde %>%
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Décomposition de l'impact environnemental",
+  labs(title="Part des composantes de la VA dans l'impact environnemental",
        x ="Secteurs", y = "Impact GES (Gt CO2eq)",
        fill="Rémunération de :") +
   scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), 
                     values = c("yellow", "tomato","slateblue1","slateblue"))
 ```
 
-```{r monde pays, echo=FALSE, fig.cap="Des inégalités d'impacts qui varient selon l'approche choisie"}
-repartition_pays
-monde_pays2
+QUELLE REPARTITION ENTRE REGIONS CHOISIR ??
+
+
+```{r monde pays, echo=FALSE, fig.cap="A CHANGER SELON CHOIX REGIONS", fig.height=8, fig.width=6}
+ggarrange(repartition_pays, monde_pays2,
+          nrow = 2, ncol = 1, common.legend = TRUE)
 ```
+
+
+(DIFFERENCE ENTRE DEMANDE ET VA = STOCKS ?)
 
 Countries that produce (and demand) the most are the US and China, followed by other Asian countries and EU. When looking at aggregate world regions, Asia (including China) has by far the largest environmental impact: three times as large as the second largest impact (North America). The smallest impact is attributed to Oceania (and the second smallest to South America).
 
@@ -287,9 +298,10 @@ Regions can be divided into two groups: net exporters of GHG emissions (Africa, 
 
 Inequalities in environmental impact are larger with PBE (or VBA) than with CBA. But regardless of the approach chosen, the attribution of responsibility preserves the same ranking across regions.
 
-```{r monde secteurs volume, echo=FALSE, fig.cap="Des inégalités d'impacts qui varient selon l'approche choisie"}
-repartition_secteurs
-monde_secteurs
+
+```{r monde secteurs volume, echo=FALSE, fig.cap="Des inégalités d'impacts qui varient selon l'approche choisie", fig.height=8, fig.width=6}
+ggarrange(repartition_secteurs, monde_secteurs,
+          nrow = 2, ncol = 1, common.legend = TRUE)
 ```
 
 The repartition between sectors is very different because the sectors that produce (and demand) the most are not those with the largest impact.
@@ -298,16 +310,16 @@ The sector producing and demanding the most is "PRODUITS MANUFACTURES", but "ELE
 
 One feature that is similar to the regional approach above is that impacts are more uneven in the PBA and VBA approaches than in CBA.
 
-```{r monde secteurs impact, echo=FALSE, fig.cap="Des inégalités d'impacts qui varient selon l'approche choisie", dev='png', dpi=400}
-monde_secteurs_VA
-monde_secteurs_VA_share
+```{r monde secteurs impact, echo=FALSE, fig.cap="Des inégalités d'impacts qui varient selon l'approche choisie", fig.height=8, fig.width=6, dev='png', dpi=400}
+ggarrange(monde_secteurs_VA, monde_secteurs_VA_share,
+          nrow = 2, ncol = 1, common.legend = TRUE)
 ```
 
 The value-added-based indicator can be decomposed into several components. This allows to see which production factors contribute the most to GHG emissions.
 
 Capital is usually the largest contributor. Only in three instance does the capital amout for (slighly) less than half of the emissions created: "ELECTRICITE, GAZ ET EAU", "PRODUITS D'EXTRACTION" and "SERVICES IMMOBILIERS, DE LOCATION ET AUX ENTREPRISES". In the two latter cases, the share of taxes in VA is remarkably large (more than 1/4)
 
-## europe
+## Focus on Europe and the European Union ^[UK is included]
 
 ```{r nomenclatures et header EU, echo=FALSE}
 year <- 2015
@@ -323,7 +335,7 @@ table_EU_ponderation <- readRDS(str_c(path_results_tables, "IO_ponderation_all_"
 ```
 SECTEURS EUROPE SEULEMENT SI GROSSE DIFFERENCE AVEC MONDE
 
-```{r calculs intro}
+```{r calculs intro, echo=FALSE, message=FALSE, warning=FALSE}
 table_EU %>% 
   mutate(binaire = ifelse(nom_pays == "Reste du monde",
                           "Reste",
@@ -404,13 +416,6 @@ plot3 = ggradar(radar.data,
   assign(str_c("radar.plot.secteurs_",pays),plot3)
   rm(IO, plot3)
 }
-
-#Créer grand dataframe (monde)
-table_EU <- readRDS(str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
-
-#Ajouter données eurostat
-table_EU_ponderation=merge(table_EU,pib)
-table_EU_ponderation=merge(table_EU_ponderation,pop)
 ```
 
 ```{r plots eu, include=FALSE}
@@ -507,7 +512,7 @@ EU_secteurs_VA=table_EU_ponderation %>%
        fill="Rémunération de:") +
   scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), values = c("yellow", "tomato","slateblue1","slateblue"))
 
-EU_secteurs_VA_norm <- table_EU_ponderation %>% 
+data= table_EU_ponderation %>% 
   filter(nom_pays != "Reste du monde") %>%
   #par produits
   group_by(produits) %>%
@@ -521,8 +526,8 @@ EU_secteurs_VA_norm <- table_EU_ponderation %>%
   pivot_longer(
     cols = c("agg.Etat","agg.Travail","agg.Capital","agg.Cout"),
     names_to = "composante",
-    values_to = "impact") %>%
-  ggplot( 
+    values_to = "impact")
+EU_secteurs_VA_norm <-data%>%ggplot( 
     aes(x= produits, 
         y = impact,
         fill = composante,
@@ -537,9 +542,76 @@ EU_secteurs_VA_norm <- table_EU_ponderation %>%
   labs(title="Impacts",
        x ="Secteurs", y = "Part des composantes (%)",
        fill="Rémunération de:") +
-  scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), values = c("yellow", "tomato","slateblue1","slateblue"))
+  scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), values = c("yellow", "tomato","slateblue1","slateblue")) #+geom_text_repel(aes(x = produits, y = impact,  label=composante))
 
 EU_groupes_pays <- table_EU_ponderation %>%
+  mutate(level_income = ifelse(PIB.hab < 20000, "<20,000€",
+                            ifelse(PIB.hab >= 20000 & PIB.hab <= 35000, "20,000-35,000 €", ">35,000 €"))) %>% 
+  #filter(nom_pays != "Reste du monde") %>%
+  group_by(nom_pays) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_vol_select),
+         agg.producteur_impact=sum(GES_impact_S_vol_select),
+         agg.VA_impact=sum(GES_impact_S.VA_vol_select),
+         agg.production=sum(production_pays),
+         agg.demande_finale=sum(DF_tot)) %>%
+  ungroup() %>%
+  pivot_longer(
+    cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
+    names_to = "indicator",
+    values_to = "impact") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= nom_pays, 
+        y = impact/10^6,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") +
+  theme(axis.text.x = element_text(angle = 30, size=5, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts",
+       x ="Région ou pays", y = "Impact GES (kt CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(
+    labels = c("Demande", "Production","VA"), 
+    values = c("indianred1", "cornflowerblue","orange1")) +
+  facet_grid(~level_income, scales="free_x")
+
+EU_groupes_pays_pondere.pib <- table_EU_ponderation %>%
+  mutate(level_income = ifelse(PIB.hab < 20000, "<20,000€",
+                            ifelse(PIB.hab >= 20000 & PIB.hab <= 35000, "20,000-35,000 €",
+                                   ">35,000 €"))) %>% 
+  #filter(nom_pays != "Reste du monde") %>%
+  group_by(nom_pays) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_coef_select),
+         agg.producteur_impact=sum(GES_impact_S_coef_select),
+         agg.VA_impact=sum(GES_impact_S.VA_coef_select)) %>%
+  ungroup() %>%
+  pivot_longer(
+    cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
+    names_to = "indicator",
+    values_to = "impact") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= nom_pays, 
+        y = impact/10^6,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") +
+  theme(axis.text.x = element_text(angle = 30, size=5, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Impacts (ponderes par unite pib)",
+       x ="Région ou pays", y = "Impact GES (kt CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(
+    labels = c("Demande", "Production","VA"), 
+    values = c("indianred1", "cornflowerblue","orange1")) +
+  facet_grid(~level_income, scales="free_x")
+
+EU_groupes_pays_pondere.pop <- table_EU_ponderation %>%
   mutate(level_income = ifelse(PIB.hab < 20000, "<20,000€",
                             ifelse(PIB.hab >= 20000 & PIB.hab <= 35000, "20,000-35,000 €",
                                    ">35,000 €"))) %>% 
@@ -558,16 +630,16 @@ EU_groupes_pays <- table_EU_ponderation %>%
   as.data.frame() %>% 
   ggplot( 
     aes(x= nom_pays, 
-        y = impact/10^12,
+        y = impact/(10^6*population),
         fill = indicator)) +
   geom_bar(stat='identity',position = "dodge") +
-  theme(axis.text.x = element_text(angle = 25, size=8, vjust = 1, hjust=1),
+  theme(axis.text.x = element_text(angle = 30, size=5, vjust = 1, hjust=1),
         plot.title =element_text(size=12, face='bold', hjust=0.5),
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Impacts",
-       x ="Région ou pays", y = "Impact GES (Gt CO2eq)",
+  labs(title="Impacts (ponderes par population)",
+       x ="Région ou pays", y = "Impact GES (kt CO2eq)",
        fill="Indicateur") +
   scale_fill_manual(
     labels = c("Demande", "Production","VA"), 
@@ -584,7 +656,6 @@ EU_pays_pondere=table_EU_ponderation %>%
          agg.demande_finale=sum(DF_tot),
          agg.VA=sum(VA_pays)) %>%
   ungroup() %>%
-  mutate(categorie.produit=substr(produits, 1,5)) %>% 
   pivot_longer(
     cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
     names_to = "indicator",
@@ -596,12 +667,12 @@ EU_pays_pondere=table_EU_ponderation %>%
         y = norm,
         fill = indicator)) +
   geom_bar(stat='identity',position = "dodge") +
-  theme(axis.text.x = element_text(angle = 25, size=10, vjust = 1, hjust=1),
+  theme(axis.text.x = element_text(angle = 25, size=8, vjust = 1, hjust=1),
         plot.title =element_text(size=12, face='bold', hjust=0.5),
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Impacts",
+  labs(title="Impacts pondérés par la population",
        x ="Région ou pays", y = "Impact GES (tCO2eq/cap)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), 
@@ -610,14 +681,14 @@ EU_pays_pondere=table_EU_ponderation %>%
 
 
 
-### Faits stylisés au niveau européen
+### Stylized facts at the european scale
 
-Les trois graphiques au niveau européen sont inclus pour avoir une vision plus globale.
 
-```{r EU pays, echo=FALSE, fig.cap="D'importantes disparités dans les impacts des pays de l'UE"}
+
+```{r EU pays, echo=FALSE, fig.cap="D'importantes disparités ", fig.height=8, fig.width=6}
 
 ggarrange(EU_pays, EU_pays_pondere,
-          common.legend = TRUE, labels=NULL,
+          common.legend = TRUE,
           ncol = 1, nrow = 2)
 ```
 
@@ -639,18 +710,23 @@ Le plus fort impact demande concerne les secteurs "PRODUITS MANUFACTURES", "SERV
 
 Enfin, les secteurs des "SERVICES IMMOBILIERS, DE LOCATION ET AUX ENTREPRISES" et des "PRODUITS MANUFACTURES" ont le plus fort impact revenus.
 
-```{r monde secteurs va, echo=FALSE, warning=FALSE, dev="png", dpi=400}
-EU_secteurs_VA
-
-EU_secteurs_VA_norm
+```{r monde secteurs va, echo=FALSE, fig.height=8, fig.width=6, warning=FALSE, dev="png", dpi=400}
+ggarrange(EU_secteurs_VA, EU_secteurs_VA_norm,
+          nrow = 2, ncol = 1, common.legend = TRUE)
 ```
 
 Globalement, parmi les facteurs de production c'est le capital fixe qui a le plus fort impact. L'impacts du capital est le plus petit en proportion pour chaque secteur. 
 
 ### Contrastes par pays
 
-```{r groupes pays eu, echo=FALSE}
-EU_groupes_pays
+```{r groupes pays eu pib, echo=FALSE, fig.height=8, fig.width=6, message=FALSE, warning=FALSE}
+ggarrange(EU_groupes_pays, EU_groupes_pays_pondere.pib,
+          nrow = 2, ncol = 1, common.legend = TRUE)
+```
+
+```{r groupes pays eu pop, echo=FALSE, fig.height=8, fig.width=6, message=FALSE, warning=FALSE}
+ggarrange(EU_groupes_pays, EU_groupes_pays_pondere.pop,
+          nrow = 2, ncol = 1, common.legend = TRUE)
 ```
 
 On voit également des contrastes à l'échelle régionale. L'Europe de l'Ouest et du Sud ont le plus fort impact. Ces deux régions sont également très hétérogènes, au contraire de l'Europe de l'Est et du Sud dont les impacts sont plus homogènes entre pays.
@@ -674,9 +750,9 @@ Le secteur "ACTIVITES DES MENAGES" est le plus avantagé par l'approche producte
 radar_data3 = table_EU_ponderation %>% 
   filter(nom_pays != "Reste du monde") %>%
   group_by(nom_pays) %>%
-  mutate(agg.demande_impact=sum(GES_impact_M_vol_select/population)/1000,
-         agg.producteur_impact=sum(GES_impact_S_vol_select/population)/1000,
-         agg.VA_impact=sum(GES_impact_S.VA_vol_select/population)/1000) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_coef_select/population)/1000,
+         agg.producteur_impact=sum(GES_impact_S_coef_select/population)/1000,
+         agg.VA_impact=sum(GES_impact_S.VA_coef_select/population)/1000) %>%
   ungroup() %>%
   distinct(nom_pays,agg.demande_impact,agg.producteur_impact,agg.VA_impact) 
 radar_data3.pays=radar_data3$nom_pays
@@ -686,18 +762,22 @@ radar_data3=radar_data3%>%select(-nom_pays) %>%  t() %>%
   add_rownames( var = "group" ) 
 
 ggradar(radar_data3,
+        axis.labels=gsub('\\s','\n',colnames(radar_data3[,-1])),
         axis.label.size = 2,
         axis.label.offset = 1.1,
         grid.min = 0,
+        grid.mid = (max(radar_data3[,-1])/2),
         grid.max = max(radar_data3[,-1]),
+        values.radar = c("0", "9", "19"),
+        grid.label.size = 3,
         grid.line.width=0.1,
         label.gridline.min = FALSE,
         gridline.min.colour="gray",
         gridline.min.linetype="longdash",
-        label.gridline.mid = FALSE,
+        label.gridline.mid = TRUE,
         gridline.mid.colour="gray",
         gridline.mid.linetype="longdash",
-        label.gridline.max = FALSE,
+        label.gridline.max = TRUE,
         gridline.max.colour="gray",
         gridline.max.linetype="longdash",
         group.line.width = 0.5,
@@ -725,12 +805,15 @@ L'hétérogénéité semble moins forte que dans l'approche sectorielle. L'appro
 
 La conclusion est donc que selon qu'on adopte une approche territoriale/nationale ou une approche sectorielle, la répartition des coûts suit une logique différente.
 
-```{r radar pays européens, echo=FALSE, fig.height=8, fig.width=6, message=FALSE, warning=FALSE}
-ggarrange(radar.plot.secteurs_France, 
-          radar.plot.secteurs_Allemagne,
+```{r radar pays européens, echo=FALSE, fig.cap="Les pays les plus et moins polluants par niveau de richesse", fig.height=8, fig.width=6, message=FALSE, warning=FALSE}
+ggarrange(radar.plot.secteurs_Allemagne, 
+          radar.plot.secteurs_Chypre,
           nrow = 2, ncol = 1, common.legend = TRUE)
-ggarrange(radar.plot.secteurs_Espagne,
-          radar.plot.secteurs_Suède,
+ggarrange(`radar.plot.secteurs_Pays-bas`,
+          radar.plot.secteurs_Luxembourg,
+          nrow = 2, ncol = 1, common.legend = TRUE)
+ggarrange(radar.plot.secteurs_Pologne, 
+          radar.plot.secteurs_Malte,
           nrow = 2, ncol = 1, common.legend = TRUE)
 ```
 
@@ -738,6 +821,8 @@ In most cases, Value added is the most emissions-intensive (also makes sense bec
 From one country to another, the most emissions-intensive sector is not the same. In France "PRODUITS D'EXTRACTION" is the most intensive (all three indicators). "ELECTRICITE, GAZ ET EAU" is the most intensive sector in Germany (by far) and in Spain.
 
 ## Conclusion
+
+REFLECHIR A L'ORDRE DES AXES SUR RADAR
 
 CHANGER UNITES DES GRAPHS (V)
 

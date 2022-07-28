@@ -5,6 +5,7 @@
 br <- "CPA2002_Niv1"
 br.pays <- "EU1"
 br_pays <- "EU1"
+path_loader <- str_c(path_out, br_pays,"_", br, "/")
 # Chargement des données I-O sauvegardées par le script exio3.loader.R
 Y <-readRDS(str_c(path_loader,"Y_",br_pays,"_",br,".rds"))
 Fe <-readRDS(str_c(path_loader,"Fe_",br_pays,"_",br,".rds"))
@@ -310,7 +311,7 @@ for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque",
 IO_ponderation_all <- do.call("rbind",mget(ls(pattern = "^IO_ponderation*")))
 saveRDS(IO_ponderation_all, str_c(path_results_tables, "IO_ponderation_all_",br_pays,"_",br,".rds"))
 rm(list = ls()[grep("^IO_ponderation", ls())])
-IO_all <- do.call("rbind",mget(ls(pattern = "^IO*")))
+IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
 saveRDS(IO_all, str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
 
 EU_secteurs <- table_EU_ponderation %>% 
@@ -345,5 +346,5 @@ EU_secteurs <- table_EU_ponderation %>%
 
 ###############
 #Créer grand dataframe (monde)
-table_EU <- readRDS(str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
+IO_ponderation_all <- readRDS(str_c(path_results_tables, "IO_ponderation_all_",br_pays,"_",br,".rds"))
 
