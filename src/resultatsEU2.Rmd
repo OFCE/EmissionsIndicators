@@ -73,9 +73,22 @@ pop[pop$nom_pays=="Tchéquie",]$nom_pays = "République Tchèque"
 
 ## Method and indicators
 
+### Formulas: from the input-output model to carbon accounting
+
+The Leontief matrix ($A$) is computed by the usual formula $A=Z\hat{X}^{-1}$ ($Z$ is the square matrix of intermediate consumptions and $X$ is the total production vector). So $A$ is the square^[$X$ is diagonalized so that $\hat{X}$ is a square matrix] matrix of technical coefficients since it gives the amount of direct inputs needed to produce one unit of output.
+The Leontief inverse $L$ is obtained by $L=(I-A)^{-1}$. It is the matrix of total requirements: the amount of direct and indirect inputs needed to produce one unit of output.
+
+We can find back the accounting equality $X=LY$ where $Y$ is final demand^[The value of production is the sum of the value of inputs and of final demand]. We can also find the vector of value-added by subtracting inputs from production ($V=X-Z\bf{1}$ where $\bf{1}$ is a vector of 1).
+
+This is the basis of the computations to find the indicators of environmental impact. The emissions coefficients^[quote litterature that talks about "emissions coefficients"] for the producer ($S$) are obtained by dividing total emissions by the value of production: $S=FX^{-1}$. For the value-added approach, which is also a producer approach, the production vector is replaced by the value-added vector ($S_{VA}=FV^{-1}$). The emissions coefficients for the consumer ($M$) are obtained by multiplying the producer's coefficients by the Leontief inverse: $M=SL$. According to this formula, the consumer (or demand) coefficients take into account the imported emissions of each sector.
+
+To obtain the total emissions attributed to the producer or to demand, the emissions coefficients are multiplied by the corresponding economic volume: $S_{volume}=S\hat{X}$, $S_{VA,volume}=S\hat{V}$ and $M_{volume}=M\bf{\hat{y}$ ($\bf{\hat{y}$ is)
+
+### The resulting indicators
+
 Indicators of environmental impact in PBE and VBE are equal in volume because VBA is closely related to PBA. 
 
-Even if the total impact by sector or country is the same, environmental multiplicators (impacts in volume normalized by the value of production or value-added) are different. Not only do they reflect that wealth creation is more emissions-intensive (mechanically since VA<production) but also that some sectors or countries benefit much more from emissions than what can be seen by just looking at volumes.
+Even if the total emissions by sector or country have the same, environmental multiplicators (volume of emissions normalized by the value of production or value-added) are different. Not only do they reflect that wealth creation is more emissions-intensive (mechanically since VA<production) but also that some sectors or countries benefit much more from emissions than what can be seen by just looking at volumes.
 
 
 # Visualisation and analysis of the résults
@@ -148,7 +161,7 @@ repartition_pays <- table_monde %>%
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 
-#impacts
+#emissions
 monde_secteurs <- table_monde %>% 
   group_by(produits) %>%
   filter(produits != "SERVICES EXTRA-TERRITORIAUX") %>%
@@ -174,8 +187,8 @@ monde_secteurs <- table_monde %>%
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Impact environnemental par secteur",
-       x ="Secteurs", y = "Impact GES (Gt CO2eq)",
+  labs(title="Emissions par secteur",
+       x ="Secteurs", y = "Emissions GES (Gt CO2eq)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 
@@ -211,8 +224,8 @@ monde_pays2 <- table_monde %>%
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Impact environnemental par région du monde",
-       x ="Région", y = "Impact GES (Gt CO2eq)",
+  labs(title="Emissions par région du monde",
+       x ="Région", y = "Emissions GES (Gt CO2eq)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 
@@ -243,8 +256,8 @@ monde_secteurs_VA=table_monde %>%
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Décomposition de l'impact environnemental par composante de la VA",
-       x ="Secteurs", y = "Impact GES (Gt CO2eq)",
+  labs(title="Contributions des composante de la VA aux emissions",
+       x ="Secteurs", y = "Emissions GES (Gt CO2eq)",
        fill="Rémunération de :") +
   scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), 
                     values = c("yellow", "tomato","slateblue1","slateblue"))
@@ -276,8 +289,8 @@ monde_secteurs_VA_share=table_monde %>%
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Part des composantes de la VA dans l'impact environnemental",
-       x ="Secteurs", y = "Impact GES (Gt CO2eq)",
+  labs(title="Part des composantes de la VA dans les emissions d'un secteur",
+       x ="Secteurs", y = "Emissions GES (Gt CO2eq)",
        fill="Rémunération de :") +
   scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), 
                     values = c("yellow", "tomato","slateblue1","slateblue"))
@@ -333,7 +346,7 @@ br.pays <- "EU1"
 path_results_tables <- str_c(path_codedata, "results/IO_pays/", year,"/",br_pays,"_",br,"/")
 
 table_EU <- readRDS(str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
-table_EU_ponderation <- readRDS(str_c(path_results_tables, "IO_ponderation_all_",br_pays,"_",br,".rds"))
+table_EU_eurostat <- readRDS(str_c(path_results_tables, "IO_eurostat_all_",br_pays,"_",br,".rds"))
 ```
 SECTEURS EUROPE SEULEMENT SI GROSSE DIFFERENCE AVEC MONDE
 
@@ -409,12 +422,13 @@ plot3 = ggradar(radar.data,
                 fill.alpha = 0.25,
                 plot.title = str_c("Coefficient environnemental pour : ", pays))+
   theme(legend.title = element_text(size=12),
-        plot.title = element_text(size=13)) +
+        plot.title = element_text(size=13),
+        axis.title.y = element_text(size=7)) +
   scale_fill_manual(labels = c("Demande", "Production","VA"), #
                     values = c("indianred1", "cornflowerblue","orange1")) +
   scale_colour_manual(labels = c("Demande", "Production","VA"), #
                       values = c("indianred1", "cornflowerblue","orange1")) +
-  guides(fill="none")
+  guides(fill="none") + labs(y="Emissions (kg CO2eq/€)")
   assign(str_c("radar.plot.secteurs_",pays),plot3)
   rm(IO, plot3)
 }
@@ -422,7 +436,7 @@ plot3 = ggradar(radar.data,
 
 ```{r plots eu, include=FALSE}
 #Plot monde secteurs
-EU_secteurs <- table_EU_ponderation %>% 
+EU_secteurs <- table_EU_eurostat %>% 
       group_by(produits) %>%
       filter(produits != "SERVICES EXTRA-TERRITORIAUX", 
              nom_pays != "Reste du monde") %>% 
@@ -447,13 +461,13 @@ EU_secteurs <- table_EU_ponderation %>%
             panel.background = element_blank(),
             panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
             plot.margin = unit(c(10,5,5,5), "mm"))+
-      labs(title="Impacts",
-           x ="Secteurs", y = "Impact GES (Gt CO2eq)",
+      labs(title="Emissions",
+           x ="Secteurs", y = "Emissions GES (Gt CO2eq)",
            fill="Indicateur") +
       scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 
 #Plot européen par pays
-EU_pays <- table_EU_ponderation %>% 
+EU_pays <- table_EU_eurostat %>% 
   filter(nom_pays != "Reste du monde") %>%
   group_by(nom_pays) %>%
   mutate(agg.demande_impact=sum(GES_impact_M_vol_select),
@@ -477,13 +491,13 @@ EU_pays <- table_EU_ponderation %>%
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Impacts",
-       x ="Région ou pays", y = "Impact GES (Gt CO2eq)",
+  labs(title="Emissions",
+       x ="Région ou pays", y = "Emissions GES (Gt CO2eq)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), values = c("indianred1", "cornflowerblue","orange1"))
 
 #Plot européen par secteur pour VA
-EU_secteurs_VA=table_EU_ponderation %>% 
+EU_secteurs_VA=table_EU_eurostat %>% 
   filter(nom_pays != "Reste du monde") %>%
   #par produits
   group_by(produits) %>%
@@ -510,12 +524,12 @@ EU_secteurs_VA=table_EU_ponderation %>%
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Impacts",
-       x ="Secteurs", y = "Impact GES (Gt CO2eq)",
+  labs(title="Emissions",
+       x ="Secteurs", y = "Emissions GES (Gt CO2eq)",
        fill="Rémunération de:") +
   scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), values = c("yellow", "tomato","slateblue1","slateblue"))
 
-EU_secteurs_VA_norm <- table_EU_ponderation %>% 
+EU_secteurs_VA_norm <- table_EU_eurostat %>% 
   filter(nom_pays != "Reste du monde") %>%
   #par produits
   group_by(produits) %>%
@@ -543,12 +557,12 @@ EU_secteurs_VA_norm <- table_EU_ponderation %>%
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Impacts",
+  labs(title="Emissions",
        x ="Secteurs", y = "Part des composantes (%)",
        fill="Rémunération de:") +
   scale_fill_manual(labels = c("Taxes", "Travail","Capital (net)","Capital (dépréciation)"), values = c("yellow", "tomato","slateblue1","slateblue")) #+geom_text_repel(aes(x = produits, y = impact,  label=composante))
 
-EU_groupes_pays <- table_EU_ponderation %>%
+EU_groupes_pays <- table_EU_eurostat %>%
   mutate(level_income = ifelse(PIB.hab < 20000, "<20,000€",
                             ifelse(PIB.hab >= 20000 & PIB.hab <= 35000, "20,000-35,000 €", ">35,000 €"))) %>% 
   #filter(nom_pays != "Reste du monde") %>%
@@ -574,15 +588,15 @@ EU_groupes_pays <- table_EU_ponderation %>%
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Impacts",
-       x ="Région ou pays", y = "Impact GES (kt CO2eq)",
+  labs(title="Emissions",
+       x ="Région ou pays", y = "Emissions GES (kt CO2eq)",
        fill="Indicateur") +
   scale_fill_manual(
     labels = c("Demande", "Production","VA"), 
     values = c("indianred1", "cornflowerblue","orange1")) +
   facet_grid(~level_income, scales="free_x")
 
-EU_groupes_pays_pondere.pib <- table_EU_ponderation %>%
+EU_groupes_pays_par.pib <- table_EU_eurostat %>%
   mutate(level_income = ifelse(PIB.hab < 20000, "<20,000€",
                             ifelse(PIB.hab >= 20000 & PIB.hab <= 35000, "20,000-35,000 €",
                                    ">35,000 €"))) %>% 
@@ -607,15 +621,15 @@ EU_groupes_pays_pondere.pib <- table_EU_ponderation %>%
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Impacts (ponderes par unite pib)",
-       x ="Région ou pays", y = "Impact GES (kt CO2eq)",
+  labs(title="Emissions (par unite pib)",
+       x ="Région ou pays", y = "Emissons GES (kt CO2eq)",
        fill="Indicateur") +
   scale_fill_manual(
     labels = c("Demande", "Production","VA"), 
     values = c("indianred1", "cornflowerblue","orange1")) +
   facet_grid(~level_income, scales="free_x")
 
-EU_groupes_pays_pondere.pop <- table_EU_ponderation %>%
+EU_groupes_pays_par.hab <- table_EU_eurostat %>%
   mutate(level_income = ifelse(PIB.hab < 20000, "<20,000€",
                             ifelse(PIB.hab >= 20000 & PIB.hab <= 35000, "20,000-35,000 €",
                                    ">35,000 €"))) %>% 
@@ -642,15 +656,15 @@ EU_groupes_pays_pondere.pop <- table_EU_ponderation %>%
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Impacts (ponderes par population)",
-       x ="Région ou pays", y = "Impact GES (kt CO2eq)",
+  labs(title="Emissions (par habitant)",
+       x ="Région ou pays", y = "Emissions GES (kt CO2eq)",
        fill="Indicateur") +
   scale_fill_manual(
     labels = c("Demande", "Production","VA"), 
     values = c("indianred1", "cornflowerblue","orange1")) +
   facet_grid(~level_income, scales="free_x")
 
-EU_pays_pondere=table_EU_ponderation %>% 
+EU_pays_eurostat=table_EU_eurostat %>% 
   #filter(nom_pays != "Reste du monde") %>%
   group_by(nom_pays) %>%
   mutate(agg.demande_impact=sum(GES_impact_M_vol_select),
@@ -676,8 +690,8 @@ EU_pays_pondere=table_EU_ponderation %>%
         panel.background = element_blank(),
         panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
         plot.margin = unit(c(10,5,5,5), "mm"))+
-  labs(title="Impacts pondérés par la population",
-       x ="Région ou pays", y = "Impact GES (tCO2eq/cap)",
+  labs(title="Emissions par habitant",
+       x ="Région ou pays", y = "Emissions GES (tCO2eq/cap)",
        fill="Indicateur") +
   scale_fill_manual(labels = c("Demande", "Production","VA"), 
                     values = c("indianred1", "cornflowerblue","orange1"))
@@ -691,7 +705,7 @@ EU_pays_pondere=table_EU_ponderation %>%
 
 ```{r EU pays, echo=FALSE, fig.cap="D'importantes disparités ", fig.height=8, fig.width=6}
 
-ggarrange(EU_pays, EU_pays_pondere,
+ggarrange(EU_pays, EU_pays_eurostat,
           common.legend = TRUE,
           ncol = 1, nrow = 2)
 ```
@@ -724,12 +738,12 @@ Globalement, parmi les facteurs de production c'est le capital fixe qui a le plu
 ### Contrastes par pays
 
 ```{r groupes pays eu pib, echo=FALSE, fig.height=8, fig.width=6, message=FALSE, warning=FALSE}
-ggarrange(EU_groupes_pays, EU_groupes_pays_pondere.pib,
+ggarrange(EU_groupes_pays, EU_groupes_pays_par.pib,
           nrow = 2, ncol = 1, common.legend = TRUE)
 ```
 
 ```{r groupes pays eu pop, echo=FALSE, fig.height=8, fig.width=6, message=FALSE, warning=FALSE}
-ggarrange(EU_groupes_pays, EU_groupes_pays_pondere.pop,
+ggarrange(EU_groupes_pays, EU_groupes_pays_par.hab,
           nrow = 2, ncol = 1, common.legend = TRUE)
 ```
 
@@ -751,7 +765,7 @@ Le secteur "ACTIVITES DES MENAGES" est le plus avantagé par l'approche producte
 
 ```{r parts impacts pays, echo=FALSE, message=FALSE, warning=FALSE}
 #figure_pays
-radar_data3 = table_EU_ponderation %>% 
+radar_data3 = table_EU_eurostat %>% 
   filter(nom_pays != "Malte" & nom_pays != "Chypre" & nom_pays != "Estonie" & nom_pays != "Luxembourg") %>%
   group_by(nom_pays) %>%
   mutate(agg.demande_impact=sum(GES_impact_M_coef_select/population)/1000,

@@ -173,10 +173,10 @@ for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque",
   saveRDS(IO, str_c(path_results_tables, "IO_",pays,"_",br_pays,"_",br,".rds"))
   
   #Ajouter données eurostat
-  IO_ponderation=merge(IO,pib,by.x="nom_pays")
-  IO_ponderation=merge(IO_ponderation,pop,by.x="nom_pays")
-  assign(str_c("IO_ponderation_",pays),IO_ponderation)
-  saveRDS(IO_ponderation, str_c(path_results_tables, "IO_ponderation_",pays,"_",br_pays,"_",br,".rds"))
+  IO_eurostat=merge(IO,pib,by.x="nom_pays")
+  IO_eurostat=merge(IO_eurostat,pop,by.x="nom_pays")
+  assign(str_c("IO_eurostat_",pays),IO_eurostat)
+  saveRDS(IO_eurostat, str_c(path_results_tables, "IO_eurostat_",pays,"_",br_pays,"_",br,".rds"))
   
   #Créer un graphique avec les trois indicateurs
   plot=IO %>% 
@@ -308,13 +308,13 @@ for (pays in c("Autriche","Belgique","Bulgarie","Chypre","République Tchèque",
   rm(IO, io_table, IO_all, radar.data, plot, plot2, plot3)  
 }
 
-IO_ponderation_all <- do.call("rbind",mget(ls(pattern = "^IO_ponderation*")))
-saveRDS(IO_ponderation_all, str_c(path_results_tables, "IO_ponderation_all_",br_pays,"_",br,".rds"))
-rm(list = ls()[grep("^IO_ponderation", ls())])
+IO_eurostat_all <- do.call("rbind",mget(ls(pattern = "^IO_eurostat*")))
+saveRDS(IO_eurostat_all, str_c(path_results_tables, "IO_eurostat_all_",br_pays,"_",br,".rds"))
+rm(list = ls()[grep("^IO_eurostat", ls())])
 IO_all <- do.call("rbind",mget(ls(pattern = "^IO_*")))
 saveRDS(IO_all, str_c(path_results_tables, "IO_all_",br_pays,"_",br,".rds"))
 
-EU_secteurs <- table_EU_ponderation %>% 
+EU_secteurs <- IO_eurostat_all %>% 
   filter(produits != "SERVICES EXTRA-TERRITORIAUX", 
          nom_pays != "Reste du monde") %>% 
   group_by(produits) %>% 
@@ -346,5 +346,5 @@ EU_secteurs <- table_EU_ponderation %>%
 
 ###############
 #Créer grand dataframe (monde)
-IO_ponderation_all <- readRDS(str_c(path_results_tables, "IO_ponderation_all_",br_pays,"_",br,".rds"))
+IO_eurostat_all <- readRDS(str_c(path_results_tables, "IO_eurostat_all_",br_pays,"_",br,".rds"))
 
