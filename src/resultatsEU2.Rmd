@@ -19,6 +19,7 @@ library(ggpubr)
 library(ggradar)
 ```
 
+MENTION ANTHROPOGENIC EMISSIONS
 
 The primary goal of carbon accounting is to establish a measure of how much greenhouse gases (GHG) are emitted by which actors. The level can be regional (comparing groups of countries), national (comparing countries), sectoral (comparing products or aggregate sectors) or individual (comparing firms for example). Beyond the methodological concerns, it is important to state what the use of these indicators is. It is both a descriptive and a normative question. On the one hand, the need for action against climate change commands to have a clear view of the global situation. Hence the need for accurate measurements of carbon emissions as a descriptive concern. On the other hand, this situation also requires to identify policy strategies to avoid dramatic consequences on ecosystems. Hence the normative concern and the need to identify whom should take actions. This second question relates to the question of responsibility and is much less easy to solve: responsibility is preceded by ethics and morals, and triggers corrective actions as consequences. This makes social and political acceptability crucial. The contribution of research in this debate is at the core of the question in order to legitimate carbon accounting measures.
 
@@ -28,6 +29,7 @@ intro meta sur la question de la resp, contextualiser
 rappel des concepts et la problématique
 
 # Litterature review (carbon accounting methods)
+
 This litterature review aims at presenting the various methods that can be used for carbon accounting, with the underlying question of how to use them to solve market failures (externalities).
 
 # Description of the empirical strategy
@@ -44,11 +46,9 @@ path_data.source <- str_c(path_user,"Documents/GitHub/EmissionsIndicators/data_i
 
 ## The data
 
-Exiobase data was used within an input-output model.
+Exiobase data was used within an input-output model. The year 2015 was chosen to do all computations and conclusions in this report. The level of aggregation chosen for the source data is input-output tables at the product level, not at the industry level. The matrices used are those about total production ($X$), final demand ($Y$), the classic input-output table of intermediate consumtpions ($Z$) and the satellite matrix contaning emissions of GHG ($F$).^[The folder "IOT_2015_pxp" was downloaded from https://zenodo.org/record/4588235#.YuPa7RzP02x.]
 
-
-
-Economic and demographic data from Eurostat was added to custom the indicators and graphs and allow to draw conclusions more easily.
+Economic and demographic data from Eurostat was added to custom the indicators and graphs and allow to draw conclusions more easily. Namely, GDP per capita^[SDG_08_10] and population^[TPS00001] were recovered from Eurostat.
 
 ```{r données eurostat, include=FALSE}
 pib=read_xlsx(str_c(path_data.source,"eurostat/PIBhab.xlsx"),
@@ -82,16 +82,19 @@ We can find back the accounting equality $X=LY$ where $Y$ is final demand^[The v
 
 This is the basis of the computations to find the indicators of environmental impact. The emissions coefficients^[quote litterature that talks about "emissions coefficients"] for the producer ($S$) are obtained by dividing total emissions by the value of production: $S=FX^{-1}$. For the value-added approach, which is also a producer approach, the production vector is replaced by the value-added vector ($S_{VA}=FV^{-1}$). The emissions coefficients for the consumer ($M$) are obtained by multiplying the producer's coefficients by the Leontief inverse: $M=SL$. According to this formula, the consumer (or demand) coefficients take into account the imported emissions of each sector.
 
-To obtain the total emissions attributed to the producer or to demand, the emissions coefficients are multiplied by the corresponding economic volume: $S_{volume}=S\hat{X}$, $S_{VA,volume}=S\hat{V}$ and $M_{volume}=M\bf{\hat{y}$ ($\bf{\hat{y}$ is)
+To obtain the total emissions attributed to the producer or to demand, the emissions coefficients are multiplied by the corresponding economic volume: $S_{volume}=S\hat{X}$, $S_{VA,volume}=S\hat{V}$ and $M_{volume}=M \bf{\hat{y}}$ ($\bf{\hat{y}}$ is the vector of the contribution of each sector to final demand)^[It is the sum of all sectors across components of final demand multiplied by the transposed matrix of the share of these sectors in each component of the final demand.].
+
+The six main variables of interest in this report are the emissions coefficients ($S$,$S_{VA}$,$M$) and the volume of emissions ($S_{volume}$,$S_{VA,volume}$,$M_{volume}$).
 
 ### The resulting indicators
 
-Indicators of environmental impact in PBE and VBE are equal in volume because VBA is closely related to PBA. 
+Two indicators, the volume of emissions associated to production and to value-added, are equal because they are computed in the same way (as mentioned in the previous section). 
 
-Even if the total emissions by sector or country have the same, environmental multiplicators (volume of emissions normalized by the value of production or value-added) are different. Not only do they reflect that wealth creation is more emissions-intensive (mechanically since VA<production) but also that some sectors or countries benefit much more from emissions than what can be seen by just looking at volumes.
+However, the emissions coefficients of production and value-added are different. Mechanically (since value-added $<$ production) wealth creation is more emissions-intensive than production.
 
+# Visualisation and analysis of the results
 
-# Visualisation and analysis of the résults
+These indicators are first computed at the global scale to set the context. Because emissions of GHG are a global externality, it is important to start by looking how they are allocated across the world. Then they are computed for each european country (EU28).
 
 ## The global scale (setting the big picture)
 
