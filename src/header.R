@@ -1,6 +1,7 @@
 library(tidyverse)
 library(data.table)
 library(openxlsx)
+library("zen4R")
 
 ###
 # Choix de la nomenclature: Soit par produit par produit (pxp), soit industrie par industrie (ixi)
@@ -28,7 +29,6 @@ path_data.source <- str_c("data_in/IOT/")
 path_out <- str_c("data_out/IOT_",year,"_",nom,"/")
 path_loader <- str_c(path_out, br, "/",br.pays,"/")
 
-getwd()
 
 path_ResultsTable <- str_c(path_user,"results/IO_pays/",year,"/",br.pays,"_",br)
 path_ResultsPlot <- str_c(path_user,"results/plots/")
