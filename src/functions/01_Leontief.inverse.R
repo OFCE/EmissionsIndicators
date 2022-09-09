@@ -10,7 +10,7 @@ LeontiefInverse <- function(data,
   if (coef == FALSE){
     data <- sweep(data, 
              MARGIN = 2,
-             STATS=X[,"production"],
+             STATS=X[,1],
              FUN='/',
              check.margin = TRUE)
     

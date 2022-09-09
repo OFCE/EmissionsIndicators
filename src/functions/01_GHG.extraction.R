@@ -1,14 +1,14 @@
 # Calcul des émissions de CH4, SF6 et N2O en CO2eq pour une matrice (PFC et HFC sont déjà en CO2eq dans EXIOBASE)
-GHGToCO2eq<-function(GES){
-  CO2<-str_which(row.names(GES),"CO2")
-  CH4<-str_which(row.names(GES),"CH4")
-  N2O<-str_which(row.names(GES),"N2O")
-  SF6<-str_which(row.names(GES),"SF6")
+GHGToCO2eq <- function(GES){
+  CO2 <- str_which(row.names(GES),"CO2")
+  CH4 <- str_which(row.names(GES),"CH4")
+  N2O <- str_which(row.names(GES),"N2O")
+  SF6 <- str_which(row.names(GES),"SF6")
   
   
-  GES[CH4,]<-28*GES[CH4,]
-  GES[N2O,]<-265*GES[N2O,]
-  GES[SF6,]<-23500*GES[SF6,]
+  GES[CH4,] <- 28 * GES[CH4,]
+  GES[N2O,]<- 265 * GES[N2O,]
+  GES[SF6,]<- 23500 *GES[SF6,]
   return(GES)
 }
 
