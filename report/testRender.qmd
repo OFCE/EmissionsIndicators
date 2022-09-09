@@ -1,0 +1,139 @@
+---
+title: "Émissions importées et fiscalité carbone aux frontières"
+author: "Paul Malliet, Frédéric Reynès, Xavier Timbeau, Xavier Ragot"
+date: '2022-07-23'
+abstract: |
+    Abstract: Simulations conduites à l'aide de ThreeME de tarification du carbone importé. 
+format:
+  html: 
+    toc: true
+    theme: cosmo
+    self-contained: true
+  pdf:
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    number-depth: 1
+    documentclass: scrartcl
+    papersize: a4
+    fontfamily: Nunito
+    fontsize: 9pt
+    mainfont: Nunito
+    fig-cap-location: top
+    include-in-header: 'preamble.tex'
+editor_options: 
+    markdown: 
+      wrap: 100
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  fig.pos="htb", 
+  out.extra="",
+  dev="ragg_png",
+  out.width="100%",
+  fig.showtext=TRUE,
+  cache=FALSE)
+```
+
+```{r datainit, include=FALSE}
+library(tidyverse)
+library(glue)
+library(data.table)
+library(ofce)
+library(showtext)
+library(markdown)
+if (F)  {devtools::install_github("ofce/ofce")}
+
+#sysfonts::font_add_google('Nunito')
+#showtext_opts(dpi = 300)
+#showtext_auto()
+#objects <- load("../data/sorties.rdata")
+options(ofce.background_color = "#F9F4ED")
+options(ofce.base_family = "Nunito")
+options(ofce.base_size = 7)
+```
+
+# Émissions importées des entreprises françaises
+
+L'introduction d'un mécanisme d'ajustement aux frontières européen caractérise une évolution notable dans la conception de la politique fiscale comme un instrument de lutte contre le réchauffement climatique. 
+
+# Méthodologie
+
+La méthodologie retenue....
+
+
+## Description des données utilisées
+
+```{r nomenclatures et header, echo=FALSE}
+br <- "CPA2002_Niv1"
+br_pays <- "monde.12"
+
+# Choix de la nomenclature: Soit par produit par produit (pxp), soit industrie par industrie (ixi)
+nom <- "pxp"
+
+# Chemin d'accès du dossier où sont stockées les données sources issues d'EXIOBASE 3.8 (fichier txt)
+# Chemin d'accès du dossier où sont stockées les données sources issues d'EXIOBASE 3.8 (fichier txt)
+path_user <- str_c("C:/Users/paul/")
+path_github <- str_c(path_user,"Documents/GitHub/")
+path_data.source <-str_c(path_user,"Documents/GitHub/EmissionsIndicators/data_in/")
+path_codedata <- str_c(path_user,"Documents/GitHub/EmissionsIndicators/")
+path_out <- str_c(path_codedata,"data_out/IOT_",year,"_",nom,"/")
+#path_out <- str_c("data_out/IOT_",year,"_",nom,"/")
+
+# Intervalle des années pour extraction des données
+year.min <-2010
+year.max <- 2010
+year <- 2015
+# Choix du pays considéré pour calcul empreinte carbone 
+iso <-  str_c("FR")
+
+# Liste des GES considérés
+glist <- c("CO2", "CH4", "N2O", "SF6", "HFC", "PFC")
+
+getwd()
+# Descriptions of nomenclatures
+source(str_c(path_codedata,"data_in/desc/exio3.desc.R"),local = FALSE)
+source(str_c(path_codedata,"data_in/desc/CPA4.desc.R"),local = FALSE)
+source(str_c(path_codedata,"src/functions/01_load.bridge.R"),local = FALSE)
+```
+
+
+```{r donnees_IO}
+Y <-readRDS(str_c(path_loader,"Y_",br_pays,"_",br,".rds"))
+Fe <-readRDS(str_c(path_loader,"Fe_",br_pays,"_",br,".rds"))
+Z <-readRDS(str_c(path_loader,"Z_",br_pays,"_",br,".rds"))
+X <-readRDS(str_c(path_loader,"X_",br_pays,"_",br,".rds"))
+
+dim(Y)
+dim(Fe)
+dim(Z)
+dim(X)
+```
+
+## Calcul des indicateurs
+
+```{r Leontief}
+A <- sweep(Z, 
+           MARGIN = 2,
+           STATS=X$production,
+           FUN='/',
+           check.margin = TRUE)
+A[is.na(as.data.frame(A))] <- 0
+saveRDS(A, str_c(path_loader, "A_",br_pays,"_",br,".rds"))
+
+L <- LeontiefInverse(A)
+saveRDS(L, str_c(path_loader, "L_",br_pays,"_",br,".rds"))
+```
+
+```{r impact producteur}
+x <- ((L %*% as.matrix(Y)) %*% Id(Y)) %>% as.numeric
+x_1 <- 1/x
+x_1[is.infinite(x_1)] <- 0 
+x_1d <- as.numeric(x_1) %>% diag()
+S <- (as.matrix(Fe) %*% x_1d) %>% `colnames<-`(rownames(X))
+S[is.nan(S)]
+S_volume <- S %*% as.matrix(X)
+```
