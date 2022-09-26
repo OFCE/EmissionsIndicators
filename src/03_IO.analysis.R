@@ -54,18 +54,23 @@ Fe.ghg$name <- rownames(Z)
 sum(Fe.ghg$GES)/10^12
 
 ### I-O Calculus
+
+
+##Vecteur de demande pour un pays iso
+Y_all.vec <- shock.demand(Y, aggregate = TRUE) 
+
+
 ##Inverse de Leontief
 L <- LeontiefInverse(Z, X, coef = FALSE)
 
 L_1 <- LeontiefInverse(Z,X, coef = F, direct = TRUE)
 
-x <- L %*% Y.vec
 
-##Vecteur de demande pour un pays iso
-Y.vec <- shock.demand(Y, iso, aggregate = TRUE) 
+x <- L %*% Y_all.vec
 
-##Vecteur de demande mondiale
-#Y.vec <- shock.demand(Y, aggregate = TRUE) 
+
+##Vecteur de demande pays iso
+Y.vec <- shock.demand(Y,iso, aggregate = TRUE) 
 
 
 
@@ -80,12 +85,23 @@ S[is.na(S)] <- 0
 # Coefficient d'intensité carbone M  =  S %*% L / M_1 = S %*% L_1
 M <- diag(S) %*% L 
 M_1 <- diag(S) %*% L_1 
+dY <- diag(as.vector(Y.vec))
 
+M * Z
 # Volume d'émissions =  S %*% L /\ M_1 = S %*% L_1
 S_volume <- S %*% diag(as.vector(x)) %>% `colnames<-`(rownames(Y)) %>% `rownames<-`("EMS_S")
 M_volume <- (M %*% diag(as.vector(Y.vec))) %>% `colnames<-`(rownames(Y)) %>% `rownames<-`(rownames(Y))
-M_1_volume <- (M_1 %*% diag(as.vector(Y.vec))) %>% `colnames<-`(rownames(Y)) %>% `rownames<-`(rownames(Y))
+M_1_volume <- (M_1 %*% as.matrix(Y.vec)) %>% `rownames<-`(rownames(Y))
+M.tot_volume <- (M %*% diag(as.vector(Y.vec))) %>% `colnames<-`(rownames(Y)) %>% `rownames<-`(rownames(Y))
+M.tot_1_volume <- (M_1  %*% as.matrix(Y.vec))   %>% `rownames<-`(rownames(Y))
 
+
+Z.iso <- Z
+Z.iso[-str_which(rownames(Z.iso),as.character(iso)),] <- 0
+CI.M.tot_volume <- (M %*% Z.iso) %>% `colnames<-`(rownames(Y)) %>% `rownames<-`(rownames(Y))
+CI.M.tot_1_volume <- (M_1  %*% Z.iso)   %>% `rownames<-`(rownames(Y))
+
+sum(M %*% (Z))/10^9
 # CIM_volume <- (S %*% t(Z)) %>% `colnames<-`(rownames(Y)) %>% `rownames<-`(rownames(Y))
 # CIM_1_volume <- (M_1 %*% Z) %>% `colnames<-`(rownames(Y)) %>% `rownames<-`(rownames(Y))
 
@@ -130,13 +146,17 @@ Y_export <-  (Y.vec) %>% as.data.frame() %>%mutate(id = seq(1:nrow(.)))  %>%
 
 ### Export results
 # factors of emissions
-saveRDS(M, str_c(path_loader,"fac.M_",ghg,"_",iso,".rds"))
-saveRDS(S, str_c(path_loader,"fac.S_",ghg,"_",iso,".rds"))
+saveRDS(factor_M_export, str_c(path_loader,"fac.M_",ghg,"_",iso,".rds"))
+saveRDS(factor_M.dir_export, str_c(path_loader,"fac.M_dir_",ghg,"_",iso,".rds"))
+saveRDS(factor_S_export, str_c(path_loader,"fac.S_",ghg,"_",iso,".rds"))
 
 #  Emissions volume
 saveRDS(M_volume, str_c(path_loader,"M.mat_",ghg,"_",iso,".rds"))
+saveRDS(M_1_volume, str_c(path_loader,"M_dir.mat_",ghg,"_",iso,".rds"))
 saveRDS(S_volume, str_c(path_loader,"S.mat_",ghg,".rds"))
 
 saveRDS(M_export, str_c(path_loader,"M_",ghg,"_",iso,".rds"))
+saveRDS(M.dir_export, str_c(path_loader,"M_dir_",ghg,"_",iso,".rds"))
 saveRDS(S_export, str_c(path_loader,"S_",ghg,".rds"))
 }
+saveRDS(Y_export, str_c(path_loader,"Y_",iso,".rds"))
