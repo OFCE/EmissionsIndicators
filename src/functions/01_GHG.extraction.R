@@ -8,7 +8,7 @@ GHGToCO2eq <- function(GES){
   
   GES[CH4,] <- 28 * GES[CH4,]
   GES[N2O,]<- 265 * GES[N2O,]
-  GES[SF6,]<- 23500 *GES[SF6,]
+  GES[SF6,]<- 23500 * GES[SF6,]
   return(GES)
 }
 
@@ -24,6 +24,11 @@ GHG.extraction <- function(data,
   
   
   if (GES == "GES"){
+    if (unit.co2e == TRUE){
+      data <- GHGToCO2eq(data) 
+    }
+    
+    
     
     GES_list[["GES.raw"]] <- data %>% 
       as.data.frame %>% 
@@ -64,32 +69,32 @@ GHG.extraction <- function(data,
     #index=index+1
   } else 
   {
+
+    if (unit.co2e == TRUE){
+      data <- GHGToCO2eq(data) 
+    }
+    
     
     GES_list[["GES.raw"]] <- data %>% 
       as.data.frame %>% 
       filter(str_detect(row.names(.), GES))
-    
-    
+
     #Row number for each GES in the S matrix
     id_row <- str_which(row.names(GES_list[["GES.raw"]]),str_c(GES))
     
     if  (ncol(GES_list[["GES.raw"]]) == 1 ){
-      GES_list[[str_c(GES)]] <- GES_list[["GES.raw"]][id_row,] %>%  sum() %>% as.data.frame()
+      GES_list[[str_c(GES)]] <- GES_list[["GES.raw"]][id_row,] %>% as.data.frame()
     } else 
     {
       GES_list[[str_c(GES)]] <- GES_list[["GES.raw"]][id_row,] %>%  colSums() %>% as.data.frame()
     } 
     
     
-    
-    if (unit.co2e == TRUE){
-      GES_list[[GES]] <- GHGToCO2eq(GES_list[[GES]])
-    }
   }
   
   colnames(GES_list[[GES]]) <-  "value"
   
- 
+  
   return( GES_list[[GES]] )
 }
 
