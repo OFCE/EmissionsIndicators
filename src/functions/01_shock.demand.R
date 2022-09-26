@@ -35,7 +35,7 @@ Env.multiplier <- function(Y.mat, S.mat, L.mat,volume = NULL){
   if (is.null(volume)){volume = FALSE}
   
   
-  x <- L.mat %*% Y.mat
+  x <- L.mat %*% diag(Y.mat)
   
   x_1 <- 1/x        
   x_1[is.infinite(x_1)] <- 0 
