@@ -3,9 +3,18 @@
 .RData
 .Ruserdata
 
-data_in/**.txt
-data_in/**.json
-data_out/**.rds
-*.rds
-*.txt
-*.json
+data_in/**/**.txt
+data_in/**/**.rds
+data_in/**/**.json
+
+data_out/**/**.rds
+
+results/**/**.rds
+results/**/**.pdf
+results/**/**.png
+
+report/**/**.pdf
+report/**/**.png
+
+
+
