@@ -55,6 +55,6 @@ coef_techniques <- function (Z,X)
     }
     return (ctec)
   }else {
-    cat("Erreur : la taille du vecteur de production et du TEI ne sont pas coh�rentes")
+    cat("Error : dimensions of Z and X are not the same")
   }
 }
