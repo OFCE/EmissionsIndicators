@@ -44,24 +44,12 @@ for(ghg in glist){
 }
 
 Fe.ghg <- do.call("rbind",mget(ls(pattern = "^Fe._*"))) 
-#Fe.CO2eq.CH4.AT_Products of Forestry
-
-#4.104604e+06
-#4.104604e+06
-
 Fe.ghg <- pivot_wider(Fe.ghg,
                       names_from = ghg,
                       values_from = value) %>% select(-id)
 
 Fe.ghg$GES <- rowSums(Fe.ghg)
 Fe.ghg$name <- rownames(Z)
- # AT_Air transport 4152130239     28*1.867419e+10
-
-
-
-#29.96622 GtCO2e /  GtCO2e  7.951345 CH4 / N2O 2.065128
-
-
 # 41.18379 Gt CO2e worldwide
 sum(Fe.ghg$GES)/10^12
 
@@ -72,6 +60,7 @@ L <- LeontiefInverse(Z, X, coef = FALSE)
 L_1 <- LeontiefInverse(Z,X, coef = F, direct = TRUE)
 
 x <- L %*% Y.vec
+
 ##Vecteur de demande pour un pays iso
 Y.vec <- shock.demand(Y, iso, aggregate = TRUE) 
 
@@ -102,10 +91,6 @@ M_1_volume <- (M_1 %*% diag(as.vector(Y.vec))) %>% `colnames<-`(rownames(Y)) %>%
 
 
 print(str_c("for country ",iso,": ",round(sum(M_volume/10^9),2)," MtCO2e of ",ghg," emissions (consumer-based approach)"))  
-
-
-
-
 
 
 # Mise en forme des résultats pour export
@@ -143,13 +128,7 @@ Y_export <-  (Y.vec) %>% as.data.frame() %>%mutate(id = seq(1:nrow(.)))  %>%
   merge(names_y, ., by = "id") %>% select(-id) %>% 
   pivot_wider(names_from = countries, values_from = "V1") 
 
-
-#GES_M.TOT <- (GES_M_export[-1]/10^9) %>% rowSums %>% bind_cols(GES_M_export[1],.)
-#GES_S.TOT <- (GES_S_export[-1]/10^9) %>% rowSums %>% bind_cols(GES_S_export[1],.)
-
-
-# Export results
-
+### Export results
 # factors of emissions
 saveRDS(M, str_c(path_loader,"fac.M_",ghg,"_",iso,".rds"))
 saveRDS(S, str_c(path_loader,"fac.S_",ghg,"_",iso,".rds"))
@@ -157,7 +136,6 @@ saveRDS(S, str_c(path_loader,"fac.S_",ghg,"_",iso,".rds"))
 #  Emissions volume
 saveRDS(M_volume, str_c(path_loader,"M.mat_",ghg,"_",iso,".rds"))
 saveRDS(S_volume, str_c(path_loader,"S.mat_",ghg,".rds"))
-
 
 saveRDS(M_export, str_c(path_loader,"M_",ghg,"_",iso,".rds"))
 saveRDS(S_export, str_c(path_loader,"S_",ghg,".rds"))
