@@ -1,9 +1,5 @@
+source("src/00_header.R")
 
-# Choix du pays considéré pour calcul empreinte carbone 
-br      <- "ThreeME"
-br.pays <- "OG"
-year    <- 2015
-path_loader <- str_c(path_out, br, "/",br.pays,"/")
 
 # Chargement des données I-O sauvegardées par le script exio3.loader.R
 Y  <- readRDS(str_c(path_loader,"Y_",br.pays,"_",br,".rds"))
@@ -88,11 +84,12 @@ M_1 <- diag(S) %*% L_1
 dY <- diag(as.vector(Y.vec))
 
 M * Z
+
 # Volume d'émissions =  S %*% L /\ M_1 = S %*% L_1
 S_volume <- S %*% diag(as.vector(x)) %>% `colnames<-`(rownames(Y)) %>% `rownames<-`("EMS_S")
 M_volume <- (M %*% diag(as.vector(Y.vec))) %>% `colnames<-`(rownames(Y)) %>% `rownames<-`(rownames(Y))
-M_1_volume <- (M_1 %*% as.matrix(Y.vec)) %>% `rownames<-`(rownames(Y))
-M.tot_volume <- (M %*% diag(as.vector(Y.vec))) %>% `colnames<-`(rownames(Y)) %>% `rownames<-`(rownames(Y))
+M_1_volume <- (M_1 %*% diag(as.vector(Y.vec)))%>% `rownames<-`(rownames(Y))
+M.tot_volume <- (M  %*% as.matrix(Y.vec))  %>% `rownames<-`(rownames(Y))
 M.tot_1_volume <- (M_1  %*% as.matrix(Y.vec))   %>% `rownames<-`(rownames(Y))
 
 

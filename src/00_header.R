@@ -1,7 +1,6 @@
 library(tidyverse)
-library(data.table)
 library(openxlsx)
-library(zen4R)
+
 
 ###
 # Choix de la nomenclature: Soit par produit par produit (pxp), soit industrie par industrie (ixi)
@@ -12,7 +11,7 @@ year <- 2015
 
 # Choix de la nomenclature finale
 br ="ThreeME"
-br.pays ="OG"
+br.pays ="FR"
 
 
 # Choix du pays considéré pour calcul empreinte carbone 
@@ -20,7 +19,6 @@ iso <-  str_c("FR")
 
 # Liste des GES considérés
 glist <- c("CO2", "CH4", "N2O", "SF6", "HFC", "PFC")
-
 
 # Chemin d'accès du dossier où sont stockées les données sources issues d'EXIOBASE 3.8 (fichier txt) (Retrieved from:   https://zenodo.org/record/4277368 )
 path_user <- str_c(getwd(),"/")

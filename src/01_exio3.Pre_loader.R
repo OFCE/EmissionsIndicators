@@ -1,10 +1,7 @@
-
-#for (year in year.min:year.max){
-
-### Settings
-path_out <- str_c("data_out/IOT_",year,"_",nom,"/")
-dir.create(str_c(path_out), recursive = TRUE)
-
+library(zen4R)
+library(data.table)
+###
+source("src/00_header.R")
 
 #X: total output
 load.matrix("x", year = 2015, export = TRUE, row_index = "i.")
