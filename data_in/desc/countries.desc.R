@@ -21,3 +21,23 @@ countries.desc <- list("code.WD2" =  c( "FR",
                                          "Europe (wt EU)",
                                          "Asia & Oceana",
                                          "Middle-East"))
+
+countries_EU3.desc <- list("code.EU3" =  c( "FR",
+                                        "EU",
+                                        "WE",
+                                        "US",
+                                        "CN",
+                                        "WF",
+                                        "WL",
+                                        "WM",
+                                        "WA"), 
+ 
+                       "labels.EU3" = c( "France",
+                                         "European Union",
+                                         "Europe (others)",
+                                         "United States",
+                                         "China",
+                                         "Asia & Pacific",
+                                         "America",
+                                         "RoW Middle East",
+                                         "RoW Africa"))

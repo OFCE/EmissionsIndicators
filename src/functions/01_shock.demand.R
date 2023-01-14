@@ -16,8 +16,8 @@ shock.demand <- function(data,
   
   #mettre à 0 les entrées des autres pays (demande finale du pays en question adressée aux autres pays)
   if(!is.null(iso)){
-    
-    data[-str_which(rownames(data),as.character(iso)),] <- 0
+
+    data <- data %>% as.data.frame  %>% select(contains(str_c(iso,"_"))) 
   }
   
   if (aggregate == TRUE){
@@ -35,7 +35,7 @@ Env.multiplier <- function(Y.mat, S.mat, L.mat,volume = NULL){
   if (is.null(volume)){volume = FALSE}
   
   
-  x <- L.mat %*% Y.mat
+  x <- L.mat %*% diag(Y.mat)
   
   x_1 <- 1/x        
   x_1[is.infinite(x_1)] <- 0 
