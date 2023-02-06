@@ -12,13 +12,15 @@ sec_out = "ThreeME_c28"
 sec_sht =  "Products"
 
 country_in = "Countries_1"
-country_out = "Countries_2.EU3"
+country_out = "Countries_2.EU4"
 country_sht = "Countries"
+
 
 
 Y.df <- perform.bridge(Y.raw,country_in, country_out, country_sht, 
                        sec_in, sec_out, sec_sht,
-                       format_data = "matrix", index = TRUE)
+                       format_data = "matrix", index = TRUE, countries.row = TRUE)
+
 
 Z.df <- perform.bridge(Z.raw,country_in, country_out, country_sht, 
                        sec_in, sec_out,sec_sht,
