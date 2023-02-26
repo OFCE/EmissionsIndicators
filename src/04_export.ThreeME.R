@@ -1,12 +1,7 @@
 source("src/00_header.R")
 
 
-# folder in which the results are exported
-path_user.export <-  "/Users/paul/Documents/Professionnel/"
-path_export <- "ThreeME_V3/data/France/"
-
-
-other_countries <- countries_EU3.desc$code.EU3[iso != countries_EU3.desc$code.EU3]
+other_countries <- countries_EU4.desc$code.EU4[iso != countries_EU4.desc$code.EU4]
 
 country_out = "Countries_2.EU3"
 
@@ -38,12 +33,12 @@ for (ghg in c(glist)){
     select(-nProducts)
   
   # Emissions par produit et par pays d'origine
-  data_EMS.M <- table.import(EMS.M)  %>% merge(sec.desc[[str_c(br,".desc")]],., by = "products") %>%
+  data_EMS.M <- table.import(EMS.M,transpose = TRUE)  %>% merge(sec.desc[[str_c(br,".desc")]],., by = "products") %>%
     select(-nProducts) %>%
     arrange(match(codes,ThreeME.desc$codes)) %>% select("products", "codes",other_countries)
   
   
-  data_EMS.M_dir <- table.import(EMS.M_dir)  %>% merge(sec.desc[[str_c(br,".desc")]],., by = "products") %>%
+  data_EMS.M_dir <- table.import(EMS.M_dir,transpose = TRUE)  %>% merge(sec.desc[[str_c(br,".desc")]],., by = "products") %>%
     select(-nProducts) %>%
     arrange(match(codes,ThreeME.desc$codes)) %>% select("products", "codes", other_countries)
   
@@ -66,11 +61,18 @@ for (ghg in c(glist)){
   
   
   
-  # Creation of an excel workbook
+  
+  # Export of results in rds format
+  saveRDS(data_IEMS_M, str_c(path_loader,"fac.M_",ghg,"_",iso,"_imp.rds"))
+  saveRDS(data_IEMS_M_dir, str_c(path_loader,"fac.M_dir_",ghg,"_",iso,"_imp.rds"))
+  
+  saveRDS(data_EMS.M_dir, str_c(path_loader,"EMS.M_",ghg,"_",iso,"_imp.rds"))
+  saveRDS(data_EMS.M, str_c(path_loader,"EMS.M_dir_",ghg,"_",iso,"_imp.rds"))
   
   # Writing the data into a excel workbook sheet 
   addWorksheet(wb, str_c(ghg))
   writeData(wb, str_c(ghg), get(str_c("data_EMS.M")), rowNames = TRUE)
+  
   addWorksheet(wb, str_c("fac_",ghg))
   writeData(wb, str_c("fac_",ghg), data_IEMS_M, rowNames = TRUE)
   
@@ -78,6 +80,7 @@ for (ghg in c(glist)){
   # Writing the data into a excel workbook sheet 
   addWorksheet(wb_dir, str_c(ghg))
   writeData(wb_dir, str_c(ghg), get(str_c("data_EMS.M_dir")), rowNames = TRUE)
+  
   addWorksheet(wb_dir, str_c("fac_",ghg))
   writeData(wb_dir, str_c("fac_",ghg), get(str_c("data_IEMS_M_dir")), rowNames = TRUE)
 }
@@ -96,6 +99,7 @@ addWorksheet(wb_dir, "IMPORTS")
 writeData(wb_dir, "IMPORTS", data_M, rowNames = TRUE)
 
 
+
 # Exporting the results in the path_out folder
-saveWorkbook(wb, file = str_c(path_user.export,path_export,"DATA.",iso,"_GHG_IMPORTED.xlsx"), overwrite = TRUE)
-saveWorkbook(wb_dir, file = str_c(path_user.export,path_export,"DATA.",iso,"_GHG_DIR_IMPORTED.xlsx"), overwrite = TRUE)
+saveWorkbook(wb, file = str_c(path_user, path_export,"DATA.",iso,"_GHG_IMPORTED.xlsx"), overwrite = TRUE)
+saveWorkbook(wb_dir, file = str_c(path_user, path_export,"DATA.",iso,"_GHG_DIR_IMPORTED.xlsx"), overwrite = TRUE)
