@@ -1,7 +1,7 @@
 
 perform.bridge <- function(data, 
                            country_in, country_out = NULL, country_sht, 
-                           sec_in, sec_out = NULL, sec_sht, 
+                           sec_in, sec_out = NULL, sec_sht = NULL, 
                            sq_mat = NULL, 
                            format_data = NULL, 
                            transpose = NULL, 
@@ -14,6 +14,9 @@ perform.bridge <- function(data,
   if(is.null(country_out)){country_out = country_in} 
   if(is.null(sec_out)){sec_out = sec_in}
   
+  if(is.null(sec_sht)){sec_sht = "products"}
+  if(is.null(country_sht)){sec_sht = "countries"}
+  
   if(is.null(sq_mat)){sq_mat = FALSE}
   
   if(is.null(format_data)){format_data = "data.frame"}
@@ -24,16 +27,17 @@ perform.bridge <- function(data,
   
   if(is.null(vector)){vector = FALSE}
   if(is.null(index)){index = FALSE}
+  
   if(is.null(countries.row)){countries.row = FALSE}
-  if (index == TRUE){ n = 2} else{n = 0}
+  if (index == TRUE){n = 2} else{n = 0}
   
   #df <- data %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),3-n,4-n),
   #                                          products.in = str_sub(rownames(.),6-n))
   if (transpose == TRUE){
     
     df_0 <-   t(data)
-    df <- df_0%>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1+n,2+n),
-                                             products.in = str_sub(rownames(.),4+n))
+    df <- df_0 %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),1+n,2+n),
+                                              products.in = str_sub(rownames(.),4+n))
   } 
   else { 
     df_0 <- data
@@ -41,21 +45,17 @@ perform.bridge <- function(data,
                                                 products.in = str_sub(rownames(.),4+n))
   }
   
-  #str_sub(rownames(data),3-n,4-n)
-  #if(country_in != country_out){
+  ### Bridge in long format for countries
   br_lg <-  loadBridge(country_in, country_out, country_sht) %>%
     data.frame() %>% mutate(countries.out = rownames(.)) %>%
     pivot_longer(cols = colnames(.)[-ncol(.)], names_to = "countries.in", values_to = "value") %>%
     filter(value ==1) %>% select(-value)
-  #}
   
   ### Bridge in long format for products
-  #if(sec_in != sec_out){
   br.2_lg <-  loadBridge(sec_in, sec_out, sec_sht) %>% 
     as.data.frame() %>% mutate(products.out = rownames(.)) %>%
     pivot_longer(cols = colnames(.)[-ncol(.)], names_to = "products.in", values_to = "weight") %>% 
     filter(weight > 0)
-  #}
   
   ## Merge and aggregation
   if (satellite == TRUE){
@@ -136,15 +136,16 @@ perform.bridge <- function(data,
   
   if (countries.row == TRUE){
     
-    df.1 <- t(df.1[,-1:-2]) %>% as.data.frame %>%
+    df.1 <- t(df.1) %>% as.data.frame %>%
       mutate(countries.in = str_sub(rownames(.),1,2),
              use.in = str_sub(rownames(.),4)) %>% 
-      
       `colnames<-`(c(id_out.col, "countries.in", "use.in")) %>%
       merge(., br_lg, by = "countries.in" , all.x = TRUE) %>% 
       group_by(use.in, countries.out) %>%
       # Somme pondérée par weight pour les produits (0>p>1)
-      summarise(across(all_of(id_out.col), ~ sum(.))) %>% ungroup() %>% mutate(col.names =str_c(countries.out,"_",use.in) ) %>% select(col.names, all_of(id_out.col))
+      summarise(across(all_of(id_out.col), ~ sum(.))) %>% ungroup() %>%
+      mutate(col.names =str_c(countries.out,"_",use.in) ) %>% select(col.names, all_of(id_out.col))
+    
     id_out.col <- df.1$col.names
     
     df.1 <- df.1[,-1] %>% t() %>% `colnames<-`(id_out.col) %>% as.data.frame()  %>% select(order(colnames(.)))
@@ -156,6 +157,5 @@ perform.bridge <- function(data,
   }
   
   return(df.1)
-  
-  
 }
+

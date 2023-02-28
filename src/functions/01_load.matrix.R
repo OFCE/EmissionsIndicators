@@ -6,7 +6,8 @@ load.matrix <- function(mat,
                         satellite = NULL,
                         col_index = NULL, 
                         row_index = NULL, 
-                        export = NULL)
+                        export = NULL, 
+                        path_out = path_out)
 {
   
   if (is.null(export)){ export = FALSE} 
@@ -73,7 +74,7 @@ load.matrix <- function(mat,
   
   
   if (export == TRUE){
-    saveRDS(df_mat, str_c(path_out, mat,".rds"))
+    saveRDS(df_mat, str_c(path_data.source,"IOT_",year,"_",nom,"/",mat,".rds"))
   }
   
   df_mat
