@@ -722,6 +722,41 @@ EU_groupes_pays <- table_EU_eurostat %>%
     values = c("indianred1", "cornflowerblue","orange1")) +
   facet_grid(~level_income, scales="free_x")
 
+EU_groupes_pays2 <- table_EU_eurostat %>%
+  mutate(hab = ifelse(population < 3000000, "<3 mill.",
+                            ifelse(population >= 3000000 & population <= 20000000, "20,000-35,000 ",
+                                   ">20 mill."))) %>% 
+  #filter(nom_pays != "Reste du monde") %>%
+  group_by(nom_pays) %>%
+  mutate(agg.demande_impact=sum(GES_impact_M_vol_select),
+         agg.producteur_impact=sum(GES_impact_S_vol_select),
+         agg.VA_impact=sum(GES_impact_S.VA_vol_select),
+         agg.production=sum(production_pays),
+         agg.demande_finale=sum(DF_tot)) %>%
+  ungroup() %>%
+  pivot_longer(
+    cols = c("agg.producteur_impact","agg.demande_impact","agg.VA_impact"),
+    names_to = "indicator",
+    values_to = "impact") %>%
+  as.data.frame() %>% 
+  ggplot( 
+    aes(x= nom_pays, 
+        y = impact/10^6,
+        fill = indicator)) +
+  geom_bar(stat='identity',position = "dodge") +
+  theme(axis.text.x = element_text(angle = 30, size=5, vjust = 1, hjust=1),
+        plot.title =element_text(size=12, face='bold', hjust=0.5),
+        panel.background = element_blank(),
+        panel.grid.major.y=element_line(color="gray",size=0.5,linetype = 2),
+        plot.margin = unit(c(10,5,5,5), "mm"))+
+  labs(title="Emissions",
+       x ="Région ou pays", y = "Emissions GES (kt CO2eq)",
+       fill="Indicateur") +
+  scale_fill_manual(
+    labels = c("Demande", "Production","VA"), 
+    values = c("indianred1", "cornflowerblue","orange1")) +
+  facet_grid(~hab, scales="free_x")
+
 EU_groupes_pays_par.pib <- table_EU_eurostat %>%
   mutate(level_income = ifelse(PIB.hab < 20000, "<20,000€",
                             ifelse(PIB.hab >= 20000 & PIB.hab <= 35000, "20,000-35,000 €",
@@ -897,7 +932,7 @@ ggarrange(EU_groupes_pays, EU_groupes_pays_par.pib,
 ```
 
 ```{r groupes pays eu pop, echo=FALSE, fig.height=8, fig.width=6, message=FALSE, warning=FALSE, fig.cap="Emissions normalized by the size of the population"}
-ggarrange(EU_groupes_pays, EU_groupes_pays_par.hab,
+ggarrange(EU_groupes_pays2, EU_groupes_pays_par.hab,
           nrow = 2, ncol = 1, common.legend = TRUE)
 ```
 
@@ -907,6 +942,12 @@ But the production and demand (and revenue) of the poorest countries are more em
 The richest countries are disadvantaged by (have the biggest impact with) the demand and revenue approaches. This could be due to importations of the products which production process is very emissions intensive, and to the location of management/services activities making most revenue in these rich countries. In the other two groups of countries, some countries are disadvantaged by the demand approach, and others by the production approach.
 
 
+
+The formula for emissions by euro of GDP is simply $\frac{emissions}{GDP}$ where emissions can be the volume of emissions in any of the three approaches. For instance the number $\frac{emissions_{VA}}{GDP}$ is the quantity of GHG emitted by the VA created with each euro of GDP (in a given sector or country). Likewise, $\frac{emissions_{production}}{GDP}$ (resp. $\frac{emissions_{demand}}{GDP}$) is the quantity of GHG emitted by one euro of GDP (resp. by the demand created with each euro of GDP).
+
+The formula for emissions percapita is simply $\frac{emissions}{population}$. In that case $\frac{emissions_{demand}}{population}$ is the average quantity of GHG emitted by the consumption of one inhabitant, $\frac{emissions_{production}}{population}$ (rep. $\frac{emissions_{VA}}{population}$) is the quantity of GHG emitted by the production commanded by one inhabitant (resp. revenue from production commanded by one inhabitant).
+
+From these interpretations, we see that some of the indicators make more sense than others: $\frac{emissions_{production}}{GDP}$ (or $\frac{emissions_{VA}}{GDP}$) and $\frac{emissions_{demand}}{population}$ make the most sense for interpretation.
 
 
 Deux secteurs ressortent particulièrement: "ELECTRICITE, GAZ ET EAU" et "PRODUITS D'EXTRACTION" ont à la fois le plus faible impact demande et revenu en proportion, et la plus forte part d'impact producteur.
