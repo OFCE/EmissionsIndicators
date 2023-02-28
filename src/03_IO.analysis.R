@@ -57,18 +57,13 @@ Y_all.vec <- shock.demand(Y, aggregate = TRUE)
 
 
 ##Inverse de Leontief
-L <- LeontiefInverse(Z, X, coef = FALSE)
-
-L_1 <- LeontiefInverse(Z,X, coef = F, direct = TRUE)
-
+L   <- LeontiefInverse(Z, X, coef = FALSE)
+L_1 <- LeontiefInverse(Z, X, coef = FALSE, direct = TRUE)
 
 x <- L %*% Y_all.vec
 
-
 ##Vecteur de demande pays iso
 Y.vec <- shock.demand(Y,iso, aggregate = TRUE) 
-
-
 
 #### Impacts factors ####
 for(ghg in glist){
@@ -156,4 +151,8 @@ saveRDS(M_export, str_c(path_loader,"M_",ghg,"_",iso,".rds"))
 saveRDS(M.dir_export, str_c(path_loader,"M_dir_",ghg,"_",iso,".rds"))
 saveRDS(S_export, str_c(path_loader,"S_",ghg,".rds"))
 }
+
 saveRDS(Y_export, str_c(path_loader,"Y_",iso,".rds"))
+
+
+M_volume %>% as.data.frame() %>% select(starts_with("FR")) %>% sum()/10^9
