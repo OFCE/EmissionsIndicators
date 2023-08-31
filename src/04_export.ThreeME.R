@@ -1,10 +1,11 @@
 source("src/00_header.R")
 
 
-other_countries <- countries_EU4.desc$codes[iso != countries_EU4.desc$codes]
+other_countries <- get(str_c("countries_",br.pays,".desc"))["codes"][iso !=  get(str_c("countries_",br.pays,".desc"))["codes"]] |>
+  unlist() |> as.vector()
 
 
-#br.pays <- country_out %>% str_remove("Countries_2.")
+#br.pays <- country_out |> str_remove("Countries_2.")
 wb <- createWorkbook("ThreeME calibration")
 wb_dir <- createWorkbook("ThreeME calibration.2")
 
@@ -14,50 +15,50 @@ for (ghg in c(glist)){
   
   #Extracting the data and taking only the imported emissions 
   data_fac.M <- readRDS(str_c(path_loader,"fac.M_",ghg,"_",iso,".rds"))  %>%
-    merge(sec.desc[[str_c(br,".desc")]],., by = "products") %>%
+    merge(sec.desc[[str_c(br,".desc")]],., by = "products") |>
     select(-nProducts)
   
-  X  <- readRDS(str_c(path_loader,"X_",br.pays,"_",br,".rds"))  %>% as.data.frame() %>%
+    X  <- readRDS(str_c(path_loader,"X_",br.pays,"_",br,".rds"))  |> as.data.frame() %>%
     mutate(countries = str_sub(rownames(.),1,2),
-           products = str_sub(rownames(.),4)) %>%
+           products = str_sub(rownames(.),4)) |>
     pivot_wider(names_from = countries,
-                values_from = indout_0) %>% select("products", other_countries)
+                values_from = indout_0) |> select("products", all_of(other_countries))
   
   
   EMS.M <- readRDS(str_c(path_loader,"M_",ghg,"_",iso,".rds"))  %>%
-    merge(sec.desc[[str_c(br,".desc")]],., by = "products") %>%
+    merge(sec.desc[[str_c(br,".desc")]],., by = "products") |>
     select(-nProducts)
   
   EMS.M_dir <- readRDS(str_c(path_loader,"M_dir_",ghg,"_",iso,".rds"))  %>%
-    merge(sec.desc[[str_c(br,".desc")]],., by = "products") %>%
+    merge(sec.desc[[str_c(br,".desc")]],., by = "products") |>
     select(-nProducts)
   
   # Emissions par produit et par pays d'origine
   data_EMS.M <- table.import(EMS.M,transpose = F)  %>%
-    merge(sec.desc[[str_c(br,".desc")]],., by = "products") %>% select(-nProducts) %>%
-    arrange(match(codes,ThreeME.desc$codes)) %>% select("products", "codes",other_countries)
+    merge(sec.desc[[str_c(br,".desc")]],., by = "products") |> select(-nProducts) |>
+    arrange(match(codes,ThreeME_c28.desc$codes)) |> select("products", "codes",all_of(other_countries))
   
   
   data_EMS.M_dir <- table.import(EMS.M_dir,transpose = F)  %>%
-    merge(sec.desc[[str_c(br,".desc")]],., by = "products") %>%
-    select(-nProducts) %>%
-    arrange(match(codes,ThreeME.desc$codes)) %>% select("products", "codes", other_countries)
+    merge(sec.desc[[str_c(br,".desc")]],., by = "products") |>
+    select(-nProducts) |>
+    arrange(match(codes,ThreeME_c28.desc$codes)) |> select("products", "codes", all_of(other_countries))
   
   # Intensity by products
-  data_IEMS_M <- cbind("products" = data_EMS.M[,1], data_EMS.M[-1:-2]/X[,-1]) %>% 
-    merge(sec.desc[[str_c(br,".desc")]],., by = "products") %>%
-    select(-nProducts) %>%
-    arrange(match(codes,ThreeME.desc$codes)) %>%
-    select("products", "codes",other_countries)%>% 
-    mutate_if(is.numeric, ~ replace_na(., 0) %>% 
+  data_IEMS_M <- cbind("products" = data_EMS.M[,1], data_EMS.M[-1:-2]/X[,-1]) %>%
+    merge(sec.desc[[str_c(br,".desc")]],., by = "products") |>
+    select(-nProducts) |>
+    arrange(match(codes,ThreeME_c28.desc$codes)) |>
+    select("products", "codes",other_countries) %>%
+    mutate_if(is.numeric, ~ replace_na(., 0) %>%
                 replace(., is.infinite(.), 0))
   
   data_IEMS_M_dir <- cbind("products" = data_EMS.M_dir[,1], data_EMS.M_dir[,-1:-2]/X[,-1]) %>%
-    merge(sec.desc[[str_c(br,".desc")]],., by = "products") %>%
-    select(-nProducts) %>%
-    arrange(match(codes,ThreeME.desc$codes)) %>%
-    select("products", "codes",other_countries) %>% 
-    mutate_if(is.numeric, ~ replace_na(., 0) %>% 
+    merge(sec.desc[[str_c(br,".desc")]],., by = "products") |>
+    select(-nProducts) |>
+    arrange(match(codes,ThreeME_c28.desc$codes)) |>
+    select("products", "codes",other_countries) %>%
+    mutate_if(is.numeric, ~ replace_na(., 0) %>%
                 replace(., is.infinite(.), 0))
   
   
@@ -86,17 +87,17 @@ for (ghg in c(glist)){
   addWorksheet(wb_dir, str_c("fac_",ghg))
   writeData(wb_dir, str_c("fac_",ghg), get(str_c("data_IEMS_M_dir")), rowNames = TRUE)
   
-  #(select(EMS.M[-1:-3], !starts_with("FR"))/10^9) %>% sum
+  #(select(EMS.M[-1:-3], !starts_with("FR"))/10^9) |> sum
   
-  (data_EMS.M[-1:-2]/10^9)%>% sum
+  (data_EMS.M[-1:-2]/10^9)|> sum()
 }
 
-#data_EMS.M[-1:-2] %>% sum()/10^9
+#data_EMS.M[-1:-2] |> sum()/10^9
 # Adding the exports in monetary values
 data_M <- readRDS(str_c(path_loader,"Y_",iso,".rds"))  %>%
-  #select(-iso) %>%
-  merge(sec.desc[[str_c(br,".desc")]],., by = "products") %>%
-  arrange(match(codes,ThreeME.desc$codes)) %>% select("products", "codes", other_countries)
+  #select(-iso) |>
+  merge(sec.desc[[str_c(br,".desc")]],., by = "products") |>
+  arrange(match(codes,ThreeME_c28.desc$codes)) |> select("products", "codes", other_countries)
 
 # Writing the data into a excel workbook sheet
 addWorksheet(wb, "IMPORTS")
