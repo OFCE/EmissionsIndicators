@@ -1,6 +1,6 @@
 # Plot name
 name_plot <- "Plot_2"
-frmt <- "png"
+format_img <- "png"
 police <- "Arial"
 #_________________________________________
 for (frmt in c(format_img,"pdf", "data")){
@@ -9,11 +9,11 @@ for (frmt in c(format_img,"pdf", "data")){
 #_________________________________________
 rep_data <- list()
 for (ghg in c("CO2" ,"CH4", "N2O")){
-  rep_data[[str_c(ghg)]] <- readRDS(str_c("data_out/IOT_2015_pxp/",sec_out,"/",br.pays,"/EMS.M.dir_",ghg,"_",iso,"_imp.rds")) |> mutate(GHG = ghg)
+  rep_data[[str_c(ghg)]] <- readRDS(str_c("data_out/IOT_2015_pxp/",sec_out,"/",br.pays,"/EMS.M_",ghg,"_",iso,".rds")) |> mutate(GHG = ghg)
 }
 
 df <- readRDS(str_c("data_out/IOT_2015_pxp/",sec_out,"/",br.pays,"/EMS.M_CO2_",iso,"_imp.rds")) 
-df%>% select(!starts_with(c("products", "codes", "GHG"))) %>% sum()/10^9
+df %>% select(!starts_with(c("products", "codes", "GHG"))) %>% sum()/10^9
 
 
 data <- bind_rows(rep_data, .id = "GHG")  |> 
@@ -35,7 +35,7 @@ desc.pr <-data.frame("labels.pr" = c(ThreeME_c28.desc[["products.fr"]]),
 pal <- c("#2a5572", "#98504a","#fb8072","#bc80bd","#bebada", "#fdb462","#b3de69")
 
 data[-1:-2] %>% sum()/10^9
-data_eu
+
 ### DATA
 data_plot <- data |> merge(desc.pr, by = "codes") |>
   select(-codes, -products) |>
@@ -81,7 +81,7 @@ rep_plot[[str_c("plot.",iso,"_",br.pays,"_",sec_out)]] <- ggplot(data = data_plo
   labs(
     title= str_c("           Émissions de GES importées par l'Union Européenne - données ",year), 
    #subtitle =  str_c() ,
-    caption="Source: Exiobase 3.8.2, calculs OFCE\n Gaz à effet de serre inclus: CO2, CH4, N2O, Gaz fluorés",
+    #caption="Source: Exiobase 3.8.2, calculs OFCE\n Gaz à effet de serre inclus: CO2, CH4, N2O, Gaz fluorés",
     x= "",
     y=" en Mt CO2e"
   ) + 
