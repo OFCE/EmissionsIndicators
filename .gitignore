@@ -18,3 +18,7 @@ report/**/**.png
 
 
 
+
+**/.DS_Store
+
+/.luarc.json
