@@ -19,7 +19,7 @@ table.import <- function(data,
   }
   
   df <- data  %>% group_by("countries", "products", "products.fr", "codes")  %>%
-    summarise(across(colnames(data[,-1:-4]), ~ sum(.)))  %>% ungroup() %>%
+    summarise(across(colnames(data[,-1:-4]), ~ sum(.)), .groups = "drop_last")  %>% ungroup() %>%
     .[,-1:-4] %>% 
     t %>% as.data.frame() %>% 
     mutate(countries = str_sub(rownames(.),1,2),

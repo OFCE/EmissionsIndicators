@@ -8,6 +8,7 @@ perform.bridge <- function(data,
                            satellite = NULL,
                            vector = NULL, 
                            index = NULL, 
+                           direct_impacts = NULL,
                            countries.row = NULL)
 {
   
@@ -24,6 +25,7 @@ perform.bridge <- function(data,
   if(is.null(transpose)){transpose = FALSE}
   
   if(is.null(satellite)){satellite = FALSE}
+  if(is.null(direct_impacts)){direct_impacts = FALSE}
   
   if(is.null(vector)){vector = FALSE}
   if(is.null(index)){index = FALSE}
@@ -31,8 +33,9 @@ perform.bridge <- function(data,
   if(is.null(countries.row)){countries.row = FALSE}
   if (index == TRUE){n = 2} else{n = 0}
   
-  #df <- data %>% as.data.frame() %>% mutate(countries.in = str_sub(rownames(.),3-n,4-n),
-  #                                          products.in = str_sub(rownames(.),6-n))
+  
+  data[is.na(data)] <- 0
+  
   if (transpose == TRUE){
     
     df_0 <-   t(data)
@@ -59,14 +62,25 @@ perform.bridge <- function(data,
   
   ## Merge and aggregation
   if (satellite == TRUE){
-    
-    df.1 <- merge(df, br_lg, by = "countries.in" , all.x = TRUE) %>%
-      merge(., br.2_lg, by = "products.in") %>%
-      group_by(countries.out, products.out) %>%
-      # Somme pondérée par weight pour les produits (0>p>1)
-      summarise(across(all_of(colnames(df_0)), ~ sum(. * weight)))  %>% ungroup() %>%
-      rename_with(~ sub("^countries.*", "countries", .x), starts_with("countries")) %>%
-      rename_with(~ sub("^products.*", "products", .x), starts_with("products"))
+    if (direct_impacts == TRUE){
+      df.1 <-  merge(df, br_lg, by = "countries.in" , all.x = TRUE)  %>%
+        group_by(countries.out, products.in) %>%
+        # Somme pondérée par weight pour les produits (0>p>1)
+        summarise(across(all_of(colnames(df_0)), ~ sum(.)))  %>% ungroup() %>%
+        rename_with(~ sub("^countries.*", "countries", .x), starts_with("countries")) %>%
+        rename_with(~ sub("^products.*", "products", .x), starts_with("products"))
+      
+    } else{
+      df.1 <-  merge(df, br_lg, by = "countries.in" , all.x = TRUE)  %>%
+        merge(., br.2_lg, by = "products.in") %>%
+        group_by(countries.out, products.out) %>%
+        # Somme pondérée par weight pour les produits (0>p>1)
+        summarise(across(all_of(colnames(df_0)), ~ sum(. * weight)))  %>% ungroup() %>%
+        rename_with(~ sub("^countries.*", "countries", .x), starts_with("countries")) %>%
+        rename_with(~ sub("^products.*", "products", .x), starts_with("products"))
+      
+    }
+
     
     id_out <-  str_c(df.1$countries,"_",df.1$products)
   } 
@@ -83,10 +97,6 @@ perform.bridge <- function(data,
     # Step 2 avec la transpose (que pour countries, car produits ici composante demande)
     
     if (sq_mat == TRUE){
-      #if (vector == FALSE){
-      
-      
-      #} 
       df.1 <- df.1 %>% select(-countries.out,- products.out) %>%
         as.matrix(nrow(df.1),ncol(data),
                   dimnames = list(id_out,data)) %>%
@@ -100,7 +110,7 @@ perform.bridge <- function(data,
       
       
       df.1.1 <- df.1 %>% 
-        merge(br.2_lg, by = "products.in", all = T) %>%
+        merge(br.2_lg, by = "products.in") %>%
         group_by(countries.out, products.out) %>%
         # Somme pondérée par weight pour les produits (0>p>1)
         summarise(across(all_of(id_out), ~ sum(.)))  %>% ungroup() %>%
@@ -152,7 +162,7 @@ perform.bridge <- function(data,
     
   }
   
-  if (round(sum(data) - sum(df.1), 3) != 0){
+  if (round((sum(data) - sum(df.1))/sum(data), 6) != 0){
     cat(str_c(" Houston, we have a balance problem (",round(100*(sum(data) - sum(df.1))/sum(data),6)," %)")) 
   }
   
