@@ -34,10 +34,35 @@ countries.desc_WD2 <- list("codes"         = c("FR",
                                                "Moyen-Orient")
 )
 
+countries_EU2.desc <- list("codes"     = c("FR",
+                                           "DE",
+                                           "ES",
+                                           "PL",
+                                           "IT",
+                                           "UK",
+                                           "US",
+                                           "ID",
+                                           "BR",
+                                           "IN",
+                                           "CN", 
+                                           "WD"), 
+                           "labels_fr" = c("France",
+                                           "Allemagne",
+                                           "Espagne",
+                                           "Pologne",
+                                           "Italie",
+                                           "Royaume-Uni",
+                                           "États-Unis",
+                                           "Indonésie",
+                                           "Brésil",
+                                           "Inde",
+                                           "Chine", 
+                                           "Reste du Monde"))
+
 countries_EU3.desc <- list("codes"     = c("FR",
                                            "EU",
                                            "WE",
-
+                                           
                                            "CN",
                                            "WF",
                                            "US",
@@ -59,13 +84,13 @@ countries_EU3.desc <- list("codes"     = c("FR",
                                            "Europe (hors UE)",
                                            "Chine",
                                            "Asie et Pacifique",
-                                           "Etats-Unis",
+                                           "États-Unis",
                                            "Amériques (hors USA)",
                                            "Moyen-Orient",
                                            "Afrique")
 )
 
-countries_EU4.desc <- list("codes"    =  c("EU",
+countries_WD3.desc <- list("codes"    =  c("EU",
                                            "WE",
                                            "US",
                                            "CN",
